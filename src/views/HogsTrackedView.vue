@@ -34,6 +34,10 @@ import BottomBar from './parts/BottomBar.vue'
 </script>
 
 <style scoped>
+* {
+  font-family: 'Quicksand', sans-serif;
+}
+
 .screen {
   min-height: 100vh;
   background: #f5f5f5;

@@ -28,6 +28,10 @@
 </template>
 
 <style scoped>
+* {
+  font-family: 'Quicksand', sans-serif;
+}
+
 .bottombar {
   margin-top: auto;
   display: grid;

@@ -68,6 +68,10 @@ const go = (name) => {
 </template>
 
 <style scoped>
+* {
+  font-family: 'Quicksand', sans-serif;
+}
+
 .dashboard {
   min-height: 100vh;
   background: #f5f5f5;
@@ -128,7 +132,7 @@ const go = (name) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px; /* Increase spacing between content inside the card */
+  gap: 12px; /* Increase spacing between content inside the card */
   cursor: pointer;
   transform: scale(1); /* Add a scale effect */
   transition: transform 0.2s ease-in-out; /* Smooth hover effect */
