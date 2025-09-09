@@ -1,29 +1,32 @@
 <template>
   <div class="screen">
-    <section class="hero">
-      <div class="header">
-        <h2>Hogs Tracked</h2>
-        <img src="/favicon.ico" alt="icon" />
+    <section class="panel">
+      <div class="panel-header">
+        <button class="back" @click="$router.back()">←</button>
+        <div class="title-wrap">
+          <h2 class="title-lg">Hogs Tracked</h2>
+          <p class="sub">Monitor your hogs across all stages</p>
+        </div>
+        <img class="panel-illustration" src="/pig2.png" alt="icon" />
       </div>
-      <p class="sub">Monitor your hogs across all stages</p>
-    </section>
 
-    <div class="table">
-      <div class="thead">
-        <span>Hog Code</span>
-        <span>Weight</span>
-        <span>Days</span>
-        <span>Feeding</span>
+      <div class="table">
+        <div class="thead">
+          <span>Hog Code</span>
+          <span>Weight</span>
+          <span>Days</span>
+          <span>Feeding</span>
+        </div>
+        <div class="row" v-for="i in 6" :key="i">
+          <span>XX{{ i }}</span>
+          <span>{{ 150 + i * 5 }}kg</span>
+          <span>{{ 10 + i }}</span>
+          <span :class="{ ok: i % 2, bad: !(i % 2) }">{{
+            i % 2 ? 'Completed' : 'Not Completed'
+          }}</span>
+        </div>
       </div>
-      <div class="row" v-for="i in 6" :key="i">
-        <span>XX{{ i }}</span>
-        <span>{{ 150 + i * 5 }}kg</span>
-        <span>{{ 10 + i }}</span>
-        <span :class="{ ok: i % 2, bad: !(i % 2) }">{{
-          i % 2 ? 'Completed' : 'Not Completed'
-        }}</span>
-      </div>
-    </div>
+    </section>
 
     <BottomBar />
   </div>
@@ -40,34 +43,53 @@ import BottomBar from './parts/BottomBar.vue'
 
 .screen {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #2f8b60;
   display: flex;
   flex-direction: column;
 }
-.hero {
-  background: #2f8b60;
-  color: #fff;
-  margin: 16px;
-  border-radius: 16px;
-  padding: 20px;
+.panel {
+  background: #fff;
+  margin: 20px 16px;
+  border-radius: 18px;
+  padding: 16px;
 }
-.header {
-  display: flex;
-  justify-content: space-between;
+.panel-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
+  gap: 12px;
 }
-.header img {
-  width: 60px;
-  height: 60px;
+.back {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+}
+.panel-illustration {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+.title-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.title-lg {
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.05;
+  margin: 0;
 }
 .sub {
-  opacity: 0.9;
+  color: #7a8b99;
   margin-top: 6px;
 }
 .table {
   background: #fff;
-  margin: 0 16px;
-  border-radius: 16px;
+  margin-top: 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
   padding: 8px;
   display: grid;
 }

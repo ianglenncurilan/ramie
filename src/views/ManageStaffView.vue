@@ -1,23 +1,26 @@
 <template>
   <div class="screen">
-    <section class="hero">
-      <div class="header">
-        <h2>Manage Staff</h2>
-        <img src="/favicon.ico" alt="icon" />
-      </div>
-      <p class="sub">Manage your staff's activities and logs.</p>
-    </section>
-
-    <div class="list">
-      <button class="row" v-for="i in 3" :key="i">
-        <div class="avatar">👤</div>
-        <div class="col">
-          <div class="title">Staff {{ i }}</div>
-          <div class="muted">{{ 6 - i }} Recent Logs</div>
+    <section class="panel">
+      <div class="panel-header">
+        <button class="back" @click="$router.back()">←</button>
+        <div class="title-wrap">
+          <h2 class="title-lg">Manage Staff</h2>
+          <p class="sub">Manage your staff's activities and logs.</p>
         </div>
-        <span class="action">⋯</span>
-      </button>
-    </div>
+        <img class="panel-illustration" src="/staff.png" alt="icon" />
+      </div>
+
+      <div class="list">
+        <button class="row" v-for="i in 3" :key="i">
+          <div class="avatar">👤</div>
+          <div class="col">
+            <div class="title">Staff {{ i }}</div>
+            <div class="muted">{{ 6 - i }} Recent Logs</div>
+          </div>
+          <span class="chev">⋯</span>
+        </button>
+      </div>
+    </section>
 
     <BottomBar />
   </div>
@@ -34,53 +37,70 @@ import BottomBar from './parts/BottomBar.vue'
 
 .screen {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: #2f8b60;
   display: flex;
   flex-direction: column;
 }
-.hero {
-  background: #2f8b60;
-  color: #fff;
-  margin: 16px;
-  border-radius: 16px;
-  padding: 20px;
+.panel {
+  background: #fff;
+  margin: 20px 16px;
+  border-radius: 18px;
+  padding: 16px;
 }
-.header {
-  display: flex;
-  justify-content: space-between;
+.panel-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
+  gap: 12px;
 }
-.header img {
-  width: 60px;
-  height: 60px;
+.back {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+}
+.panel-illustration {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+.title-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.title-lg {
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.05;
+  margin: 0;
 }
 .sub {
-  opacity: 0.9;
+  color: #7a8b99;
   margin-top: 6px;
 }
 .list {
-  background: #fff;
-  margin: 0 16px;
-  border-radius: 16px;
-  padding: 8px;
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
 }
 .row {
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 12px;
   align-items: center;
-  padding: 10px 12px;
-  border-bottom: 1px solid #eee;
+  padding: 12px;
   width: 100%;
-}
-.row:last-child {
-  border-bottom: 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
 }
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
-  background: #2f8b6030;
+  background: #2f8b6015;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,11 +109,18 @@ import BottomBar from './parts/BottomBar.vue'
   font-weight: 600;
 }
 .muted {
-  color: #789;
+  color: #7a8b99;
 }
-.action {
+.chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: #2f8b6015;
   color: #2f8b60;
-  font-size: 22px;
+  border-radius: 999px;
+  font-size: 20px;
 }
 button {
   cursor: pointer;
