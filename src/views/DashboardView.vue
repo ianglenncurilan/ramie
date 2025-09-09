@@ -55,7 +55,7 @@ const go = (name) => {
         <img src="/home.png" alt="Dashboard" />
       </button>
       <button @click="go('records')" :class="{ active: $route.name === 'records' }">
-        <img src="/records.png" alt="Records" />
+        <img src="/record.png" alt="Records" />
       </button>
       <button @click="go('expenses')" :class="{ active: $route.name === 'expenses' }">
         <img src="/expensesicon.png" alt="Expenses" />

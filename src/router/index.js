@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import SplashView from '../views/SplashView.vue'
+import OnboardingView from '../views/OnboardingView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import DashboardView from '../views/DashboardView.vue'
@@ -16,7 +18,17 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/login',
+      redirect: '/splash',
+    },
+    {
+      path: '/splash',
+      name: 'splash',
+      component: SplashView,
+    },
+    {
+      path: '/onboarding',
+      name: 'onboarding-1',
+      component: OnboardingView,
     },
     {
       path: '/login',

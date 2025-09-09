@@ -21,7 +21,16 @@
           <div v-for="category in uiCategories" :key="category.key" class="category">
             <div class="cat-head">
               <div class="cat-title">{{ category.title }}</div>
-              <div class="cat-total">{{ category.total }}</div>
+              <div
+                class="cat-total"
+                :class="{
+                  exceeded: getCategoryTotal(category) > category.total,
+                  valid:
+                    getCategoryTotal(category) <= category.total && getCategoryTotal(category) > 0,
+                }"
+              >
+                {{ getCategoryTotal(category) }}/{{ category.total }}
+              </div>
             </div>
 
             <div class="thead">
@@ -153,9 +162,32 @@ const computedTotalPerKg = computed({
   },
 })
 
+function getCategoryTotal(category) {
+  return category.items.reduce((total, item) => {
+    return total + (Number(amounts[item.id]) || 0)
+  }, 0)
+}
+
 const feedsStore = useFeedsStore()
 
 function saveFormulation() {
+  // Validate that all categories meet their requirements
+  const validationErrors = []
+
+  uiCategories.value.forEach((category) => {
+    const categoryTotal = getCategoryTotal(category)
+    if (categoryTotal === 0) {
+      validationErrors.push(`${category.title} has no ingredients added`)
+    } else if (categoryTotal > category.total) {
+      validationErrors.push(`${category.title} exceeds limit (${categoryTotal}/${category.total})`)
+    }
+  })
+
+  if (validationErrors.length > 0) {
+    alert('Cannot save: ' + validationErrors.join(', '))
+    return
+  }
+
   const items = []
   uiCategories.value.forEach((cat) => {
     cat.items.forEach((it) => {
@@ -255,6 +287,17 @@ function saveFormulation() {
 }
 .cat-total {
   font-size: 16px;
+  transition: color 0.3s ease;
+}
+
+.cat-total.exceeded {
+  color: #c94d4d;
+  font-weight: 700;
+}
+
+.cat-total.valid {
+  color: #2f8b60;
+  font-weight: 700;
 }
 .thead {
   display: grid;
