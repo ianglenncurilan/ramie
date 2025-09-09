@@ -15,7 +15,7 @@ const go = (name) => {
 <template>
   <div class="dashboard">
     <header class="topbar">
-      <div class="time">12:00</div>
+      <div class="time">{{ new Date().toLocaleTimeString() }}</div>
       <div class="icons">⋯</div>
     </header>
 
@@ -56,9 +56,6 @@ const go = (name) => {
       </button>
       <button @click="go('records')" :class="{ active: $route.name === 'records' }">
         <img src="/records.png" alt="Records" />
-      </button>
-      <button @click="go('make-feeds')" :class="{ active: $route.name === 'make-feeds' }">
-        <img src="/makefeeds.png" alt="Make Feeds" />
       </button>
       <button @click="go('expenses')" :class="{ active: $route.name === 'expenses' }">
         <img src="/expensesicon.png" alt="Expenses" />
@@ -117,21 +114,21 @@ const go = (name) => {
 .grid {
   margin: 0 16px;
   background: #2f8b60;
-  border-radius: 16px;
-  padding: 24px; /* Increase padding */
+  border-radius: 32px;
+  padding: 32px; /* Increase padding for larger grid */
   display: grid;
   grid-template-columns: 1fr 1fr; /* Keep two columns */
-  gap: 12px; /* Increase spacing between cards */
+  gap: 12px; /* Ensure consistent spacing between cards */
 }
 .card {
   background: #fff;
   border: 0;
-  border-radius: 16px;
-  padding: 30px; /* Increase padding for larger cards */
+  border-radius: 32px;
+  padding: 32px; /* Adjust padding for better balance */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px; /* Increase spacing between content inside the card */
+  gap: 24px; /* Increase spacing between content inside the card */
   cursor: pointer;
   transform: scale(1); /* Add a scale effect */
   transition: transform 0.2s ease-in-out; /* Smooth hover effect */
@@ -140,15 +137,20 @@ const go = (name) => {
   transform: scale(1.05); /* Slightly enlarge the card on hover */
 }
 .card img {
-  width: 60px; /* Increase image size */
-  height: 60px;
+  width: 48px; /* Adjust image size for better balance */
+  height: 48px;
+}
+.card div {
+  font-size: 16px; /* Adjust font size for card text */
+  font-weight: 600; /* Keep the text bold */
+  text-align: center; /* Center-align the text */
 }
 .bottombar {
   margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  padding: 14px 18px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
   background: #fff;
   border-top-left-radius: 18px;
   border-top-right-radius: 18px;
@@ -162,7 +164,7 @@ const go = (name) => {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 12px;
   border-radius: 12px;
   transition: all 0.2s ease-in-out;
 }
@@ -182,8 +184,8 @@ const go = (name) => {
 }
 
 .bottombar img {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
   transition: filter 0.2s ease-in-out;
 }

@@ -13,12 +13,6 @@
       <img src="/records.png" alt="Records" />
     </button>
     <button
-      @click="$router.push({ name: 'make-feeds' })"
-      :class="{ active: $route.name === 'make-feeds' }"
-    >
-      <img src="/makefeeds.png" alt="Make Feeds" />
-    </button>
-    <button
       @click="$router.push({ name: 'expenses' })"
       :class="{ active: $route.name === 'expenses' }"
     >
@@ -37,9 +31,9 @@
 .bottombar {
   margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  padding: 14px 18px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
   background: #fff;
   border-top-left-radius: 18px;
   border-top-right-radius: 18px;
@@ -53,7 +47,7 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 12px;
   border-radius: 12px;
   transition: all 0.2s ease-in-out;
 }
@@ -73,8 +67,8 @@
 }
 
 .bottombar img {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
   transition: filter 0.2s ease-in-out;
 }
