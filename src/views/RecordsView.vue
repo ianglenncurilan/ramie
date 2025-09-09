@@ -9,11 +9,12 @@
     <div class="panel">
       <h3>Records</h3>
       <div class="list">
-        <div class="item" v-for="i in 6" :key="i">
+        <div class="item" v-for="rec in feeds.records" :key="rec.id">
           <span class="dot"></span>
-          <span>Feeds made</span>
-          <span class="muted">Today</span>
+          <span>Feed: {{ rec.stage }} — {{ rec.items.length }} ingredients</span>
+          <span class="muted">{{ new Date(rec.date).toLocaleDateString() }}</span>
         </div>
+        <div v-if="!feeds.records.length" class="empty">No records yet</div>
       </div>
     </div>
     <BottomBar />
@@ -22,6 +23,8 @@
 
 <script setup>
 import BottomBar from './parts/BottomBar.vue'
+import { useFeedsStore } from '../stores/feeds'
+const feeds = useFeedsStore()
 </script>
 
 <style scoped>
@@ -85,6 +88,11 @@ import BottomBar from './parts/BottomBar.vue'
   margin-top: 5px;
 }
 .muted {
+  color: #789;
+}
+.empty {
+  padding: 12px;
+  text-align: center;
   color: #789;
 }
 </style>

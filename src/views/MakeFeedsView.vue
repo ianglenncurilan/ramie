@@ -70,7 +70,8 @@ import BottomBar from './parts/BottomBar.vue'
   background: #fff;
   margin: 20px 16px;
   border-radius: 18px;
-  padding: 16px;
+  padding: 32px;
+  padding-top: 64px;
 }
 .panel-header {
   display: grid;
@@ -114,7 +115,7 @@ import BottomBar from './parts/BottomBar.vue'
   grid-template-columns: auto 1fr auto;
   gap: 12px;
   align-items: center;
-  padding: 12px;
+  padding: 24px;
   width: 100%;
   background: #fff;
   border: 1px solid #e8e8e8;
@@ -146,5 +147,29 @@ import BottomBar from './parts/BottomBar.vue'
 }
 button {
   cursor: pointer;
+}
+
+/* Mobile tweaks */
+@media (max-width: 420px) {
+  .panel {
+    margin: 12px;
+    padding: 20px;
+    padding-top: 28px;
+  }
+  .panel-illustration {
+    width: 56px;
+    height: 56px;
+  }
+  .title-lg {
+    font-size: 24px;
+  }
+  .row {
+    padding: 12px;
+    gap: 10px;
+  }
+  .thumb {
+    width: 40px;
+    height: 40px;
+  }
 }
 </style>

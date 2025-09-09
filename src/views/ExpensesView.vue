@@ -10,17 +10,20 @@
       <div class="cards">
         <div class="card success">
           <div class="label">Income</div>
-          <div class="value">+22,550.00</div>
+          <div class="value">+0.00</div>
         </div>
         <div class="card danger">
           <div class="label">Expense</div>
-          <div class="value">-940.00</div>
+          <div class="value">-{{ feeds.totalExpense.toFixed(2) }}</div>
         </div>
       </div>
       <div class="table">
-        <div class="row" v-for="i in 8" :key="i">
-          <span>Purchase</span>
-          <span class="amt">+{{ (i * 10).toFixed(2) }}</span>
+        <div class="row" v-for="e in feeds.expenses" :key="e.id">
+          <span>{{ e.label }}</span>
+          <span class="amt">-{{ Number(e.amount).toFixed(2) }}</span>
+        </div>
+        <div v-if="!feeds.expenses.length" class="row">
+          <span>No expenses yet</span><span class="amt">0.00</span>
         </div>
       </div>
     </div>
@@ -30,6 +33,8 @@
 
 <script setup>
 import BottomBar from './parts/BottomBar.vue'
+import { useFeedsStore } from '../stores/feeds'
+const feeds = useFeedsStore()
 </script>
 
 <style scoped>

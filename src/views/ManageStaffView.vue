@@ -46,6 +46,8 @@ import BottomBar from './parts/BottomBar.vue'
   margin: 20px 16px;
   border-radius: 18px;
   padding: 16px;
+  padding-top: 64px;
+  padding-bottom: 64px;
 }
 .panel-header {
   display: grid;
