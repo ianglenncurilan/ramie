@@ -24,23 +24,7 @@
         </div>
       </div>
     </div>
-    <nav class="bottombar">
-      <button @click="go('dashboard')">
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button @click="go('records')">
-        <img src="/records.png" alt="Records" />
-      </button>
-      <button class="fab">
-        <img src="/favicon.ico" alt="Add" />
-      </button>
-      <button @click="go('expenses')">
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button @click="go('profile')">
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
+    <BottomBar />
   </div>
 </template>
 
@@ -121,43 +105,5 @@ import BottomBar from './parts/BottomBar.vue'
 }
 .amt {
   color: #2f8b60;
-}
-.bottombar {
-  margin-top: auto;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  padding: 14px 18px;
-  background: #fff;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-}
-.bottombar button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.bottombar img {
-  width: 28px; /* Set a consistent width for all icons */
-  height: 28px; /* Set a consistent height for all icons */
-  object-fit: contain; /* Ensure the image fits within the dimensions */
-}
-.fab {
-  background: #2f8b60;
-  color: #fff;
-  border-radius: 50%;
-  width: 56px; /* Increase FAB size for better visibility */
-  height: 56px;
-  justify-self: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.fab img {
-  width: 24px; /* Adjust the size of the favicon inside the FAB */
-  height: 24px;
 }
 </style>

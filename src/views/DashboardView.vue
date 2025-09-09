@@ -51,19 +51,19 @@ const go = (name) => {
     </section>
 
     <nav class="bottombar">
-      <button @click="go('dashboard')">
+      <button @click="go('dashboard')" :class="{ active: $route.name === 'dashboard' }">
         <img src="/home.png" alt="Dashboard" />
       </button>
-      <button @click="go('records')">
+      <button @click="go('records')" :class="{ active: $route.name === 'records' }">
         <img src="/records.png" alt="Records" />
       </button>
-      <button class="fab">
-        <img src="/favicon.ico" alt="Add" />
+      <button @click="go('make-feeds')" :class="{ active: $route.name === 'make-feeds' }">
+        <img src="/makefeeds.png" alt="Make Feeds" />
       </button>
-      <button @click="go('expenses')">
+      <button @click="go('expenses')" :class="{ active: $route.name === 'expenses' }">
         <img src="/expensesicon.png" alt="Expenses" />
       </button>
-      <button @click="go('profile')">
+      <button @click="go('profile')" :class="{ active: $route.name === 'profile' }">
         <img src="/profile.png" alt="Profile" />
       </button>
     </nav>
@@ -121,7 +121,7 @@ const go = (name) => {
   padding: 24px; /* Increase padding */
   display: grid;
   grid-template-columns: 1fr 1fr; /* Keep two columns */
-  gap: 24px; /* Increase spacing between cards */
+  gap: 12px; /* Increase spacing between cards */
 }
 .card {
   background: #fff;
@@ -152,6 +152,7 @@ const go = (name) => {
   background: #fff;
   border-top-left-radius: 18px;
   border-top-right-radius: 18px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .bottombar button {
@@ -161,28 +162,29 @@ const go = (name) => {
   background: none;
   border: none;
   cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+.bottombar button:hover {
+  background: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.bottombar button.active {
+  background: #2f8b60;
+  color: #fff;
+}
+
+.bottombar button.active img {
+  filter: brightness(0) invert(1);
 }
 
 .bottombar img {
-  width: 28px; /* Set a consistent width for all icons */
-  height: 28px; /* Set a consistent height for all icons */
-  object-fit: contain; /* Ensure the image fits within the dimensions */
-}
-
-.fab {
-  background: #2f8b60;
-  color: #fff;
-  border-radius: 50%;
-  width: 56px; /* Increase FAB size for better visibility */
-  height: 56px;
-  justify-self: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.fab img {
-  width: 24px; /* Adjust the size of the favicon inside the FAB */
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  transition: filter 0.2s ease-in-out;
 }
 </style>
