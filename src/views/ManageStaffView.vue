@@ -1,29 +1,24 @@
 <template>
   <div class="screen">
     <section class="hero">
-      <img src="/pig.jpg" alt="hero" />
-      <div class="overlay">
-        <div class="title">Track Expense</div>
+      <div class="header">
+        <h2>Manage Staff</h2>
+        <img src="/favicon.ico" alt="icon" />
       </div>
+      <p class="sub">Manage your staff's activities and logs.</p>
     </section>
-    <div class="panel">
-      <div class="cards">
-        <div class="card success">
-          <div class="label">Income</div>
-          <div class="value">+22,550.00</div>
+
+    <div class="list">
+      <button class="row" v-for="i in 3" :key="i">
+        <div class="avatar">👤</div>
+        <div class="col">
+          <div class="title">Staff {{ i }}</div>
+          <div class="muted">{{ 6 - i }} Recent Logs</div>
         </div>
-        <div class="card danger">
-          <div class="label">Expense</div>
-          <div class="value">-940.00</div>
-        </div>
-      </div>
-      <div class="table">
-        <div class="row" v-for="i in 8" :key="i">
-          <span>Purchase</span>
-          <span class="amt">+{{ (i * 10).toFixed(2) }}</span>
-        </div>
-      </div>
+        <span class="action">⋯</span>
+      </button>
     </div>
+
     <nav class="bottombar">
       <button @click="go('dashboard')">
         <img src="/home.png" alt="Dashboard" />
@@ -52,75 +47,68 @@ import BottomBar from './parts/BottomBar.vue'
 .screen {
   min-height: 100vh;
   background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
 }
 .hero {
-  position: relative;
-  margin: 16px;
-}
-.hero img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 14px;
-}
-.overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  padding: 12px;
-  color: #fff;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
-  border-radius: 14px;
-}
-.panel {
-  margin: 0 16px;
   background: #2f8b60;
-  border-radius: 16px;
-  padding: 18px;
   color: #fff;
+  margin: 16px;
+  border-radius: 16px;
+  padding: 20px;
 }
-.cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.card {
-  background: #fff;
-  color: #333;
-  border-radius: 12px;
-  padding: 16px;
-}
-.card.success .value {
-  color: #2f8b60;
-}
-.card.danger .value {
-  color: #c94d4d;
-}
-.label {
-  font-size: 12px;
-  color: #789;
-}
-.value {
-  font-weight: 700;
-  font-size: 18px;
-}
-.table {
-  background: #fff;
-  border-radius: 12px;
-  margin-top: 12px;
-}
-.row {
+.header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+.header img {
+  width: 60px;
+  height: 60px;
+}
+.sub {
+  opacity: 0.9;
+  margin-top: 6px;
+}
+.list {
+  background: #fff;
+  margin: 0 16px;
+  border-radius: 16px;
+  padding: 8px;
+}
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
   padding: 10px 12px;
   border-bottom: 1px solid #eee;
+  width: 100%;
 }
 .row:last-child {
   border-bottom: 0;
 }
-.amt {
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #2f8b6030;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.title {
+  font-weight: 600;
+}
+.muted {
+  color: #789;
+}
+.action {
   color: #2f8b60;
+  font-size: 22px;
+}
+button {
+  cursor: pointer;
 }
 .bottombar {
   margin-top: auto;

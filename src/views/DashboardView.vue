@@ -33,29 +33,39 @@ const go = (name) => {
 
     <section class="grid">
       <button class="card" @click="go('make-feeds')">
-        <img src="/favicon.ico" alt="Make Feeds" />
+        <img src="/makefeeds.png" alt="Make Feeds" />
         <div>Make Feeds</div>
       </button>
       <button class="card" @click="go('manage-staff')">
-        <img src="/favicon.ico" alt="Manage Staff" />
+        <img src="/staff.png" alt="Manage Staff" />
         <div>Manage Staff</div>
       </button>
       <button class="card" @click="go('inventory')">
-        <img src="/favicon.ico" alt="Inventory" />
+        <img src="/inventory.png" alt="Inventory" />
         <div>Inventory</div>
       </button>
       <button class="card" @click="go('hogs-tracked')">
-        <img src="/favicon.ico" alt="Hogs Tracked" />
+        <img src="/pig2.png" alt="Hogs Tracked" />
         <div>Hogs Tracked</div>
       </button>
     </section>
 
     <nav class="bottombar">
-      <button @click="go('dashboard')">🏠</button>
-      <button @click="go('records')">📋</button>
-      <button class="fab">＋</button>
-      <button @click="go('expenses')">💬</button>
-      <button @click="go('profile')">👤</button>
+      <button @click="go('dashboard')">
+        <img src="/home.png" alt="Dashboard" />
+      </button>
+      <button @click="go('records')">
+        <img src="/records.png" alt="Records" />
+      </button>
+      <button class="fab">
+        <img src="/favicon.ico" alt="Add" />
+      </button>
+      <button @click="go('expenses')">
+        <img src="/expensesicon.png" alt="Expenses" />
+      </button>
+      <button @click="go('profile')">
+        <img src="/profile.png" alt="Profile" />
+      </button>
     </nav>
   </div>
 </template>
@@ -108,25 +118,30 @@ const go = (name) => {
   margin: 0 16px;
   background: #2f8b60;
   border-radius: 16px;
-  padding: 18px;
+  padding: 24px; /* Increase padding */
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr; /* Keep two columns */
+  gap: 24px; /* Increase spacing between cards */
 }
 .card {
   background: #fff;
   border: 0;
   border-radius: 16px;
-  padding: 20px;
+  padding: 30px; /* Increase padding for larger cards */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 14px; /* Increase spacing between content inside the card */
   cursor: pointer;
+  transform: scale(1); /* Add a scale effect */
+  transition: transform 0.2s ease-in-out; /* Smooth hover effect */
+}
+.card:hover {
+  transform: scale(1.05); /* Slightly enlarge the card on hover */
 }
 .card img {
-  width: 40px;
-  height: 40px;
+  width: 60px; /* Increase image size */
+  height: 60px;
 }
 .bottombar {
   margin-top: auto;
@@ -138,15 +153,36 @@ const go = (name) => {
   border-top-left-radius: 18px;
   border-top-right-radius: 18px;
 }
+
+.bottombar button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.bottombar img {
+  width: 28px; /* Set a consistent width for all icons */
+  height: 28px; /* Set a consistent height for all icons */
+  object-fit: contain; /* Ensure the image fits within the dimensions */
+}
+
 .fab {
   background: #2f8b60;
   color: #fff;
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 56px; /* Increase FAB size for better visibility */
+  height: 56px;
   justify-self: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-button {
-  cursor: pointer;
+
+.fab img {
+  width: 24px; /* Adjust the size of the favicon inside the FAB */
+  height: 24px;
 }
 </style>

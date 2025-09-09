@@ -5,6 +5,11 @@ import DashboardView from '../views/DashboardView.vue'
 import RecordsView from '../views/RecordsView.vue'
 import ExpensesView from '../views/ExpensesView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import MakeFeedsView from '../views/MakeFeedsView.vue'
+import ManageStaffView from '../views/ManageStaffView.vue'
+import InventoryView from '../views/InventoryView.vue'
+import HogsTrackedView from '../views/HogsTrackedView.vue'
+import FeedCalculatorView from '../views/FeedCalculatorView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -42,6 +47,32 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: ProfileView,
+    },
+    {
+      path: '/make-feeds',
+      name: 'make-feeds',
+      component: MakeFeedsView,
+    },
+    {
+      path: '/manage-staff',
+      name: 'manage-staff',
+      component: ManageStaffView,
+    },
+    {
+      path: '/inventory',
+      name: 'inventory',
+      component: InventoryView,
+    },
+    {
+      path: '/hogs-tracked',
+      name: 'hogs-tracked',
+      component: HogsTrackedView,
+    },
+    {
+      path: '/feeds/:stage',
+      name: 'feed-calculator',
+      component: FeedCalculatorView,
+      props: true,
     },
   ],
 })
