@@ -61,6 +61,7 @@
 .screen {
   min-height: 100vh;
   background: #f5f5f5;
+  padding-bottom: 100px;
 }
 .hero {
   margin: 16px;
@@ -128,7 +129,10 @@ button {
   cursor: pointer;
 }
 .bottombar {
-  margin-top: auto;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
@@ -137,6 +141,7 @@ button {
   border-top-left-radius: 18px;
   border-top-right-radius: 18px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
 .bottombar button {

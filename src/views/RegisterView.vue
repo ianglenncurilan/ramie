@@ -1,6 +1,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  requiredValidator,
+  emailValidator,
+  passwordValidator,
+  confirmedValidator,
+  alphaValidator,
+} from '../utils/validators'
 
 const router = useRouter()
 
@@ -14,29 +21,37 @@ const activeTab = ref('register')
 const validate = () => {
   let valid = true
   errors.value = { name: '', email: '', password: '', confirmPassword: '' }
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!name.value) {
-    errors.value.name = 'Name is required'
+
+  // Validate name
+  const nameError = requiredValidator(name.value) || alphaValidator(name.value)
+  if (nameError !== true) {
+    errors.value.name = nameError
     valid = false
   }
-  if (!email.value) {
-    errors.value.email = 'Email is required'
-    valid = false
-  } else if (!emailPattern.test(email.value)) {
-    errors.value.email = 'Enter a valid email'
-    valid = false
-  }
-  if (!password.value) {
-    errors.value.password = 'Password is required'
-    valid = false
-  } else if (password.value.length < 6) {
-    errors.value.password = 'Minimum 6 characters'
+
+  // Validate email
+  const emailError = requiredValidator(email.value) || emailValidator(email.value)
+  if (emailError !== true) {
+    errors.value.email = emailError
     valid = false
   }
-  if (confirmPassword.value !== password.value) {
-    errors.value.confirmPassword = 'Passwords do not match'
+
+  // Validate password
+  const passwordError = requiredValidator(password.value) || passwordValidator(password.value)
+  if (passwordError !== true) {
+    errors.value.password = passwordError
     valid = false
   }
+
+  // Validate confirm password
+  const confirmError =
+    requiredValidator(confirmPassword.value) ||
+    confirmedValidator(confirmPassword.value, password.value)
+  if (confirmError !== true) {
+    errors.value.confirmPassword = confirmError
+    valid = false
+  }
+
   return valid
 }
 

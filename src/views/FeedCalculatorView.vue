@@ -71,14 +71,39 @@
       </div>
     </section>
 
-    <BottomBar />
+    <nav class="bottombar">
+      <button
+        @click="$router.push({ name: 'dashboard' })"
+        :class="{ active: $route.name === 'dashboard' }"
+      >
+        <img src="/home.png" alt="Dashboard" />
+      </button>
+      <button
+        @click="$router.push({ name: 'records' })"
+        :class="{ active: $route.name === 'records' }"
+      >
+        <img src="/record.png" alt="Records" />
+      </button>
+      <button
+        @click="$router.push({ name: 'expenses' })"
+        :class="{ active: $route.name === 'expenses' }"
+      >
+        <img src="/expensesicon.png" alt="Expenses" />
+      </button>
+      <button
+        @click="$router.push({ name: 'profile' })"
+        :class="{ active: $route.name === 'profile' }"
+      >
+        <img src="/profile.png" alt="Profile" />
+      </button>
+    </nav>
   </div>
 </template>
 
 <script setup>
 import { computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import BottomBar from './parts/BottomBar.vue'
+// Removed BottomBar import - using inline navigation
 import { useFeedsStore } from '../stores/feeds'
 
 const route = useRoute()
@@ -222,6 +247,7 @@ function saveFormulation() {
   background: #2f8b60;
   display: flex;
   flex-direction: column;
+  padding-bottom: 100px;
 }
 .panel {
   margin: 20px 16px;
@@ -432,5 +458,54 @@ function saveFormulation() {
     padding: 8px 10px;
     border-radius: 10px;
   }
+}
+
+.bottombar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
+  background: #fff;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.bottombar button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+.bottombar button:hover {
+  background: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.bottombar button.active {
+  background: #2f8b60;
+  color: #fff;
+}
+
+.bottombar button.active img {
+  filter: brightness(0) invert(1);
+}
+
+.bottombar img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  transition: filter 0.2s ease-in-out;
 }
 </style>
