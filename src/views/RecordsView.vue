@@ -11,7 +11,24 @@
       <div class="list">
         <div class="item" v-for="rec in feeds.records" :key="rec.id">
           <span class="dot"></span>
-          <span>Feed: {{ rec.stage }} — {{ rec.items.length }} ingredients</span>
+          <div class="item-content">
+            <div class="item-title">Feed: {{ rec.stage }} — {{ rec.items.length }} ingredients</div>
+            <div class="item-details">
+              <span class="amount">{{
+                rec.totalAmount ? rec.totalAmount.toFixed(1) + 'kg' : 'N/A'
+              }}</span>
+              <span class="cost">₱{{ rec.totalCost ? rec.totalCost.toFixed(2) : '0.00' }}</span>
+              <span class="rate"
+                >@₱{{ rec.totalCostPerKg ? rec.totalCostPerKg.toFixed(2) : '0.00' }}/kg</span
+              >
+            </div>
+            <div class="ingredients">
+              <span v-for="(item, idx) in rec.items.slice(0, 3)" :key="idx" class="ingredient-tag">
+                {{ item.amountKg }}kg {{ item.label.split('(')[0].trim() }}
+              </span>
+              <span v-if="rec.items.length > 3" class="more">+{{ rec.items.length - 3 }} more</span>
+            </div>
+          </div>
           <span class="muted">{{ new Date(rec.date).toLocaleDateString() }}</span>
         </div>
         <div v-if="!feeds.records.length" class="empty">No records yet</div>
@@ -103,11 +120,55 @@ const feeds = useFeedsStore()
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 10px;
-  padding: 10px 6px;
+  padding: 12px 8px;
   border-bottom: 1px solid #eee;
 }
 .item:last-child {
   border-bottom: 0;
+}
+.item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.item-title {
+  font-weight: 600;
+  color: #333;
+}
+.item-details {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #666;
+}
+.amount {
+  color: #2f8b60;
+  font-weight: 600;
+}
+.cost {
+  color: #c94d4d;
+  font-weight: 600;
+}
+.rate {
+  color: #666;
+}
+.ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ingredient-tag {
+  background: #f0f8f4;
+  color: #2f8b60;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+.more {
+  color: #999;
+  font-size: 10px;
+  font-style: italic;
 }
 .dot {
   width: 10px;

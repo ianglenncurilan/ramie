@@ -15,6 +15,18 @@
 
         <div class="intro">
           Input the exact amount of KG of each ingredients shown in the table.
+          <div class="intro-actions">
+            <button
+              class="refresh-costs-btn"
+              @click="autoPopulateCosts"
+              title="Refresh costs from inventory"
+            >
+              🔄 Update Costs from Inventory
+            </button>
+            <div class="inventory-status">
+              📦 {{ inventoryStore.availableIngredients.length }} ingredients available
+            </div>
+          </div>
         </div>
 
         <div class="table">
@@ -53,8 +65,20 @@
                 </div>
               </div>
               <div class="cell cost">
-                <div class="pill">
+                <div
+                  class="pill"
+                  :class="{
+                    'auto-populated':
+                      findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable,
+                  }"
+                >
                   <input type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
+                  <span
+                    v-if="findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable"
+                    class="auto-indicator"
+                    title="Auto-populated from inventory"
+                    >📦</span
+                  >
                 </div>
               </div>
             </div>
@@ -101,15 +125,35 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 // Removed BottomBar import - using inline navigation
 import { useFeedsStore } from '../stores/feeds'
+import { useInventoryStore } from '../stores/inventory'
 
 const route = useRoute()
 const router = useRouter()
 const stage = computed(() => String(route.params.stage || 'starter'))
 const title = computed(() => stage.value.charAt(0).toUpperCase() + stage.value.slice(1))
+
+const feedsStore = useFeedsStore()
+const inventoryStore = useInventoryStore()
+
+// Mapping between feed calculator ingredients and inventory items
+const INGREDIENT_MAPPING = {
+  banana: ['banana', 'banana peels'],
+  ricebran: ['rice bran', 'ricebran', 'rbd2'],
+  ramie: ['ramie'],
+  cadamba: ['cadamba'],
+  copra: ['copra', 'copra meal'],
+  molasses: ['molasses'],
+  herbal: ['herbal', 'herbal concoctions'],
+  premix: ['premix', 'animal vita', 'vitamins'],
+  cececal: ['cececal'],
+  salt: ['salt'],
+  ricehull: ['rice hull', 'ricehull', 'carbonised rice hull'],
+  water: ['water'],
+}
 
 const BASE_CATEGORIES = {
   starter: [
@@ -172,6 +216,53 @@ const uiCategories = computed(() => BASE_CATEGORIES[stage.value])
 const amounts = reactive({})
 const costs = reactive({})
 
+// Function to find matching inventory item for a feed ingredient
+function findInventoryItem(ingredientId) {
+  const possibleNames = INGREDIENT_MAPPING[ingredientId] || [ingredientId]
+
+  for (const name of possibleNames) {
+    const inventoryItem = inventoryStore.ingredients.find(
+      (item) =>
+        item.name.toLowerCase().includes(name.toLowerCase()) ||
+        name.toLowerCase().includes(item.name.toLowerCase()),
+    )
+    if (inventoryItem) {
+      return inventoryItem
+    }
+  }
+  return null
+}
+
+// Function to auto-populate costs from inventory
+function autoPopulateCosts() {
+  uiCategories.value.forEach((category) => {
+    category.items.forEach((item) => {
+      const inventoryItem = findInventoryItem(item.id)
+      if (inventoryItem && inventoryItem.isAvailable) {
+        // Convert cost to per KG if needed
+        let costPerKg = inventoryItem.cost
+        if (inventoryItem.unit !== 'kg') {
+          // Simple conversion - you might want to add more sophisticated unit conversion
+          switch (inventoryItem.unit) {
+            case 'g':
+              costPerKg = inventoryItem.cost * 1000
+              break
+            case 'lbs':
+              costPerKg = inventoryItem.cost * 2.20462
+              break
+            case 'tons':
+              costPerKg = inventoryItem.cost / 1000
+              break
+            default:
+              costPerKg = inventoryItem.cost
+          }
+        }
+        costs[item.id] = costPerKg
+      }
+    })
+  })
+}
+
 const computedTotalPerKg = computed({
   get() {
     const entries = Object.keys(amounts)
@@ -193,7 +284,19 @@ function getCategoryTotal(category) {
   }, 0)
 }
 
-const feedsStore = useFeedsStore()
+// Auto-populate costs when component mounts
+onMounted(() => {
+  autoPopulateCosts()
+})
+
+// Watch for changes in inventory to re-populate costs
+watch(
+  () => inventoryStore.ingredients,
+  () => {
+    autoPopulateCosts()
+  },
+  { deep: true },
+)
 
 function saveFormulation() {
   // Validate that all categories meet their requirements
@@ -229,10 +332,57 @@ function saveFormulation() {
     })
   })
 
-  feedsStore.addRecord({ stage: stage.value, items, totalCostPerKg: computedTotalPerKg.value })
-  if (computedTotalPerKg.value > 0) {
-    feedsStore.addExpense({ label: `Feed Cost (${title.value})`, amount: computedTotalPerKg.value })
+  // Deduct ingredients from inventory
+  const deductionResults = []
+  const totalAmount = items.reduce((sum, item) => sum + item.amountKg, 0)
+  const totalCost = items.reduce((sum, item) => sum + item.amountKg * item.costPerKg, 0)
+
+  items.forEach((item) => {
+    const result = inventoryStore.deductIngredientQuantity(item.label, item.amountKg)
+    deductionResults.push(result)
+  })
+
+  // Show deduction results
+  const successfulDeductions = deductionResults.filter((result) => result.success)
+  const failedDeductions = deductionResults.filter((result) => !result.success)
+
+  if (successfulDeductions.length > 0) {
+    const successMessage = successfulDeductions
+      .map((r) => `${r.deducted}kg of ${r.ingredient}`)
+      .join(', ')
+    console.log(`Successfully deducted: ${successMessage}`)
   }
+
+  if (failedDeductions.length > 0) {
+    const failedNames = failedDeductions.map((r) => r.ingredient).join(', ')
+    alert(
+      `Warning: Could not deduct inventory for: ${failedNames}. These ingredients may not be in your inventory.`,
+    )
+  }
+
+  // Add record with detailed information
+  feedsStore.addRecord({
+    stage: stage.value,
+    items,
+    totalCostPerKg: computedTotalPerKg.value,
+    totalAmount: totalAmount,
+    totalCost: totalCost,
+    date: new Date().toISOString(),
+  })
+
+  // Add expense for the total cost
+  if (totalCost > 0) {
+    feedsStore.addExpense({
+      label: `Feed Formulation (${title.value}) - ${totalAmount.toFixed(1)}kg`,
+      amount: totalCost,
+    })
+  }
+
+  // Show success message
+  alert(
+    `Feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg at ₱${computedTotalPerKg.value}/kg\nTotal Cost: ₱${totalCost.toFixed(2)}`,
+  )
+
   router.push({ name: 'records' })
 }
 </script>
@@ -250,12 +400,13 @@ function saveFormulation() {
   overflow: hidden;
 }
 .panel {
-  margin: 12px 16px;
+  margin: 12px 16px 100px 16px;
   background: #fff;
   border-radius: 18px;
   padding: 16px;
   flex: 1;
   overflow-y: auto;
+  max-height: calc(100vh - 140px);
 }
 .panel-inner {
   display: grid;
@@ -294,12 +445,44 @@ function saveFormulation() {
 }
 .intro {
   color: #6b7b88;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.intro-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.refresh-costs-btn {
+  background: #2f8b60;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.2s ease;
+}
+.refresh-costs-btn:hover {
+  background: #247a52;
+}
+.inventory-status {
+  font-size: 11px;
+  color: #2f8b60;
+  font-weight: 500;
+  background: #f0f8f4;
+  padding: 4px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
 }
 
 .table {
   border: 1px solid #e8e8e8;
   border-radius: 14px;
   padding: 12px;
+  margin-bottom: 20px;
 }
 .category + .category {
   margin-top: 14px;
@@ -370,6 +553,10 @@ function saveFormulation() {
 .pill.active {
   border-color: #ff6a6a;
 }
+.pill.auto-populated {
+  border-color: #2f8b60;
+  background-color: #f0f8f4;
+}
 .pill input {
   border: none;
   outline: none;
@@ -384,12 +571,18 @@ function saveFormulation() {
   margin-left: 2px;
   white-space: nowrap;
 }
+.auto-indicator {
+  font-size: 10px;
+  margin-left: 2px;
+  cursor: help;
+}
 .footer {
   display: grid;
   grid-template-columns: 1fr 100px 90px;
   gap: 10px;
   align-items: center;
   margin-top: 16px;
+  padding-bottom: 20px;
 }
 .footer .total-label {
   font-weight: 700;
@@ -406,13 +599,23 @@ function saveFormulation() {
   border: none;
   padding: 10px 12px;
   border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.save:hover {
+  background: #247a52;
+}
+.save:active {
+  transform: scale(0.98);
 }
 
 /* Mobile tweaks */
 @media (max-width: 420px) {
   .panel {
-    margin: 12px 12px;
+    margin: 12px 12px 100px 12px;
     padding: 16px;
+    max-height: calc(100vh - 140px);
   }
   .profile {
     grid-template-columns: 72px 1fr;
@@ -449,16 +652,32 @@ function saveFormulation() {
     font-size: 8px;
   }
   .footer {
-    grid-template-columns: 1fr 70px 70px;
-    gap: 6px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 12px;
+    padding-bottom: 20px;
   }
-  .footer input {
-    padding: 6px 8px;
+  .footer .total-label {
+    text-align: center;
     font-size: 14px;
   }
+  .footer .total-input {
+    display: flex;
+    justify-content: center;
+  }
+  .footer input {
+    padding: 8px 12px;
+    font-size: 14px;
+    width: 120px;
+    text-align: center;
+  }
   .save {
-    padding: 8px 10px;
+    padding: 10px 16px;
     border-radius: 10px;
+    font-size: 14px;
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
   }
 }
 
@@ -476,6 +695,7 @@ function saveFormulation() {
   border-top-right-radius: 18px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  height: 80px;
 }
 
 .bottombar button {

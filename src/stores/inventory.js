@@ -51,6 +51,87 @@ export const useInventoryStore = defineStore('inventory', () => {
       unit: 'kg',
       isAvailable: false,
     },
+    // Feed calculator ingredients
+    {
+      id: '7',
+      name: 'Banana Peels',
+      quantity: 20,
+      cost: 8.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '8',
+      name: 'Rice Bran D2',
+      quantity: 30,
+      cost: 15.5,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '9',
+      name: 'Ramie',
+      quantity: 25,
+      cost: 12.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '10',
+      name: 'Cadamba',
+      quantity: 15,
+      cost: 18.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '11',
+      name: 'Copra Meal',
+      quantity: 40,
+      cost: 22.5,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '12',
+      name: 'Molasses',
+      quantity: 10,
+      cost: 25.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '13',
+      name: 'Herbal Concoctions',
+      quantity: 5,
+      cost: 35.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '14',
+      name: 'Premix Animal Vita',
+      quantity: 8,
+      cost: 45.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '15',
+      name: 'Cececal',
+      quantity: 3,
+      cost: 30.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
+    {
+      id: '16',
+      name: 'Carbonised Rice Hull',
+      quantity: 12,
+      cost: 10.0,
+      unit: 'kg',
+      isAvailable: true,
+    },
   ])
 
   // Computed properties
@@ -111,6 +192,47 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
   }
 
+  function deductIngredientQuantity(ingredientName, amountKg) {
+    // Clean the ingredient name for better matching
+    const cleanName = ingredientName
+      .toLowerCase()
+      .replace(/\([^)]*\)/g, '') // Remove parentheses content
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim()
+
+    // Find ingredient by name with improved matching
+    const ingredient = ingredients.value.find((item) => {
+      const itemName = item.name.toLowerCase()
+      return (
+        itemName === cleanName ||
+        itemName.includes(cleanName) ||
+        cleanName.includes(itemName) ||
+        // Handle specific mappings
+        (cleanName.includes('banana') && itemName.includes('banana')) ||
+        (cleanName.includes('rice bran') && itemName.includes('rice bran')) ||
+        (cleanName.includes('ramie') && itemName.includes('ramie')) ||
+        (cleanName.includes('cadamba') && itemName.includes('cadamba')) ||
+        (cleanName.includes('copra') && itemName.includes('copra')) ||
+        (cleanName.includes('molasses') && itemName.includes('molasses')) ||
+        (cleanName.includes('herbal') && itemName.includes('herbal')) ||
+        (cleanName.includes('premix') && itemName.includes('premix')) ||
+        (cleanName.includes('cececal') && itemName.includes('cececal')) ||
+        (cleanName.includes('salt') && itemName.includes('salt')) ||
+        (cleanName.includes('rice hull') && itemName.includes('rice hull')) ||
+        (cleanName.includes('water') && itemName.includes('water'))
+      )
+    })
+
+    if (ingredient) {
+      const currentQuantity = Number(ingredient.quantity) || 0
+      const newQuantity = Math.max(0, currentQuantity - Number(amountKg))
+      ingredient.quantity = newQuantity
+      ingredient.isAvailable = newQuantity > 0
+      return { success: true, ingredient: ingredient.name, deducted: Number(amountKg) }
+    }
+    return { success: false, ingredient: ingredientName, deducted: 0 }
+  }
+
   return {
     ingredients,
     availableIngredients,
@@ -120,5 +242,6 @@ export const useInventoryStore = defineStore('inventory', () => {
     updateIngredient,
     deleteIngredient,
     updateQuantity,
+    deductIngredientQuantity,
   }
 })

@@ -245,11 +245,12 @@ function updateQuantity(id, newQuantity) {
 }
 .panel {
   background: #fff;
-  margin: 12px 16px;
+  margin: 12px 16px 100px 16px;
   border-radius: 18px;
   padding: 16px;
   flex: 1;
   overflow-y: auto;
+  max-height: calc(100vh - 140px);
 }
 .panel-header {
   display: grid;
@@ -556,6 +557,10 @@ button {
 
 /* Mobile responsiveness */
 @media (max-width: 420px) {
+  .panel {
+    margin: 12px 12px 100px 12px;
+    max-height: calc(100vh - 140px);
+  }
   .stats {
     grid-template-columns: 1fr;
     gap: 8px;
