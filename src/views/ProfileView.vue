@@ -59,21 +59,23 @@
 }
 
 .screen {
-  min-height: 100vh;
+  height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 100px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .hero {
   margin: 16px;
 }
 .hero img {
   width: 100%;
-  height: 120px;
+  height: 180px;
   object-fit: cover;
   border-radius: 14px;
 }
 .panel {
-  margin: 0 16px;
+  margin: 0 16px 16px 16px;
   background: #2f8b60;
   border-radius: 16px;
   padding: 18px;
@@ -81,6 +83,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1;
+  overflow-y: auto;
+ 
 }
 .avatar {
   width: 90px;
@@ -92,8 +97,9 @@
   align-items: center;
   justify-content: center;
   font-size: 42px;
-  margin-top: -46px;
+  margin-top: 20px;
   border: 6px solid #2f8b60;
+
 }
 .name {
   font-weight: 700;

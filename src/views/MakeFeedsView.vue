@@ -86,18 +86,19 @@
 }
 
 .screen {
-  min-height: 100vh;
+  height: 100vh;
   background: #2f8b60;
   display: flex;
   flex-direction: column;
-  padding-bottom: 100px;
+  overflow: hidden;
 }
 .panel {
   background: #fff;
-  margin: 20px 16px;
+  margin: 12px 16px;
   border-radius: 18px;
-  padding: 32px;
-  padding-top: 64px;
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
 }
 .panel-header {
   display: grid;

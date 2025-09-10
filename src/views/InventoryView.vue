@@ -5,9 +5,29 @@
         <button class="back" @click="$router.back()">←</button>
         <div class="title-wrap">
           <h2 class="title-lg">Inventory</h2>
-          <p class="sub">View your available ingredients</p>
+          <p class="sub">Manage your ingredients</p>
         </div>
-        <img class="panel-illustration" src="/inventory.png" alt="icon" />
+        <div class="header-actions">
+          <button class="add-btn" @click="openModal">
+            <span>+</span>
+          </button>
+          <img class="panel-illustration" src="/inventory.png" alt="icon" />
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <span class="stat-value">{{ inventory.ingredients.length }}</span>
+          <span class="stat-label">Total Items</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">{{ inventory.availableIngredients.length }}</span>
+          <span class="stat-label">Available</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value">₱{{ inventory.totalValue.toFixed(2) }}</span>
+          <span class="stat-label">Total Value</span>
+        </div>
       </div>
 
       <div class="table">
@@ -16,24 +36,199 @@
           <span>Qty</span>
           <span>Cost</span>
           <span>Status</span>
+          <span>Actions</span>
         </div>
-        <div class="row" v-for="i in 6" :key="i">
-          <span>Ingredient {{ i }}</span>
-          <span>{{ i }}</span>
-          <span>{{ (i * 12).toFixed(2) }}</span>
-          <span :class="{ ok: i % 2, bad: !(i % 2) }">{{
-            i % 2 ? 'Available' : 'Not Available'
-          }}</span>
+        <div class="row" v-for="ingredient in inventory.ingredients" :key="ingredient.id">
+          <span class="ingredient-name">{{ ingredient.name }}</span>
+          <span class="quantity">
+            <input
+              v-model="ingredient.quantity"
+              @change="updateQuantity(ingredient.id, ingredient.quantity)"
+              type="number"
+              min="0"
+              step="0.1"
+              class="qty-input"
+            />
+            <span class="unit">{{ ingredient.unit }}</span>
+          </span>
+          <span class="cost">₱{{ ingredient.cost.toFixed(2) }}</span>
+          <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
+            {{ ingredient.isAvailable ? 'Available' : 'Not Available' }}
+          </span>
+          <div class="actions">
+            <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
+            <button class="delete-btn" @click="deleteIngredient(ingredient.id)">🗑️</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <BottomBar />
+    <!-- Modal -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3>{{ editingIngredient ? 'Edit Ingredient' : 'Add New Ingredient' }}</h3>
+          <button class="close-btn" @click="closeModal">×</button>
+        </div>
+
+        <form @submit.prevent="saveIngredient" class="modal-form">
+          <div class="form-group">
+            <label>Ingredient Name</label>
+            <input v-model="form.name" type="text" placeholder="Enter ingredient name" required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Quantity</label>
+              <input
+                v-model="form.quantity"
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="0"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Unit</label>
+              <select v-model="form.unit">
+                <option value="kg">kg</option>
+                <option value="g">g</option>
+                <option value="lbs">lbs</option>
+                <option value="tons">tons</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Cost per Unit (₱)</label>
+            <input
+              v-model="form.cost"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              required
+            />
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
+            <button type="submit" class="save-btn">
+              {{ editingIngredient ? 'Update' : 'Add' }} Ingredient
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <nav class="bottombar">
+      <button
+        @click="$router.push({ name: 'dashboard' })"
+        :class="{ active: $route.name === 'dashboard' }"
+      >
+        <img src="/home.png" alt="Dashboard" />
+      </button>
+      <button
+        @click="$router.push({ name: 'records' })"
+        :class="{ active: $route.name === 'records' }"
+      >
+        <img src="/record.png" alt="Records" />
+      </button>
+      <button
+        @click="$router.push({ name: 'expenses' })"
+        :class="{ active: $route.name === 'expenses' }"
+      >
+        <img src="/expensesicon.png" alt="Expenses" />
+      </button>
+      <button
+        @click="$router.push({ name: 'profile' })"
+        :class="{ active: $route.name === 'profile' }"
+      >
+        <img src="/profile.png" alt="Profile" />
+      </button>
+    </nav>
   </div>
 </template>
 
 <script setup>
-import BottomBar from './parts/BottomBar.vue'
+import { ref, reactive } from 'vue'
+import { useInventoryStore } from '../stores/inventory'
+
+const inventory = useInventoryStore()
+
+// Modal state
+const showModal = ref(false)
+const editingIngredient = ref(null)
+
+// Form data
+const form = reactive({
+  name: '',
+  quantity: '',
+  cost: '',
+  unit: 'kg',
+})
+
+// Modal functions
+function openModal() {
+  showModal.value = true
+  editingIngredient.value = null
+  resetForm()
+}
+
+function closeModal() {
+  showModal.value = false
+  editingIngredient.value = null
+  resetForm()
+}
+
+function resetForm() {
+  form.name = ''
+  form.quantity = ''
+  form.cost = ''
+  form.unit = 'kg'
+}
+
+function editIngredient(ingredient) {
+  editingIngredient.value = ingredient
+  form.name = ingredient.name
+  form.quantity = ingredient.quantity
+  form.cost = ingredient.cost
+  form.unit = ingredient.unit
+  showModal.value = true
+}
+
+function saveIngredient() {
+  if (editingIngredient.value) {
+    // Update existing ingredient
+    inventory.updateIngredient(editingIngredient.value.id, {
+      name: form.name,
+      quantity: form.quantity,
+      cost: form.cost,
+      unit: form.unit,
+    })
+  } else {
+    // Add new ingredient
+    inventory.addIngredient({
+      name: form.name,
+      quantity: form.quantity,
+      cost: form.cost,
+      unit: form.unit,
+    })
+  }
+  closeModal()
+}
+
+function deleteIngredient(id) {
+  if (confirm('Are you sure you want to delete this ingredient?')) {
+    inventory.deleteIngredient(id)
+  }
+}
+
+function updateQuantity(id, newQuantity) {
+  inventory.updateQuantity(id, newQuantity)
+}
 </script>
 
 <style scoped>
@@ -42,20 +237,28 @@ import BottomBar from './parts/BottomBar.vue'
 }
 
 .screen {
-  min-height: 100vh;
+  height: 100vh;
   background: #2f8b60;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .panel {
   background: #fff;
-  margin: 20px 16px;
+  margin: 12px 16px;
   border-radius: 18px;
   padding: 16px;
+  flex: 1;
+  overflow-y: auto;
 }
 .panel-header {
   display: grid;
   grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.header-actions {
+  display: flex;
   align-items: center;
   gap: 12px;
 }
@@ -65,6 +268,19 @@ import BottomBar from './parts/BottomBar.vue'
   border-radius: 10px;
   border: 1px solid #e6e6e6;
   background: #fff;
+}
+.add-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2f8b60;
+  color: white;
+  border: none;
+  font-size: 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .panel-illustration {
   width: 64px;
@@ -85,6 +301,35 @@ import BottomBar from './parts/BottomBar.vue'
   color: #7a8b99;
   margin-top: 6px;
 }
+
+/* Stats */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+.stat-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+.stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2f8b60;
+}
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* Table */
 .table {
   background: #fff;
   margin-top: 12px;
@@ -96,9 +341,10 @@ import BottomBar from './parts/BottomBar.vue'
 .thead,
 .row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
   gap: 12px;
   padding: 10px 12px;
+  align-items: center;
 }
 .thead {
   font-weight: 600;
@@ -110,13 +356,238 @@ import BottomBar from './parts/BottomBar.vue'
 .row:last-child {
   border-bottom: 0;
 }
+
+/* Table content */
+.quantity {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.qty-input {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.unit {
+  font-size: 12px;
+  color: #666;
+}
+.cost {
+  font-weight: 600;
+  color: #2f8b60;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.edit-btn,
+.delete-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.edit-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+.delete-btn {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
 .ok {
   color: #2f8b60;
+  font-weight: 600;
 }
 .bad {
   color: #c94d4d;
+  font-weight: 600;
 }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 0 20px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 20px;
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f5f5f5;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Form */
+.modal-form {
+  padding: 0 20px 20px 20px;
+}
+.form-group {
+  margin-bottom: 16px;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #2f8b60;
+  box-shadow: 0 0 0 2px rgba(47, 139, 96, 0.1);
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.cancel-btn,
+.save-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+}
+.save-btn {
+  background: #2f8b60;
+  color: white;
+}
+
 button {
   cursor: pointer;
+}
+
+/* Bottom Bar */
+.bottombar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
+  background: #fff;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+.bottombar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+.bottombar button.active {
+  background: #2f8b60;
+}
+.bottombar button img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.bottombar button.active img {
+  filter: brightness(0) invert(1);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 420px) {
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .thead,
+  .row {
+    grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 0.8fr;
+    gap: 8px;
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  .qty-input {
+    width: 50px;
+    padding: 2px 4px;
+    font-size: 12px;
+  }
+  .actions {
+    gap: 4px;
+  }
+  .edit-btn,
+  .delete-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+  .modal {
+    margin: 10px;
+    max-height: 95vh;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 </style>

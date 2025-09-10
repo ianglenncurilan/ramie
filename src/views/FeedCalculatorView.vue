@@ -243,17 +243,19 @@ function saveFormulation() {
 }
 
 .screen {
-  min-height: 100vh;
+  height: 100vh;
   background: #2f8b60;
   display: flex;
   flex-direction: column;
-  padding-bottom: 100px;
+  overflow: hidden;
 }
 .panel {
-  margin: 20px 16px;
+  margin: 12px 16px;
   background: #fff;
   border-radius: 18px;
-  padding: 24px;
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
 }
 .panel-inner {
   display: grid;

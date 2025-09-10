@@ -67,9 +67,11 @@ const feeds = useFeedsStore()
 }
 
 .screen {
-  min-height: 100vh;
+  height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 100px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .hero {
   position: relative;
@@ -92,11 +94,13 @@ const feeds = useFeedsStore()
   border-radius: 14px;
 }
 .panel {
-  margin: 0 16px;
+  margin: 0 16px 16px 16px;
   background: #2f8b60;
   border-radius: 16px;
   padding: 18px;
   color: #fff;
+  flex: 1;
+  overflow-y: auto;
 }
 .cards {
   display: grid;

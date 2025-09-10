@@ -15,8 +15,6 @@ const go = (name) => {
 <template>
   <div class="dashboard">
     <header class="topbar">
-      <div class="time">{{ new Date().toLocaleTimeString() }}</div>
-      <div class="icons">⋯</div>
     </header>
 
     <section class="hero">
@@ -119,35 +117,35 @@ const go = (name) => {
   margin: 0 16px;
   background: #2f8b60;
   border-radius: 32px;
-  padding: 32px; /* Increase padding for larger grid */
+  padding: 32px; 
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Keep two columns */
-  gap: 12px; /* Ensure consistent spacing between cards */
+  grid-template-columns: 1fr 1fr;
+  gap: 12px; 
 }
 .card {
   background: #fff;
   border: 0;
   border-radius: 32px;
-  padding: 32px; /* Adjust padding for better balance */
+  padding: 32px; 
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px; /* Increase spacing between content inside the card */
+  gap: 12px; 
   cursor: pointer;
-  transform: scale(1); /* Add a scale effect */
-  transition: transform 0.2s ease-in-out; /* Smooth hover effect */
+  transform: scale(1);
+  transition: transform 0.2s ease-in-out;
 }
 .card:hover {
-  transform: scale(1.05); /* Slightly enlarge the card on hover */
+  transform: scale(1.05); 
 }
 .card img {
-  width: 48px; /* Adjust image size for better balance */
+  width: 48px; 
   height: 48px;
 }
 .card div {
-  font-size: 16px; /* Adjust font size for card text */
-  font-weight: 600; /* Keep the text bold */
-  text-align: center; /* Center-align the text */
+  font-size: 16px; 
+  font-weight: 600; 
+  text-align: center;
 }
 .bottombar {
   margin-top: auto;
