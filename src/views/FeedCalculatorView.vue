@@ -85,10 +85,6 @@
           </div>
 
           <div class="footer">
-            <div class="total-label">Total Feed Cost per KG</div>
-            <div class="total-input">
-              <input type="number" min="0" step="0.01" v-model.number="computedTotalPerKg" />
-            </div>
             <button class="save" @click="saveFormulation">Save</button>
           </div>
         </div>
@@ -263,21 +259,6 @@ function autoPopulateCosts() {
   })
 }
 
-const computedTotalPerKg = computed({
-  get() {
-    const entries = Object.keys(amounts)
-      .map((k) => ({ a: Number(amounts[k]) || 0, c: Number(costs[k]) || 0 }))
-      .filter((x) => x.a > 0)
-    const totalAmount = entries.reduce((s, x) => s + x.a, 0)
-    if (!totalAmount) return 0
-    const totalCost = entries.reduce((s, x) => s + x.a * x.c, 0)
-    return Math.round((totalCost / totalAmount) * 100) / 100
-  },
-  set(val) {
-    // allow manual override if desired
-  },
-})
-
 function getCategoryTotal(category) {
   return category.items.reduce((total, item) => {
     return total + (Number(amounts[item.id]) || 0)
@@ -364,7 +345,6 @@ function saveFormulation() {
   feedsStore.addRecord({
     stage: stage.value,
     items,
-    totalCostPerKg: computedTotalPerKg.value,
     totalAmount: totalAmount,
     totalCost: totalCost,
     date: new Date().toISOString(),
@@ -380,7 +360,7 @@ function saveFormulation() {
 
   // Show success message
   alert(
-    `Feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg at ₱${computedTotalPerKg.value}/kg\nTotal Cost: ₱${totalCost.toFixed(2)}`,
+    `Feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg\nTotal Cost: ₱${totalCost.toFixed(2)}`,
   )
 
   router.push({ name: 'records' })
@@ -577,21 +557,10 @@ function saveFormulation() {
   cursor: help;
 }
 .footer {
-  display: grid;
-  grid-template-columns: 1fr 100px 90px;
-  gap: 10px;
-  align-items: center;
+  display: flex;
+  justify-content: center;
   margin-top: 16px;
   padding-bottom: 20px;
-}
-.footer .total-label {
-  font-weight: 700;
-}
-.footer input {
-  width: 100%;
-  border: 1px solid #e6e6e6;
-  border-radius: 10px;
-  padding: 8px 10px;
 }
 .save {
   background: #2f8b60;
@@ -652,24 +621,8 @@ function saveFormulation() {
     font-size: 8px;
   }
   .footer {
-    grid-template-columns: 1fr;
-    gap: 8px;
     margin-top: 12px;
     padding-bottom: 20px;
-  }
-  .footer .total-label {
-    text-align: center;
-    font-size: 14px;
-  }
-  .footer .total-input {
-    display: flex;
-    justify-content: center;
-  }
-  .footer input {
-    padding: 8px 12px;
-    font-size: 14px;
-    width: 120px;
-    text-align: center;
   }
   .save {
     padding: 10px 16px;

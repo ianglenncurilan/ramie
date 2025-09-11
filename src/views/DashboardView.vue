@@ -14,8 +14,7 @@ const go = (name) => {
 
 <template>
   <div class="dashboard">
-    <header class="topbar">
-    </header>
+    <header class="topbar"></header>
 
     <section class="hero">
       <img src="/pig.jpg" alt="Hogs" />
@@ -117,34 +116,34 @@ const go = (name) => {
   margin: 0 16px;
   background: #2f8b60;
   border-radius: 32px;
-  padding: 32px; 
+  padding: 32px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px; 
+  gap: 12px;
 }
 .card {
   background: #fff;
   border: 0;
   border-radius: 32px;
-  padding: 32px; 
+  padding: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px; 
+  gap: 12px;
   cursor: pointer;
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
 }
 .card:hover {
-  transform: scale(1.05); 
+  transform: scale(1.05);
 }
 .card img {
-  width: 48px; 
+  width: 48px;
   height: 48px;
 }
 .card div {
-  font-size: 16px; 
-  font-weight: 600; 
+  font-size: 16px;
+  font-weight: 600;
   text-align: center;
 }
 .bottombar {
