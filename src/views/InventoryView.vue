@@ -1,162 +1,255 @@
 <template>
   <div class="screen">
-    <section class="panel">
-      <div class="panel-header">
-        <button class="back" @click="$router.back()">←</button>
-        <div class="title-wrap">
-          <h2 class="title-lg">Inventory</h2>
-          <p class="sub">Manage your ingredients</p>
+    <!-- PIN Verification Screen -->
+    <div v-if="!pinStore.isAuthenticated" class="pin-screen">
+      <div class="pin-container">
+        <div class="pin-header">
+          <button class="back-btn" @click="$router.back()">←</button>
+          <h2>Enter PIN</h2>
+          <p>Access to inventory requires PIN verification</p>
         </div>
-        <div class="header-actions">
-          <button class="add-btn" @click="openModal">
-            <span>+</span>
-          </button>
-          <img class="panel-illustration" src="/inventory.png" alt="icon" />
-        </div>
-      </div>
 
-      <div class="stats">
-        <div class="stat-card">
-          <span class="stat-value">{{ inventory.ingredients.length }}</span>
-          <span class="stat-label">Total Items</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value">{{ inventory.availableIngredients.length }}</span>
-          <span class="stat-label">Available</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value">₱{{ inventory.totalValue.toFixed(2) }}</span>
-          <span class="stat-label">Total Value</span>
-        </div>
-      </div>
-
-      <div class="table">
-        <div class="thead">
-          <span>Ingredient</span>
-          <span>Qty</span>
-          <span>Cost</span>
-          <span>Status</span>
-          <span>Actions</span>
-        </div>
-        <div class="row" v-for="ingredient in inventory.ingredients" :key="ingredient.id">
-          <span class="ingredient-name">{{ ingredient.name }}</span>
-          <span class="quantity">
-            <input
-              v-model="ingredient.quantity"
-              @change="updateQuantity(ingredient.id, ingredient.quantity)"
-              type="number"
-              min="0"
-              step="0.1"
-              class="qty-input"
-            />
-            <span class="unit">{{ ingredient.unit }}</span>
-          </span>
-          <span class="cost">₱{{ ingredient.cost.toFixed(2) }}</span>
-          <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
-            {{ ingredient.isAvailable ? 'Available' : 'Not Available' }}
-          </span>
-          <div class="actions">
-            <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
-            <button class="delete-btn" @click="deleteIngredient(ingredient.id)">🗑️</button>
+        <div class="pin-input-container">
+          <div class="pin-display">
+            <div
+              v-for="i in 4"
+              :key="i"
+              class="pin-dot"
+              :class="{ filled: pinInput.length >= i }"
+            ></div>
+          </div>
+          <div class="pin-keypad">
+            <button v-for="num in 9" :key="num" class="pin-key" @click="addDigit(num.toString())">
+              {{ num }}
+            </button>
+            <button class="pin-key" @click="clearPin">Clear</button>
+            <button v-for="num in [0]" :key="num" class="pin-key" @click="addDigit(num.toString())">
+              {{ num }}
+            </button>
+            <button class="pin-key" @click="removeDigit">⌫</button>
+          </div>
+          <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <!-- Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3>{{ editingIngredient ? 'Edit Ingredient' : 'Add New Ingredient' }}</h3>
-          <button class="close-btn" @click="closeModal">×</button>
+    <!-- Main Content (only shown when authenticated) -->
+    <div v-else>
+      <section class="panel">
+        <div class="panel-header">
+          <button class="back" @click="$router.back()">←</button>
+          <div class="title-wrap">
+            <h2 class="title-lg">Inventory</h2>
+            <p class="sub">Manage your ingredients</p>
+          </div>
+          <div class="header-actions">
+            <button class="add-btn" @click="openModal">
+              <span>+</span>
+            </button>
+            <img class="panel-illustration" src="/inventory.png" alt="icon" />
+          </div>
         </div>
 
-        <form @submit.prevent="saveIngredient" class="modal-form">
-          <div class="form-group">
-            <label>Ingredient Name</label>
-            <input v-model="form.name" type="text" placeholder="Enter ingredient name" required />
+        <div class="stats">
+          <div class="stat-card">
+            <span class="stat-value">{{ inventory.ingredients.length }}</span>
+            <span class="stat-label">Total Items</span>
           </div>
+          <div class="stat-card">
+            <span class="stat-value">{{ inventory.availableIngredients.length }}</span>
+            <span class="stat-label">Available</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-value">₱{{ inventory.totalValue.toFixed(2) }}</span>
+            <span class="stat-label">Total Value</span>
+          </div>
+        </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Quantity</label>
+        <div class="table">
+          <div class="thead">
+            <span>Ingredient</span>
+            <span>Qty</span>
+            <span>Cost</span>
+            <span>Status</span>
+            <span>Actions</span>
+          </div>
+          <div class="row" v-for="ingredient in inventory.ingredients" :key="ingredient.id">
+            <span class="ingredient-name">{{ ingredient.name }}</span>
+            <span class="quantity">
               <input
-                v-model="form.quantity"
+                v-model="ingredient.quantity"
+                @change="updateQuantity(ingredient.id, ingredient.quantity)"
                 type="number"
                 min="0"
                 step="0.1"
-                placeholder="0"
+                class="qty-input"
+              />
+              <span class="unit">{{ ingredient.unit }}</span>
+            </span>
+            <span class="cost">₱{{ ingredient.cost.toFixed(2) }}</span>
+            <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
+              {{ ingredient.isAvailable ? 'Available' : 'Not Available' }}
+            </span>
+            <div class="actions">
+              <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
+              <button class="delete-btn" @click="deleteIngredient(ingredient.id)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Modal -->
+      <div v-if="showModal" class="modal-overlay" @click="closeModal">
+        <div class="modal" @click.stop>
+          <div class="modal-header">
+            <h3>{{ editingIngredient ? 'Edit Ingredient' : 'Add New Ingredient' }}</h3>
+            <button class="close-btn" @click="closeModal">×</button>
+          </div>
+
+          <form @submit.prevent="saveIngredient" class="modal-form">
+            <div class="form-group">
+              <label>Ingredient Name</label>
+              <input v-model="form.name" type="text" placeholder="Enter ingredient name" required />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Quantity</label>
+                <input
+                  v-model="form.quantity"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  placeholder="0"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Unit</label>
+                <select v-model="form.unit">
+                  <option value="kg">kg</option>
+                  <option value="g">g</option>
+                  <option value="lbs">lbs</option>
+                  <option value="tons">tons</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Cost per Unit (₱)</label>
+              <input
+                v-model="form.cost"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
                 required
               />
             </div>
 
-            <div class="form-group">
-              <label>Unit</label>
-              <select v-model="form.unit">
-                <option value="kg">kg</option>
-                <option value="g">g</option>
-                <option value="lbs">lbs</option>
-                <option value="tons">tons</option>
-              </select>
+            <div class="form-actions">
+              <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
+              <button type="submit" class="save-btn">
+                {{ editingIngredient ? 'Update' : 'Add' }} Ingredient
+              </button>
             </div>
-          </div>
-
-          <div class="form-group">
-            <label>Cost per Unit (₱)</label>
-            <input
-              v-model="form.cost"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              required
-            />
-          </div>
-
-          <div class="form-actions">
-            <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
-            <button type="submit" class="save-btn">
-              {{ editingIngredient ? 'Update' : 'Add' }} Ingredient
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
 
-    <nav class="bottombar">
-      <button
-        @click="$router.push({ name: 'dashboard' })"
-        :class="{ active: $route.name === 'dashboard' }"
-      >
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button
-        @click="$router.push({ name: 'records' })"
-        :class="{ active: $route.name === 'records' }"
-      >
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button
-        @click="$router.push({ name: 'expenses' })"
-        :class="{ active: $route.name === 'expenses' }"
-      >
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button
-        @click="$router.push({ name: 'profile' })"
-        :class="{ active: $route.name === 'profile' }"
-      >
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
+      <nav class="bottombar">
+        <button
+          @click="$router.push({ name: 'dashboard' })"
+          :class="{ active: $route.name === 'dashboard' }"
+        >
+          <img src="/home.png" alt="Dashboard" />
+        </button>
+        <button
+          @click="$router.push({ name: 'records' })"
+          :class="{ active: $route.name === 'records' }"
+        >
+          <img src="/record.png" alt="Records" />
+        </button>
+        <button
+          @click="$router.push({ name: 'expenses' })"
+          :class="{ active: $route.name === 'expenses' }"
+        >
+          <img src="/expensesicon.png" alt="Expenses" />
+        </button>
+        <button
+          @click="$router.push({ name: 'profile' })"
+          :class="{ active: $route.name === 'profile' }"
+        >
+          <img src="/profile.png" alt="Profile" />
+        </button>
+      </nav>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useInventoryStore } from '../stores/inventory'
+import { usePinStore } from '../stores/pin'
 
 const inventory = useInventoryStore()
+const pinStore = usePinStore()
+
+// PIN verification state
+const pinInput = ref('')
+const errorMessage = ref('')
+
+// Check if PIN is set on mount
+onMounted(() => {
+  if (!pinStore.isPinSet) {
+    // If no PIN is set, redirect to profile to set one
+    // For now, we'll just show the PIN screen
+  }
+})
+
+// PIN functions
+function addDigit(digit) {
+  if (pinInput.value.length < 4) {
+    pinInput.value += digit
+    errorMessage.value = ''
+
+    // Auto-verify when 4 digits are entered
+    if (pinInput.value.length === 4) {
+      setTimeout(() => {
+        verifyPin()
+      }, 300)
+    }
+  }
+}
+
+function removeDigit() {
+  if (pinInput.value.length > 0) {
+    pinInput.value = pinInput.value.slice(0, -1)
+    errorMessage.value = ''
+  }
+}
+
+function clearPin() {
+  pinInput.value = ''
+  errorMessage.value = ''
+}
+
+function verifyPin() {
+  if (pinInput.value.length === 4) {
+    const isValid = pinStore.verifyPin(pinInput.value)
+    if (isValid) {
+      errorMessage.value = ''
+    } else {
+      errorMessage.value = 'Invalid PIN. Please try again.'
+      pinInput.value = ''
+    }
+  } else {
+    errorMessage.value = 'Please enter 4 digits'
+  }
+}
 
 // Modal state
 const showModal = ref(false)
@@ -594,5 +687,130 @@ button {
     grid-template-columns: 1fr;
     gap: 8px;
   }
+}
+
+/* PIN Verification Styles */
+.pin-screen {
+  height: 100vh;
+  background: #2f8b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pin-container {
+  background: white;
+  border-radius: 20px;
+  padding: 40px 30px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.pin-header {
+  position: relative;
+}
+
+.back-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #f5f5f5;
+  transform: scale(1.05);
+}
+
+.pin-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.pin-header p {
+  margin: 0 0 30px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.pin-input-container {
+  text-align: center;
+}
+
+.pin-display {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.pin-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.pin-dot.filled {
+  background: #2f8b60;
+  border-color: #2f8b60;
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+.pin-key {
+  width: 60px;
+  height: 60px;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-key:hover {
+  background: #f5f5f5;
+  transform: scale(1.05);
+}
+
+.pin-key:active {
+  transform: scale(0.95);
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 14px;
+  margin-top: 16px;
+  font-weight: 500;
 }
 </style>
