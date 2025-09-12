@@ -148,12 +148,14 @@ const setActiveTab = (tab) => {
   align-items: center;
   min-height: 100vh;
   background: #f5f5f5;
+  padding: 16px;
 }
 
 .card {
-  width: 380px;
+  width: 100%;
+  max-width: 340px;
   background: #fff;
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 20px;
   box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.15);
 }
@@ -178,31 +180,37 @@ const setActiveTab = (tab) => {
 .tabs {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 1.5rem;
+  padding: 4px;
+  background: #f8f9fa;
+  border-radius: 24px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .tabs button {
-  padding: 8px 20px;
+  padding: 10px 20px;
   border-radius: 20px;
-  border: 1px solid #2c7a4b;
+  border: none;
   background: transparent;
   color: #2c7a4b;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease-in-out;
+  white-space: nowrap;
+  min-width: 80px;
 }
 
 .tabs button.active {
   background: #2c7a4b;
   color: #fff;
-  transform: scale(1.1); /* Slightly enlarge the button */
-  box-shadow: 0px 4px 10px rgba(44, 122, 75, 0.3); /* Add a shadow */
+  box-shadow: 0px 3px 8px rgba(44, 122, 75, 0.4);
 }
 
 .tabs button:hover:not(.active) {
-  background: #f0fdf4;
-  transform: scale(1.05); /* Slightly enlarge on hover */
+  background: #e8f5e8;
 }
 
 .form {
