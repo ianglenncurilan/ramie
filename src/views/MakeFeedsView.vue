@@ -15,7 +15,7 @@
           class="row"
           @click="$router.push({ name: 'feed-calculator', params: { stage: 'starter' } })"
         >
-          <img class="thumb" src="/pig.jpg" alt="starter" />
+          <img class="thumb" src="/starter.png" alt="starter" />
           <div class="col">
             <div class="title">Starter</div>
             <div class="muted">60–90 Days</div>
@@ -26,7 +26,7 @@
           class="row"
           @click="$router.push({ name: 'feed-calculator', params: { stage: 'grower' } })"
         >
-          <img class="thumb" src="/pig2.png" alt="grower" />
+          <img class="thumb" src="/grower.png" alt="grower" />
           <div class="col">
             <div class="title">Grower</div>
             <div class="muted">90–120 Days</div>
@@ -37,7 +37,7 @@
           class="row"
           @click="$router.push({ name: 'feed-calculator', params: { stage: 'finisher' } })"
         >
-          <img class="thumb" src="/pig.jpg" alt="finisher" />
+          <img class="thumb" src="/finsher.png" alt="finisher" />
           <div class="col">
             <div class="title">Finisher</div>
             <div class="muted">120–150 Days</div>
