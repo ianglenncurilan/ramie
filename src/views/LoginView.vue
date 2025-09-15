@@ -124,7 +124,7 @@ const toggleConfirmPasswordVisibility = () => {
     <div class="card">
       <!-- Logo -->
       <div class="logo">
-        <img src="/favicon.ico" alt="Logo" />
+        <img src="/leaf.png" alt="Logo" />
         <h1>RAMIE</h1>
       </div>
 
@@ -259,8 +259,8 @@ const toggleConfirmPasswordVisibility = () => {
 }
 
 .logo img {
-  width: 50px;
-  height: 50px;
+  width: 80px;
+  height: 80px;
   margin-bottom: 0.5rem;
 }
 
