@@ -134,46 +134,59 @@
 }
 .list {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 20px;
+  margin-top: 24px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .row {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
-  padding: 24px;
+  padding: 32px 28px;
   width: 100%;
   background: #fff;
   border: 1px solid #e8e8e8;
-  border-radius: 14px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease-in-out;
 }
 .thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   object-fit: cover;
 }
 .title {
   font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 4px;
 }
 .muted {
   color: #7a8b99;
+  font-size: 14px;
 }
 .chev {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   background: #2f8b6015;
   color: #2f8b60;
   border-radius: 999px;
-  font-size: 22px;
+  font-size: 24px;
 }
 button {
   cursor: pointer;
+}
+
+.row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-color: #2f8b60;
 }
 .bottombar {
   position: fixed;
@@ -238,13 +251,29 @@ button {
   .title-lg {
     font-size: 24px;
   }
+  .list {
+    gap: 16px;
+    margin-top: 20px;
+    max-width: 100%;
+  }
   .row {
-    padding: 12px;
-    gap: 10px;
+    padding: 24px 20px;
+    gap: 14px;
   }
   .thumb {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
+  }
+  .title {
+    font-size: 16px;
+  }
+  .muted {
+    font-size: 13px;
+  }
+  .chev {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
   }
 }
 </style>
