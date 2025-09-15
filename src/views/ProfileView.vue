@@ -4,7 +4,14 @@
       <img src="/pig.jpg" alt="hero" />
     </section>
     <div class="panel">
-      <div class="avatar">👤</div>
+      <div class="avatar">
+        <img
+          v-if="userProfile.profilePicture"
+          :src="userProfile.profilePicture"
+          alt="Profile Picture"
+        />
+        <span v-else>👤</span>
+      </div>
       <div class="name">{{ userProfile.name }}</div>
 
       <div class="menu">
@@ -74,6 +81,49 @@
 
         <div class="modal-content">
           <form @submit.prevent="saveProfile" class="edit-form">
+            <!-- Profile Picture Section -->
+            <div class="form-group profile-picture-group">
+              <label>Profile Picture</label>
+              <div class="profile-picture-container">
+                <div class="profile-picture-preview">
+                  <img
+                    v-if="profilePicturePreview"
+                    :src="profilePicturePreview"
+                    alt="Profile Preview"
+                  />
+                  <div v-else class="no-image">
+                    <i class="mdi mdi-camera"></i>
+                    <span>No image</span>
+                  </div>
+                </div>
+                <div class="profile-picture-actions">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    @change="handleProfilePictureChange"
+                    id="profile-picture-input"
+                    style="display: none"
+                  />
+                  <label for="profile-picture-input" class="upload-btn">
+                    <i class="mdi mdi-upload"></i>
+                    Choose Image
+                  </label>
+                  <button
+                    v-if="profilePicturePreview"
+                    type="button"
+                    class="remove-btn"
+                    @click="removeProfilePicture"
+                  >
+                    <i class="mdi mdi-delete"></i>
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <span v-if="editErrors.profilePicture" class="error-text">{{
+                editErrors.profilePicture
+              }}</span>
+            </div>
+
             <div class="form-group">
               <label>Full Name</label>
               <input
@@ -138,6 +188,7 @@ const pinStore = usePinStore()
 const userProfile = ref({
   name: 'Olivier Terante',
   phone: '',
+  profilePicture: null,
 })
 
 // Modal state
@@ -151,8 +202,10 @@ const successMessage = ref('')
 const editForm = ref({
   name: '',
   phone: '',
+  profilePicture: null,
 })
 const editErrors = ref({})
+const profilePicturePreview = ref(null)
 
 // PIN modal functions
 function openPinModal() {
@@ -217,7 +270,9 @@ function openEditModal() {
   editForm.value = {
     name: userProfile.value.name,
     phone: userProfile.value.phone,
+    profilePicture: userProfile.value.profilePicture,
   }
+  profilePicturePreview.value = userProfile.value.profilePicture
   editErrors.value = {}
 }
 
@@ -226,7 +281,9 @@ function closeEditModal() {
   editForm.value = {
     name: '',
     phone: '',
+    profilePicture: null,
   }
+  profilePicturePreview.value = null
   editErrors.value = {}
 }
 
@@ -247,9 +304,45 @@ function saveProfile() {
       ...userProfile.value,
       name: editForm.value.name.trim(),
       phone: editForm.value.phone.trim(),
+      profilePicture: editForm.value.profilePicture,
     }
     closeEditModal()
   }
+}
+
+// Profile picture functions
+function handleProfilePictureChange(event) {
+  const file = event.target.files[0]
+  if (file) {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      editErrors.value.profilePicture = 'Please select a valid image file'
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      editErrors.value.profilePicture = 'Image size must be less than 5MB'
+      return
+    }
+
+    // Clear any previous errors
+    editErrors.value.profilePicture = ''
+
+    // Create preview URL
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      profilePicturePreview.value = e.target.result
+      editForm.value.profilePicture = e.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+function removeProfilePicture() {
+  editForm.value.profilePicture = null
+  profilePicturePreview.value = null
+  editErrors.value.profilePicture = ''
 }
 </script>
 
@@ -298,6 +391,14 @@ function saveProfile() {
   font-size: 42px;
   margin-top: 20px;
   border: 6px solid #2f8b60;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 .name {
   font-weight: 700;
@@ -582,5 +683,108 @@ button {
 .save-btn:hover {
   background: #256c3c;
   transform: translateY(-1px);
+}
+
+/* Profile Picture Styles */
+.profile-picture-group {
+  text-align: center;
+}
+
+.profile-picture-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-picture-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #e1e5e9;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.profile-picture-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+}
+
+.no-image i {
+  font-size: 32px;
+  color: #ccc;
+}
+
+.no-image span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.profile-picture-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #2f8b60;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.upload-btn:hover {
+  background: #256c3c;
+  transform: translateY(-1px);
+}
+
+.upload-btn i {
+  font-size: 16px;
+}
+
+.remove-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.remove-btn:hover {
+  background: #c0392b;
+  transform: translateY(-1px);
+}
+
+.remove-btn i {
+  font-size: 16px;
 }
 </style>
