@@ -5,11 +5,10 @@
     </section>
     <div class="panel">
       <div class="avatar">👤</div>
-      <div class="name">Olivier Terante</div>
-      <div class="role">Hog Raiser</div>
+      <div class="name">{{ userProfile.name }}</div>
 
       <div class="menu">
-        <button class="row">
+        <button class="row" @click="openEditModal">
           <span>Edit Profile</span>
           <span>›</span>
         </button>
@@ -65,6 +64,41 @@
       </div>
     </div>
 
+    <!-- Edit Profile Modal -->
+    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3>Edit Profile</h3>
+          <button class="close-btn" @click="closeEditModal">×</button>
+        </div>
+
+        <div class="modal-content">
+          <form @submit.prevent="saveProfile" class="edit-form">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input
+                v-model="editForm.name"
+                type="text"
+                placeholder="Enter your full name"
+                :class="{ error: editErrors.name }"
+              />
+              <span v-if="editErrors.name" class="error-text">{{ editErrors.name }}</span>
+            </div>
+
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input v-model="editForm.phone" type="tel" placeholder="Enter your phone number" />
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="cancel-btn" @click="closeEditModal">Cancel</button>
+              <button type="submit" class="save-btn">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <nav class="bottombar">
       <button
         @click="$router.push({ name: 'dashboard' })"
@@ -100,11 +134,25 @@ import { usePinStore } from '../stores/pin'
 
 const pinStore = usePinStore()
 
+// Profile state
+const userProfile = ref({
+  name: 'Olivier Terante',
+  phone: '',
+})
+
 // Modal state
 const showPinModal = ref(false)
+const showEditModal = ref(false)
 const pinInput = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// Edit profile form state
+const editForm = ref({
+  name: '',
+  phone: '',
+})
+const editErrors = ref({})
 
 // PIN modal functions
 function openPinModal() {
@@ -162,6 +210,47 @@ function setPin() {
     errorMessage.value = 'Please enter 4 digits'
   }
 }
+
+// Edit profile functions
+function openEditModal() {
+  showEditModal.value = true
+  editForm.value = {
+    name: userProfile.value.name,
+    phone: userProfile.value.phone,
+  }
+  editErrors.value = {}
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  editForm.value = {
+    name: '',
+    phone: '',
+  }
+  editErrors.value = {}
+}
+
+function validateEditForm() {
+  const errors = {}
+
+  if (!editForm.value.name.trim()) {
+    errors.name = 'Name is required'
+  }
+
+  editErrors.value = errors
+  return Object.keys(errors).length === 0
+}
+
+function saveProfile() {
+  if (validateEditForm()) {
+    userProfile.value = {
+      ...userProfile.value,
+      name: editForm.value.name.trim(),
+      phone: editForm.value.phone.trim(),
+    }
+    closeEditModal()
+  }
+}
 </script>
 
 <style scoped>
@@ -213,9 +302,6 @@ function setPin() {
 .name {
   font-weight: 700;
   margin-top: 10px;
-}
-.role {
-  opacity: 0.9;
   margin-bottom: 14px;
 }
 .menu {
@@ -414,5 +500,87 @@ button {
   font-size: 14px;
   margin-top: 16px;
   font-weight: 500;
+}
+
+/* Edit Profile Modal Styles */
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input {
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+  outline: none;
+}
+
+.form-group input:focus {
+  border-color: #2f8b60;
+}
+
+.form-group input.error {
+  border-color: #e74c3c;
+}
+
+.error-text {
+  color: #e74c3c;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  background: #fff;
+  color: #666;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #f8f9fa;
+  border-color: #d1d5db;
+}
+
+.save-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: #2f8b60;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.save-btn:hover {
+  background: #256c3c;
+  transform: translateY(-1px);
 }
 </style>
