@@ -4,16 +4,22 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+// Form data
 const email = ref('')
 const password = ref('')
-const errors = ref({ email: '', password: '' })
+const confirmPassword = ref('')
+const name = ref('')
+const errors = ref({ email: '', password: '', confirmPassword: '', name: '' })
 const activeTab = ref('login')
 const passwordVisible = ref(false)
+const confirmPasswordVisible = ref(false)
 
-const validate = () => {
+// Validation functions
+const validateLogin = () => {
   let valid = true
-  errors.value = { email: '', password: '' }
+  errors.value = { email: '', password: '', confirmPassword: '', name: '' }
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
   if (!email.value) {
     errors.value.email = 'Email is required'
     valid = false
@@ -21,6 +27,7 @@ const validate = () => {
     errors.value.email = 'Enter a valid email address'
     valid = false
   }
+
   if (!password.value) {
     errors.value.password = 'Password is required'
     valid = false
@@ -28,11 +35,55 @@ const validate = () => {
     errors.value.password = 'Password must be at least 6 characters'
     valid = false
   }
+
   return valid
 }
 
+const validateRegister = () => {
+  let valid = true
+  errors.value = { email: '', password: '', confirmPassword: '', name: '' }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!name.value.trim()) {
+    errors.value.name = 'Name is required'
+    valid = false
+  }
+
+  if (!email.value) {
+    errors.value.email = 'Email is required'
+    valid = false
+  } else if (!emailPattern.test(email.value)) {
+    errors.value.email = 'Enter a valid email address'
+    valid = false
+  }
+
+  if (!password.value) {
+    errors.value.password = 'Password is required'
+    valid = false
+  } else if (password.value.length < 6) {
+    errors.value.password = 'Password must be at least 6 characters'
+    valid = false
+  }
+
+  if (!confirmPassword.value) {
+    errors.value.confirmPassword = 'Please confirm your password'
+    valid = false
+  } else if (password.value !== confirmPassword.value) {
+    errors.value.confirmPassword = 'Passwords do not match'
+    valid = false
+  }
+
+  return valid
+}
+
+// Form handlers
 const handleLogin = () => {
-  if (!validate()) return
+  if (!validateLogin()) return
+  router.push({ name: 'dashboard' })
+}
+
+const handleRegister = () => {
+  if (!validateRegister()) return
   router.push({ name: 'dashboard' })
 }
 
@@ -50,11 +101,20 @@ const handleTwitterLogin = () => {
 
 const setActiveTab = (tab) => {
   activeTab.value = tab
-  if (tab === 'register') router.push({ name: 'register' })
+  // Clear form data when switching tabs
+  email.value = ''
+  password.value = ''
+  confirmPassword.value = ''
+  name.value = ''
+  errors.value = { email: '', password: '', confirmPassword: '', name: '' }
 }
 
 const togglePasswordVisibility = () => {
   passwordVisible.value = !passwordVisible.value
+}
+
+const toggleConfirmPasswordVisibility = () => {
+  confirmPasswordVisible.value = !confirmPasswordVisible.value
 }
 </script>
 
@@ -78,8 +138,8 @@ const togglePasswordVisibility = () => {
         </button>
       </div>
 
-      <!-- Form -->
-      <form @submit.prevent="handleLogin" class="form">
+      <!-- Login Form -->
+      <form v-if="activeTab === 'login'" @submit.prevent="handleLogin" class="form">
         <div class="input-group1">
           <i class="mdi mdi-email-outline"></i>
           <input v-model="email" type="email" placeholder="Email Address" />
@@ -102,6 +162,50 @@ const togglePasswordVisibility = () => {
         </div>
 
         <button type="submit" class="login-btn mt-0">Login</button>
+      </form>
+
+      <!-- Register Form -->
+      <form v-if="activeTab === 'register'" @submit.prevent="handleRegister" class="form">
+        <div class="input-group1">
+          <i class="mdi mdi-account-outline"></i>
+          <input v-model="name" type="text" placeholder="Full Name" />
+          <p v-if="errors.name" class="err">{{ errors.name }}</p>
+        </div>
+        <div class="input-group1">
+          <i class="mdi mdi-email-outline"></i>
+          <input v-model="email" type="email" placeholder="Email Address" />
+          <p v-if="errors.email" class="err">{{ errors.email }}</p>
+        </div>
+        <div class="input-group2">
+          <i class="mdi mdi-lock-outline"></i>
+          <input
+            :type="passwordVisible ? 'text' : 'password'"
+            v-model="password"
+            placeholder="Password"
+          />
+          <i
+            class="mdi"
+            :class="passwordVisible ? 'mdi-eye-off' : 'mdi-eye'"
+            @click="togglePasswordVisibility"
+          ></i>
+          <p v-if="errors.password" class="err">{{ errors.password }}</p>
+        </div>
+        <div class="input-group2">
+          <i class="mdi mdi-lock-outline"></i>
+          <input
+            :type="confirmPasswordVisible ? 'text' : 'password'"
+            v-model="confirmPassword"
+            placeholder="Confirm Password"
+          />
+          <i
+            class="mdi"
+            :class="confirmPasswordVisible ? 'mdi-eye-off' : 'mdi-eye'"
+            @click="toggleConfirmPasswordVisibility"
+          ></i>
+          <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
+        </div>
+
+        <button type="submit" class="login-btn mt-0">Register</button>
       </form>
 
       <!-- Divider -->
@@ -137,13 +241,14 @@ const togglePasswordVisibility = () => {
   min-height: 100vh;
   background: #f5f5f5;
   padding: 16px;
+  overflow-x: hidden;
 }
 
 .card {
   width: 100%;
-  max-width: 340px;
+  max-width: 380px;
   background: #fff;
-  padding: 1.5rem;
+  padding: 2rem;
   border-radius: 20px;
   box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.15);
 }
@@ -209,18 +314,21 @@ const togglePasswordVisibility = () => {
 
 .input-group1 {
   position: relative;
+  margin-bottom: 5px;
 }
 
 .input-group1 i {
   position: absolute;
   top: 50%;
-  left: 10px;
+  left: 12px;
   transform: translateY(-50%);
   color: #777;
+  z-index: 1;
 }
 
 .input-group2 {
   position: relative;
+  margin-bottom: 5px;
 }
 
 .input-group2 i {
@@ -229,25 +337,28 @@ const togglePasswordVisibility = () => {
   transform: translateY(-50%);
   color: #777;
   cursor: pointer;
+  z-index: 1;
 }
 
 .input-group2 i.mdi-lock-outline {
-  left: 10px;
+  left: 12px;
 }
 
 .input-group2 i.mdi-eye,
 .input-group2 i.mdi-eye-off {
-  right: 10px;
+  right: 12px;
 }
 
 .form input {
   width: 100%;
   padding: 12px 15px;
   padding-left: 40px;
+  padding-right: 15px;
   border-radius: 20px;
   border: 1px solid #ccc;
   font-size: 14px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .form input:focus {
@@ -345,5 +456,148 @@ const togglePasswordVisibility = () => {
   color: #cc0000;
   font-size: 12px;
   margin-top: 6px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .login-page {
+    padding: 12px;
+  }
+
+  .card {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .logo h1 {
+    font-size: 20px;
+  }
+
+  .tabs button {
+    padding: 8px 16px;
+    font-size: 14px;
+    min-width: 70px;
+  }
+
+  .form input {
+    padding: 10px 12px;
+    padding-left: 35px;
+    padding-right: 12px;
+    font-size: 13px;
+  }
+
+  .input-group1 i,
+  .input-group2 i {
+    font-size: 16px;
+  }
+
+  .input-group1 i {
+    left: 10px;
+  }
+
+  .input-group2 i.mdi-lock-outline {
+    left: 10px;
+  }
+
+  .input-group2 i.mdi-eye,
+  .input-group2 i.mdi-eye-off {
+    right: 10px;
+  }
+
+  .login-btn {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .social button {
+    width: 35px;
+    height: 35px;
+  }
+
+  .social i {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-page {
+    padding: 8px;
+  }
+
+  .card {
+    padding: 1.2rem;
+  }
+
+  .logo img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .logo h1 {
+    font-size: 18px;
+  }
+
+  .tabs {
+    gap: 6px;
+    padding: 3px;
+  }
+
+  .tabs button {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-width: 60px;
+  }
+
+  .form {
+    gap: 12px;
+  }
+
+  .form input {
+    padding: 8px 10px;
+    padding-left: 30px;
+    padding-right: 10px;
+    font-size: 12px;
+  }
+
+  .input-group1 i,
+  .input-group2 i {
+    font-size: 14px;
+  }
+
+  .input-group1 i {
+    left: 8px;
+  }
+
+  .input-group2 i.mdi-lock-outline {
+    left: 8px;
+  }
+
+  .input-group2 i.mdi-eye,
+  .input-group2 i.mdi-eye-off {
+    right: 8px;
+  }
+
+  .login-btn {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .divider {
+    margin: 15px 0;
+    font-size: 12px;
+  }
+
+  .social {
+    gap: 15px;
+  }
+
+  .social button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .social i {
+    font-size: 14px;
+  }
 }
 </style>
