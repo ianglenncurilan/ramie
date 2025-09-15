@@ -3,18 +3,13 @@
     <div class="content">
       <div class="illustration">
         <div v-if="currentStep === 1" class="simplify-illustration">
-          <div class="arrow">↗</div>
+          <img src="/simplify.png" alt="Simplify" />
         </div>
-        <div v-else-if="currentStep === 2" class="expense-illustration">
-          <div class="money-stack">💰</div>
-          <div class="coins">🪙</div>
-          <div class="pin">📍</div>
+        <div v-else-if="currentStep === 2" class="track-illustration">
+          <img src="/track.png" alt="Track" />
         </div>
         <div v-else-if="currentStep === 3" class="manage-illustration">
-          <div class="bulb">💡</div>
-          <div class="clipboard">📋</div>
-          <div class="chart">📊</div>
-          <div class="gear">⚙️</div>
+          <img src="/manage.png" alt="Manage" />
         </div>
       </div>
 
@@ -63,12 +58,13 @@ const goToLogin = () => {
 }
 
 .onboarding {
-  min-height: 100vh;
+  height: 100vh;
   background: white;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 20px 16px;
+  padding: 16px 16px;
+  overflow: hidden;
 }
 
 .content {
@@ -78,106 +74,90 @@ const goToLogin = () => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 20px 0;
+  padding: 10px 0;
+  min-height: 0;
 }
 
 .illustration {
-  width: 160px;
-  height: 160px;
-  margin-bottom: 30px;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 20px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.simplify-illustration .arrow {
-  font-size: 80px;
-  color: #ff6a6a;
-  transform: rotate(45deg);
-}
-
-.expense-illustration {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.money-stack {
-  font-size: 50px;
-}
-
-.coins {
-  font-size: 35px;
-  margin-left: 15px;
-}
-
-.pin {
-  font-size: 25px;
-  margin-top: -8px;
-}
-
-.manage-illustration {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  align-items: center;
-  justify-items: center;
-}
-
-.bulb,
-.clipboard,
-.chart,
-.gear {
-  font-size: 35px;
+.simplify-illustration img,
+.track-illustration img,
+.manage-illustration img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-width: 140px;
+  max-height: 140px;
 }
 
 .title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  color: #333;
+  color: #000;
   margin: 0;
+  flex-shrink: 0;
 }
 
 .navigation {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 0 10px;
-  margin-top: 20px;
+  padding: 15px 20px;
+  margin-top: 15px;
+  flex-shrink: 0;
 }
 
 .skip {
   background: none;
   border: none;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #333;
   cursor: pointer;
-  padding: 10px 16px;
+  padding: 15px 20px;
   justify-self: start;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.skip:hover {
+  background-color: #f5f5f5;
 }
 
 .next {
-  background: none;
+  background: #2f8b60;
   border: none;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: white;
   cursor: pointer;
-  padding: 10px 16px;
+  padding: 15px 20px;
   justify-self: end;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.next:hover {
+  background-color: #256c3c;
 }
 
 .dots {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #e0e0e0;
   transition: background 0.3s ease;
@@ -190,52 +170,39 @@ const goToLogin = () => {
 /* Mobile adjustments */
 @media (max-width: 420px) {
   .onboarding {
-    padding: 16px 12px;
+    padding: 8px 10px;
+  }
+
+  .content {
+    padding: 5px 0;
   }
 
   .illustration {
-    width: 140px;
-    height: 140px;
-    margin-bottom: 25px;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 10px;
   }
 
-  .simplify-illustration .arrow {
-    font-size: 70px;
-  }
-
-  .money-stack {
-    font-size: 45px;
-  }
-
-  .coins {
-    font-size: 30px;
-    margin-left: 12px;
-  }
-
-  .pin {
-    font-size: 22px;
-    margin-top: -6px;
-  }
-
-  .bulb,
-  .clipboard,
-  .chart,
-  .gear {
-    font-size: 30px;
+  .simplify-illustration img,
+  .track-illustration img,
+  .manage-illustration img {
+    max-width: 100px;
+    max-height: 100px;
   }
 
   .title {
-    font-size: 24px;
+    font-size: 18px;
   }
 
   .navigation {
-    padding: 0 5px;
+    padding: 8px 10px;
+    margin-top: 8px;
   }
 
   .skip,
   .next {
     font-size: 13px;
-    padding: 8px 12px;
+    padding: 10px 14px;
   }
 
   .dots {
@@ -245,6 +212,54 @@ const goToLogin = () => {
   .dot {
     width: 5px;
     height: 5px;
+  }
+}
+
+/* Extra small mobile adjustments */
+@media (max-width: 360px) {
+  .onboarding {
+    padding: 6px 8px;
+  }
+
+  .content {
+    padding: 3px 0;
+  }
+
+  .illustration {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 8px;
+  }
+
+  .simplify-illustration img,
+  .track-illustration img,
+  .manage-illustration img {
+    max-width: 80px;
+    max-height: 80px;
+  }
+
+  .title {
+    font-size: 16px;
+  }
+
+  .navigation {
+    padding: 6px 8px;
+    margin-top: 6px;
+  }
+
+  .skip,
+  .next {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .dots {
+    gap: 4px;
+  }
+
+  .dot {
+    width: 4px;
+    height: 4px;
   }
 }
 </style>
