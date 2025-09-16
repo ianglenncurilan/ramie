@@ -26,6 +26,9 @@
             <div class="inventory-status">
               📦 {{ inventoryStore.availableIngredients.length }} ingredients available
             </div>
+            <div class="auto-populate-info">
+              💡 Costs are automatically populated from your inventory when available
+            </div>
           </div>
         </div>
 
@@ -75,12 +78,18 @@
                   class="pill"
                   :class="{
                     'auto-populated':
-                      findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable,
+                      (findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable) ||
+                      (findInventoryItemByName(item.label) &&
+                        findInventoryItemByName(item.label).isAvailable),
                   }"
                 >
                   <input type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
                   <span
-                    v-if="findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable"
+                    v-if="
+                      (findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable) ||
+                      (findInventoryItemByName(item.label) &&
+                        findInventoryItemByName(item.label).isAvailable)
+                    "
                     class="auto-indicator"
                     title="Auto-populated from inventory"
                     >📦</span
@@ -257,11 +266,28 @@ function findInventoryItem(ingredientId) {
   return null
 }
 
+// Function to find inventory item by exact name match (for dynamic ingredients)
+function findInventoryItemByName(ingredientName) {
+  return inventoryStore.ingredients.find(
+    (item) =>
+      item.name.toLowerCase() === ingredientName.toLowerCase() ||
+      item.name.toLowerCase().includes(ingredientName.toLowerCase()) ||
+      ingredientName.toLowerCase().includes(item.name.toLowerCase()),
+  )
+}
+
 // Function to auto-populate costs from inventory
 function autoPopulateCosts() {
   uiCategories.value.forEach((category) => {
     category.items.forEach((item) => {
-      const inventoryItem = findInventoryItem(item.id)
+      // First try to find by ID mapping (for hardcoded ingredients)
+      let inventoryItem = findInventoryItem(item.id)
+
+      // If not found by ID, try to find by name (for dynamic ingredients)
+      if (!inventoryItem) {
+        inventoryItem = findInventoryItemByName(item.label)
+      }
+
       if (inventoryItem && inventoryItem.isAvailable) {
         // Convert cost to per KG if needed
         let costPerKg = inventoryItem.cost
@@ -282,6 +308,9 @@ function autoPopulateCosts() {
           }
         }
         costs[item.id] = costPerKg
+        console.log(`Auto-populated cost for ${item.label}: ₱${costPerKg}/kg from inventory`)
+      } else {
+        console.log(`No available inventory found for ${item.label}`)
       }
     })
   })
@@ -486,6 +515,17 @@ function saveFormulation() {
   padding: 4px 8px;
   border-radius: 6px;
   align-self: flex-start;
+}
+
+.auto-populate-info {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
+  margin-top: 4px;
 }
 
 .table {
