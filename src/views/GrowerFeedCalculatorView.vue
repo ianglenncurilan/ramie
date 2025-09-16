@@ -153,61 +153,90 @@ const INGREDIENT_MAPPING = {
 }
 
 // Grower feed categories with 50% Protein / 50% Carbs ratio
-const uiCategories = [
-  {
-    key: 'carbs',
-    title: 'Carbohydrates (50%)',
-    total: 50,
-    items: [
-      { id: 'banana', label: 'Banana Peels', base: 25 },
-      { id: 'ricebran', label: 'Rice Bran D2 (rbd2)', base: 25 },
-    ],
-  },
-  {
-    key: 'protein',
-    title: 'Protein (50%)',
-    total: 50,
-    items: [
-      { id: 'ramie', label: 'Ramie', note: 'fresh & shredded', base: 15 },
-      { id: 'cadamba', label: 'Cadamba', note: 'dried', base: 15 },
-      { id: 'copra', label: 'Copra Meal', base: 20 },
-    ],
-  },
-  {
-    key: 'vitamins',
-    title: 'Vitamins',
-    total: 3,
-    items: [
-      { id: 'molasses', label: 'Molasses (% to dry ingredients)', base: 3 },
-      { id: 'herbal', label: 'Herbal concoctions (% to DI)', base: 2 },
-      { id: 'premix', label: 'Premix (animal vita)', base: 1 },
-      { id: 'cececal', label: 'Cececal', base: 1 },
-    ],
-  },
-  {
-    key: 'minerals',
-    title: 'Minerals',
-    total: 5,
-    items: [
-      { id: 'salt', label: 'Salt (% to dry ingredients)', base: 5 },
-      { id: 'ricehull', label: 'Carbonised rice hull (% to DI)', base: 0 },
-    ],
-  },
-  {
-    key: 'water',
-    title: 'Water (% to dry ingredients)',
-    total: 30,
-    items: [{ id: 'water', label: 'Water', base: 30 }],
-  },
-]
+const uiCategories = computed(() => {
+  // Get available ingredients from inventory
+  const availableIngredients = inventoryStore.availableIngredients
+
+  // Categorize ingredients by type
+  const categorizedIngredients = {
+    carbs: availableIngredients.filter((ingredient) => ingredient.type === 'carbs'),
+    protein: availableIngredients.filter((ingredient) => ingredient.type === 'protein'),
+    vitamins: availableIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
+    minerals: availableIngredients.filter((ingredient) => ingredient.type === 'minerals'),
+    water: availableIngredients.filter(
+      (ingredient) =>
+        ingredient.type === 'water' || ingredient.name.toLowerCase().includes('water'),
+    ),
+  }
+
+  return [
+    {
+      key: 'carbs',
+      title: 'Carbohydrates (50%)',
+      total: 50,
+      items: categorizedIngredients.carbs.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+    {
+      key: 'protein',
+      title: 'Protein (50%)',
+      total: 50,
+      items: categorizedIngredients.protein.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+    {
+      key: 'vitamins',
+      title: 'Vitamins',
+      total: 3,
+      items: categorizedIngredients.vitamins.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+    {
+      key: 'minerals',
+      title: 'Minerals',
+      total: 5,
+      items: categorizedIngredients.minerals.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+    {
+      key: 'water',
+      title: 'Water (% to dry ingredients)',
+      total: 30,
+      items: categorizedIngredients.water.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+  ].filter((category) => category.items.length > 0) // Only show categories that have ingredients
+})
 
 const amounts = reactive({})
 const costs = reactive({})
 
 // Initialize all amounts to 0 to ensure reactivity
-uiCategories.forEach((category) => {
-  category.items.forEach((item) => {
-    amounts[item.id] = 0
+onMounted(() => {
+  uiCategories.value.forEach((category) => {
+    category.items.forEach((item) => {
+      amounts[item.id] = 0
+    })
   })
 })
 
@@ -230,7 +259,7 @@ function findInventoryItem(ingredientId) {
 
 // Function to auto-populate costs from inventory
 function autoPopulateCosts() {
-  uiCategories.forEach((category) => {
+  uiCategories.value.forEach((category) => {
     category.items.forEach((item) => {
       const inventoryItem = findInventoryItem(item.id)
       if (inventoryItem && inventoryItem.isAvailable) {
@@ -284,7 +313,7 @@ function saveFormulation() {
   // Validate that all categories meet their requirements
   const validationErrors = []
 
-  uiCategories.forEach((category) => {
+  uiCategories.value.forEach((category) => {
     const categoryTotal = getCategoryTotal(category)
     if (categoryTotal === 0) {
       validationErrors.push(`${category.title} has no ingredients added`)
@@ -299,7 +328,7 @@ function saveFormulation() {
   }
 
   const items = []
-  uiCategories.forEach((cat) => {
+  uiCategories.value.forEach((cat) => {
     cat.items.forEach((it) => {
       const amountKg = Number(amounts[it.id]) || 0
       const costPerKg = Number(costs[it.id]) || 0

@@ -9,6 +9,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 50,
       cost: 12.5,
       unit: 'kg',
+      type: 'carbs',
       isAvailable: true,
     },
     {
@@ -17,6 +18,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 25,
       cost: 18.75,
       unit: 'kg',
+      type: 'protein',
       isAvailable: true,
     },
     {
@@ -25,6 +27,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 0,
       cost: 8.25,
       unit: 'kg',
+      type: 'carbs',
       isAvailable: false,
     },
     {
@@ -33,6 +36,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 15,
       cost: 35.0,
       unit: 'kg',
+      type: 'protein',
       isAvailable: true,
     },
     {
@@ -41,6 +45,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 5,
       cost: 2.5,
       unit: 'kg',
+      type: 'minerals',
       isAvailable: true,
     },
     {
@@ -49,6 +54,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 0,
       cost: 45.0,
       unit: 'kg',
+      type: 'vitamins',
       isAvailable: false,
     },
     // Feed calculator ingredients
@@ -58,6 +64,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 20,
       cost: 8.0,
       unit: 'kg',
+      type: 'carbs',
       isAvailable: true,
     },
     {
@@ -66,6 +73,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 30,
       cost: 15.5,
       unit: 'kg',
+      type: 'carbs',
       isAvailable: true,
     },
     {
@@ -74,6 +82,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 25,
       cost: 12.0,
       unit: 'kg',
+      type: 'protein',
       isAvailable: true,
     },
     {
@@ -82,6 +91,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 15,
       cost: 18.0,
       unit: 'kg',
+      type: 'protein',
       isAvailable: true,
     },
     {
@@ -90,6 +100,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 40,
       cost: 22.5,
       unit: 'kg',
+      type: 'protein',
       isAvailable: true,
     },
     {
@@ -98,6 +109,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 10,
       cost: 25.0,
       unit: 'kg',
+      type: 'vitamins',
       isAvailable: true,
     },
     {
@@ -106,6 +118,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 5,
       cost: 35.0,
       unit: 'kg',
+      type: 'vitamins',
       isAvailable: true,
     },
     {
@@ -114,6 +127,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 8,
       cost: 45.0,
       unit: 'kg',
+      type: 'vitamins',
       isAvailable: true,
     },
     {
@@ -122,6 +136,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 3,
       cost: 30.0,
       unit: 'kg',
+      type: 'vitamins',
       isAvailable: true,
     },
     {
@@ -130,6 +145,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: 12,
       cost: 10.0,
       unit: 'kg',
+      type: 'minerals',
       isAvailable: true,
     },
   ])
@@ -157,6 +173,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: Number(ingredientData.quantity) || 0,
       cost: Number(ingredientData.cost) || 0,
       unit: ingredientData.unit || 'kg',
+      type: ingredientData.type || 'carbs', // Default to carbs if not specified
       isAvailable: (Number(ingredientData.quantity) || 0) > 0,
       ...ingredientData,
     }
@@ -171,6 +188,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         ...updates,
         quantity: Number(updates.quantity) || ingredients.value[index].quantity,
         cost: Number(updates.cost) || ingredients.value[index].cost,
+        type: updates.type || ingredients.value[index].type,
         isAvailable: (Number(updates.quantity) || ingredients.value[index].quantity) > 0,
       }
       ingredients.value[index] = updatedIngredient
@@ -178,9 +196,19 @@ export const useInventoryStore = defineStore('inventory', () => {
   }
 
   function deleteIngredient(id) {
+    console.log('Store deleteIngredient called with ID:', id)
+    console.log('Ingredients before delete:', ingredients.value.length)
+
     const index = ingredients.value.findIndex((ingredient) => ingredient.id === id)
+    console.log('Found ingredient at index:', index)
+
     if (index !== -1) {
-      ingredients.value.splice(index, 1)
+      console.log('Deleting ingredient:', ingredients.value[index].name)
+      // Create a new array to ensure reactivity
+      ingredients.value = ingredients.value.filter((ingredient) => ingredient.id !== id)
+      console.log('Ingredients after delete:', ingredients.value.length)
+    } else {
+      console.log('Ingredient not found!')
     }
   }
 

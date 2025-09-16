@@ -94,7 +94,19 @@
             </span>
             <div class="actions">
               <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
-              <button class="delete-btn" @click="deleteIngredient(ingredient.id)">🗑️</button>
+              <button
+                class="delete-btn"
+                @click="() => deleteIngredient(ingredient.id)"
+                @mousedown="console.log('Delete button mousedown')"
+                @mouseup="console.log('Delete button mouseup')"
+                @touchstart="console.log('Delete button touchstart')"
+                @touchend="console.log('Delete button touchend')"
+                @keydown="console.log('Delete button keydown')"
+                @keyup="console.log('Delete button keyup')"
+                type="button"
+              >
+                X
+              </button>
             </div>
           </div>
         </div>
@@ -111,7 +123,13 @@
           <form @submit.prevent="saveIngredient" class="modal-form">
             <div class="form-group">
               <label>Ingredient Name</label>
-              <input v-model="form.name" type="text" placeholder="Enter ingredient name" required />
+              <input
+                v-model="form.name"
+                @input="onNameChange"
+                type="text"
+                placeholder="Enter ingredient name"
+                required
+              />
             </div>
 
             <div class="form-row">
@@ -149,6 +167,9 @@
                 required
               />
             </div>
+
+            <!-- Hidden type field - not shown in UI -->
+            <input v-model="form.type" type="hidden" />
 
             <div class="form-actions">
               <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
@@ -261,6 +282,7 @@ const form = reactive({
   quantity: '',
   cost: '',
   unit: 'kg',
+  type: 'carbs', // Hidden field for ingredient type
 })
 
 // Modal functions
@@ -281,6 +303,7 @@ function resetForm() {
   form.quantity = ''
   form.cost = ''
   form.unit = 'kg'
+  form.type = 'carbs'
 }
 
 function editIngredient(ingredient) {
@@ -289,6 +312,7 @@ function editIngredient(ingredient) {
   form.quantity = ingredient.quantity
   form.cost = ingredient.cost
   form.unit = ingredient.unit
+  form.type = ingredient.type || 'carbs'
   showModal.value = true
 }
 
@@ -314,13 +338,74 @@ function saveIngredient() {
 }
 
 function deleteIngredient(id) {
+  console.log('Delete function called with ID:', id)
+  console.log('Ingredients before delete:', inventory.ingredients.length)
+
   if (confirm('Are you sure you want to delete this ingredient?')) {
+    console.log('User confirmed deletion')
     inventory.deleteIngredient(id)
+    console.log('Ingredients after delete:', inventory.ingredients.length)
+  } else {
+    console.log('User cancelled deletion')
   }
 }
 
 function updateQuantity(id, newQuantity) {
   inventory.updateQuantity(id, newQuantity)
+}
+
+// Function to auto-detect ingredient type based on name
+function detectIngredientType(name) {
+  const lowerName = name.toLowerCase()
+
+  // Protein sources
+  if (
+    lowerName.includes('meal') ||
+    lowerName.includes('fish') ||
+    lowerName.includes('soybean') ||
+    lowerName.includes('ramie') ||
+    lowerName.includes('cadamba') ||
+    lowerName.includes('copra')
+  ) {
+    return 'protein'
+  }
+
+  // Carbohydrate sources
+  if (
+    lowerName.includes('corn') ||
+    lowerName.includes('wheat') ||
+    lowerName.includes('rice') ||
+    lowerName.includes('banana') ||
+    lowerName.includes('bran')
+  ) {
+    return 'carbs'
+  }
+
+  // Vitamins
+  if (
+    lowerName.includes('vitamin') ||
+    lowerName.includes('molasses') ||
+    lowerName.includes('herbal') ||
+    lowerName.includes('premix') ||
+    lowerName.includes('cececal')
+  ) {
+    return 'vitamins'
+  }
+
+  // Minerals
+  if (lowerName.includes('salt') || lowerName.includes('hull') || lowerName.includes('mineral')) {
+    return 'minerals'
+  }
+
+  // Default to carbs
+  return 'carbs'
+}
+
+// Auto-detect type when name changes
+function onNameChange() {
+  if (form.name) {
+    form.type = detectIngredientType(form.name)
+  }
 }
 </script>
 
@@ -435,7 +520,7 @@ function updateQuantity(id, newQuantity) {
 .thead,
 .row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 120px;
   gap: 12px;
   padding: 10px 12px;
   align-items: center;
@@ -478,12 +563,15 @@ function updateQuantity(id, newQuantity) {
 }
 .edit-btn,
 .delete-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .edit-btn {
   background: #e3f2fd;
@@ -492,6 +580,9 @@ function updateQuantity(id, newQuantity) {
 .delete-btn {
   background: #ffebee;
   color: #d32f2f;
+  pointer-events: auto;
+  z-index: 10;
+  position: relative;
 }
 
 .ok {
@@ -660,7 +751,7 @@ button {
   }
   .thead,
   .row {
-    grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 0.8fr;
+    grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 100px;
     gap: 8px;
     padding: 8px 6px;
     font-size: 12px;
@@ -675,9 +766,9 @@ button {
   }
   .edit-btn,
   .delete-btn {
-    width: 24px;
-    height: 24px;
-    font-size: 12px;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
   }
   .modal {
     margin: 10px;
