@@ -59,7 +59,13 @@
                 <span class="right">{{ item.base }}</span>
               </div>
               <div class="cell amount">
-                <div class="pill" :class="{ active: amounts[item.id] }">
+                <div
+                  class="pill"
+                  :class="{
+                    active: amounts[item.id],
+                    exceeded: getCategoryTotal(category) > category.total,
+                  }"
+                >
                   <input type="number" min="0" step="0.01" v-model.number="amounts[item.id]" />
                   <span class="unit">KG</span>
                 </div>
@@ -198,6 +204,13 @@ const uiCategories = [
 const amounts = reactive({})
 const costs = reactive({})
 
+// Initialize all amounts to 0 to ensure reactivity
+uiCategories.forEach((category) => {
+  category.items.forEach((item) => {
+    amounts[item.id] = 0
+  })
+})
+
 // Function to find matching inventory item for a feed ingredient
 function findInventoryItem(ingredientId) {
   const possibleNames = INGREDIENT_MAPPING[ingredientId] || [ingredientId]
@@ -246,9 +259,11 @@ function autoPopulateCosts() {
 }
 
 function getCategoryTotal(category) {
-  return category.items.reduce((total, item) => {
-    return total + (Number(amounts[item.id]) || 0)
+  const total = category.items.reduce((total, item) => {
+    const amount = Number(amounts[item.id]) || 0
+    return total + amount
   }, 0)
+  return total
 }
 
 // Auto-populate costs when component mounts
@@ -468,8 +483,12 @@ function saveFormulation() {
 }
 
 .cat-total.exceeded {
-  color: #c94d4d;
+  color: #e74c3c;
   font-weight: 700;
+  background-color: #fdf2f2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fecaca;
 }
 
 .cat-total.valid {
@@ -516,8 +535,8 @@ function saveFormulation() {
   padding: 1px 3px;
   min-width: 0;
 }
-.pill.active {
-  border-color: #ff6a6a;
+.pill.exceeded {
+  background-color: #fdf2f2;
 }
 .pill.auto-populated {
   border-color: #2f8b60;
