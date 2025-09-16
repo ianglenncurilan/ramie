@@ -12,6 +12,9 @@ import ManageStaffView from '../views/ManageStaffView.vue'
 import InventoryView from '../views/InventoryView.vue'
 import HogsTrackedView from '../views/HogsTrackedView.vue'
 import FeedCalculatorView from '../views/FeedCalculatorView.vue'
+import StarterFeedCalculatorView from '../views/StarterFeedCalculatorView.vue'
+import GrowerFeedCalculatorView from '../views/GrowerFeedCalculatorView.vue'
+import FinisherFeedCalculatorView from '../views/FinisherFeedCalculatorView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -79,6 +82,21 @@ const router = createRouter({
       path: '/hogs-tracked',
       name: 'hogs-tracked',
       component: HogsTrackedView,
+    },
+    {
+      path: '/feeds/starter',
+      name: 'starter-feed-calculator',
+      component: StarterFeedCalculatorView,
+    },
+    {
+      path: '/feeds/grower',
+      name: 'grower-feed-calculator',
+      component: GrowerFeedCalculatorView,
+    },
+    {
+      path: '/feeds/finisher',
+      name: 'finisher-feed-calculator',
+      component: FinisherFeedCalculatorView,
     },
     {
       path: '/feeds/:stage',

@@ -11,35 +11,29 @@
       </div>
 
       <div class="list">
-        <button
-          class="row"
-          @click="$router.push({ name: 'feed-calculator', params: { stage: 'starter' } })"
-        >
+        <button class="row" @click="$router.push({ name: 'starter-feed-calculator' })">
           <img class="thumb" src="/starter.png" alt="starter" />
           <div class="col">
             <div class="title">Starter</div>
+            <div class="muted">60% Protein / 40% Carbs</div>
             <div class="muted">60–90 Days</div>
           </div>
           <span class="chev">›</span>
         </button>
-        <button
-          class="row"
-          @click="$router.push({ name: 'feed-calculator', params: { stage: 'grower' } })"
-        >
+        <button class="row" @click="$router.push({ name: 'grower-feed-calculator' })">
           <img class="thumb" src="/grower.png" alt="grower" />
           <div class="col">
             <div class="title">Grower</div>
+            <div class="muted">50% Protein / 50% Carbs</div>
             <div class="muted">90–120 Days</div>
           </div>
           <span class="chev">›</span>
         </button>
-        <button
-          class="row"
-          @click="$router.push({ name: 'feed-calculator', params: { stage: 'finisher' } })"
-        >
+        <button class="row" @click="$router.push({ name: 'finisher-feed-calculator' })">
           <img class="thumb" src="/finsher.png" alt="finisher" />
           <div class="col">
             <div class="title">Finisher</div>
+            <div class="muted">40% Protein / 60% Carbs</div>
             <div class="muted">120–150 Days</div>
           </div>
           <span class="chev">›</span>
@@ -166,7 +160,8 @@
 }
 .muted {
   color: #7a8b99;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.2;
 }
 .chev {
   display: inline-flex;
