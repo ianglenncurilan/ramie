@@ -500,12 +500,21 @@ function saveExpense() {
   transition: all 0.2s ease;
 }
 .add-income-btn {
-  background: #2f8b60;
+  background: linear-gradient(135deg, #2f8b60 0%, #4caf50 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(47, 139, 96, 0.3);
+  border: 2px solid #2f8b60;
+  font-weight: 700;
+  font-size: 16px;
 }
 .add-income-btn:hover {
-  background: #247a52;
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #247a52 0%, #45a049 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(47, 139, 96, 0.4);
+}
+.add-income-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(47, 139, 96, 0.3);
 }
 .add-expense-btn {
   background: #c94d4d;
@@ -515,7 +524,19 @@ function saveExpense() {
   background: #b03d3d;
   transform: translateY(-1px);
 }
-.add-income-btn span,
+.add-income-btn span {
+  font-size: 20px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+}
+
 .add-expense-btn span {
   font-size: 18px;
   font-weight: bold;
@@ -812,5 +833,33 @@ function saveExpense() {
   font-size: 14px;
   margin-top: 16px;
   font-weight: 500;
+}
+
+/* Mobile responsiveness for action buttons */
+@media (max-width: 480px) {
+  .action-buttons {
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .add-income-btn,
+  .add-expense-btn {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .add-income-btn span {
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+  }
+
+  .add-income-btn {
+    box-shadow: 0 3px 8px rgba(47, 139, 96, 0.3);
+  }
+
+  .add-income-btn:hover {
+    box-shadow: 0 4px 12px rgba(47, 139, 96, 0.4);
+  }
 }
 </style>
