@@ -446,18 +446,60 @@ const clearErrors = () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f5f5f5;
+  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  background: linear-gradient(135deg, #87ceeb 0%, #98fb98 50%, #90ee90 100%);
+  background-image: url('/pig.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   padding: 16px;
   overflow-x: hidden;
+  position: relative;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.login-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(135, 206, 235, 0.2) 0%,
+    rgba(152, 251, 152, 0.3) 50%,
+    rgba(144, 238, 144, 0.2) 100%
+  );
+  z-index: 1;
+}
+
+.login-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
+  z-index: 1;
 }
 
 .card {
   width: 100%;
   max-width: 380px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
   padding: 2rem;
   border-radius: 20px;
   box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .logo {
@@ -566,6 +608,10 @@ const clearErrors = () => {
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
+  -webkit-appearance: none; /* Remove iOS styling */
+  -moz-appearance: none;
+  appearance: none;
+  touch-action: manipulation; /* Improve touch responsiveness */
 }
 
 .form input:focus {
@@ -576,7 +622,8 @@ const clearErrors = () => {
   text-align: right;
   font-size: 12px;
   color: #777;
-  margin-top: 12px;
+  margin-top: 6px;
+  margin-bottom: 0;
   cursor: pointer;
 }
 
@@ -585,7 +632,7 @@ const clearErrors = () => {
 }
 
 .login-btn {
-  margin-top: 10px;
+  margin-top: 6px;
   width: 100%;
   padding: 12px;
   background: #2c7a4b;
@@ -681,11 +728,19 @@ const clearErrors = () => {
 @media (max-width: 480px) {
   .login-page {
     padding: 12px;
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
   }
 
   .card {
     max-width: 100%;
     padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.98);
+    margin: 0;
+    border-radius: 16px;
   }
 
   .logo h1 {
@@ -741,10 +796,18 @@ const clearErrors = () => {
 @media (max-width: 360px) {
   .login-page {
     padding: 8px;
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .card {
     padding: 1.2rem;
+    background: rgba(255, 255, 255, 0.98);
+    margin: 0;
+    border-radius: 14px;
   }
 
   .logo img {
@@ -817,6 +880,86 @@ const clearErrors = () => {
 
   .social i {
     font-size: 14px;
+  }
+}
+
+/* Landscape orientation for mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .login-page {
+    padding: 8px;
+    background-size: cover;
+    background-position: center center;
+  }
+
+  .card {
+    max-width: 90%;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  .logo img {
+    width: 50px;
+    height: 50px;
+  }
+
+  .logo h1 {
+    font-size: 18px;
+  }
+
+  .form {
+    gap: 12px;
+  }
+
+  .form input {
+    padding: 10px 12px;
+    padding-left: 35px;
+    font-size: 14px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 320px) {
+  .login-page {
+    padding: 6px;
+  }
+
+  .card {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .logo img {
+    width: 35px;
+    height: 35px;
+  }
+
+  .logo h1 {
+    font-size: 16px;
+  }
+
+  .tabs button {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-width: 50px;
+  }
+
+  .form input {
+    padding: 8px 10px;
+    padding-left: 30px;
+    font-size: 12px;
+  }
+
+  .login-btn {
+    padding: 10px;
+    font-size: 12px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .login-page {
+    background-image: url('/pig.jpg');
+    background-size: cover;
   }
 }
 </style>
