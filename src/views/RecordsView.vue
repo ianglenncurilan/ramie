@@ -18,9 +18,6 @@
                 rec.totalAmount ? rec.totalAmount.toFixed(1) + 'kg' : 'N/A'
               }}</span>
               <span class="cost">₱{{ rec.totalCost ? rec.totalCost.toFixed(2) : '0.00' }}</span>
-              <span class="rate"
-                >@₱{{ rec.totalCostPerKg ? rec.totalCostPerKg.toFixed(2) : '0.00' }}/kg</span
-              >
             </div>
             <div class="ingredients">
               <span v-for="(item, idx) in rec.items.slice(0, 3)" :key="idx" class="ingredient-tag">
@@ -92,16 +89,6 @@
                   }}</span
                 >
               </div>
-              <div class="summary-item">
-                <span class="label">Cost per kg:</span>
-                <span class="value"
-                  >₱{{
-                    selectedRecord.totalCostPerKg
-                      ? selectedRecord.totalCostPerKg.toFixed(2)
-                      : '0.00'
-                  }}/kg</span
-                >
-              </div>
             </div>
 
             <div class="ingredients-section">
@@ -111,7 +98,6 @@
                   <div class="ingredient-name">{{ item.label }}</div>
                   <div class="ingredient-details">
                     <span class="amount">{{ item.amountKg }}kg</span>
-                    <span class="cost">₱{{ item.costPerKg.toFixed(2) }}/kg</span>
                     <span class="total">₱{{ (item.amountKg * item.costPerKg).toFixed(2) }}</span>
                   </div>
                 </div>

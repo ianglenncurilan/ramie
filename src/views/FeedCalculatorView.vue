@@ -48,7 +48,6 @@
             <div class="thead">
               <span></span>
               <span class="th">Amount</span>
-              <span class="th">Cost per KG</span>
             </div>
 
             <div v-for="(item, idx) in category.items" :key="item.id" class="row">
@@ -62,29 +61,6 @@
                 <div class="pill" :class="{ active: amounts[item.id] }">
                   <input type="number" min="0" step="0.01" v-model.number="amounts[item.id]" />
                   <span class="unit">KG</span>
-                </div>
-              </div>
-              <div class="cell cost">
-                <div
-                  class="pill"
-                  :class="{
-                    'auto-populated':
-                      (findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable) ||
-                      (findInventoryItemByName(item.label) &&
-                        findInventoryItemByName(item.label).isAvailable),
-                  }"
-                >
-                  <input type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
-                  <span
-                    v-if="
-                      (findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable) ||
-                      (findInventoryItemByName(item.label) &&
-                        findInventoryItemByName(item.label).isAvailable)
-                    "
-                    class="auto-indicator"
-                    title="Auto-populated from inventory"
-                    >📦</span
-                  >
                 </div>
               </div>
             </div>
@@ -216,7 +192,6 @@ BASE_CATEGORIES.finisher = BASE_CATEGORIES.starter
 const uiCategories = computed(() => BASE_CATEGORIES[stage.value])
 
 const amounts = reactive({})
-const costs = reactive({})
 
 // Function to find matching inventory item for a feed ingredient
 function findInventoryItem(ingredientId) {
@@ -245,65 +220,11 @@ function findInventoryItemByName(ingredientName) {
   )
 }
 
-// Function to auto-populate costs from inventory
-function autoPopulateCosts() {
-  uiCategories.value.forEach((category) => {
-    category.items.forEach((item) => {
-      // First try to find by ID mapping (for hardcoded ingredients)
-      let inventoryItem = findInventoryItem(item.id)
-
-      // If not found by ID, try to find by name (for dynamic ingredients)
-      if (!inventoryItem) {
-        inventoryItem = findInventoryItemByName(item.label)
-      }
-
-      if (inventoryItem && inventoryItem.isAvailable) {
-        // Convert cost to per KG if needed
-        let costPerKg = inventoryItem.cost
-        if (inventoryItem.unit !== 'kg') {
-          // Simple conversion - you might want to add more sophisticated unit conversion
-          switch (inventoryItem.unit) {
-            case 'g':
-              costPerKg = inventoryItem.cost * 1000
-              break
-            case 'lbs':
-              costPerKg = inventoryItem.cost * 2.20462
-              break
-            case 'tons':
-              costPerKg = inventoryItem.cost / 1000
-              break
-            default:
-              costPerKg = inventoryItem.cost
-          }
-        }
-        costs[item.id] = costPerKg
-        console.log(`Auto-populated cost for ${item.label}: ₱${costPerKg}/kg from inventory`)
-      } else {
-        console.log(`No available inventory found for ${item.label}`)
-      }
-    })
-  })
-}
-
 function getCategoryTotal(category) {
   return category.items.reduce((total, item) => {
     return total + (Number(amounts[item.id]) || 0)
   }, 0)
 }
-
-// Auto-populate costs when component mounts
-onMounted(() => {
-  autoPopulateCosts()
-})
-
-// Watch for changes in inventory to re-populate costs
-watch(
-  () => inventoryStore.ingredients,
-  () => {
-    autoPopulateCosts()
-  },
-  { deep: true },
-)
 
 function saveFormulation() {
   // Validate that all categories meet their requirements
@@ -327,13 +248,11 @@ function saveFormulation() {
   uiCategories.value.forEach((cat) => {
     cat.items.forEach((it) => {
       const amountKg = Number(amounts[it.id]) || 0
-      const costPerKg = Number(costs[it.id]) || 0
       if (amountKg > 0) {
         items.push({
           id: it.id,
           label: `${it.label}${it.note ? ' (' + it.note + ')' : ''}`,
           amountKg,
-          costPerKg,
         })
       }
     })
@@ -342,7 +261,6 @@ function saveFormulation() {
   // Deduct ingredients from inventory
   const deductionResults = []
   const totalAmount = items.reduce((sum, item) => sum + item.amountKg, 0)
-  const totalCost = items.reduce((sum, item) => sum + item.amountKg * item.costPerKg, 0)
 
   items.forEach((item) => {
     const result = inventoryStore.deductIngredientQuantity(item.label, item.amountKg)
@@ -372,22 +290,11 @@ function saveFormulation() {
     stage: stage.value,
     items,
     totalAmount: totalAmount,
-    totalCost: totalCost,
     date: new Date().toISOString(),
   })
 
-  // Add expense for the total cost
-  if (totalCost > 0) {
-    feedsStore.addExpense({
-      label: `Feed Formulation (${title.value}) - ${totalAmount.toFixed(1)}kg`,
-      amount: totalCost,
-    })
-  }
-
   // Show success message
-  alert(
-    `Feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg\nTotal Cost: ₱${totalCost.toFixed(2)}`,
-  )
+  alert(`Feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg`)
 
   router.push({ name: 'records' })
 }

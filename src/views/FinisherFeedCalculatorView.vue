@@ -51,7 +51,6 @@
             <div class="thead">
               <span></span>
               <span class="th">Amount</span>
-              <span class="th">Cost per KG</span>
             </div>
 
             <div v-for="(item, idx) in category.items" :key="item.id" class="row">
