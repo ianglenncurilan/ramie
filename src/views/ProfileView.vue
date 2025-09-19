@@ -603,8 +603,10 @@ button {
   border-radius: 16px;
   width: 100%;
   max-width: 400px;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -634,6 +636,9 @@ button {
 
 .modal-content {
   padding: 0 20px 20px 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .pin-input-container {
@@ -764,6 +769,12 @@ button {
   display: flex;
   gap: 12px;
   margin-top: 20px;
+  padding: 16px 0;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .cancel-btn {
@@ -901,5 +912,36 @@ button {
 
 .remove-btn i {
   font-size: 16px;
+}
+
+/* Mobile modal improvements */
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal {
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    padding: 16px 16px 0 16px;
+  }
+
+  .modal-content {
+    padding: 0 16px 16px 16px;
+  }
+
+  .form-actions {
+    padding: 12px 0;
+    margin-top: 16px;
+  }
+
+  .cancel-btn,
+  .save-btn {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
 }
 </style>
