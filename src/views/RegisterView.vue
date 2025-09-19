@@ -9,9 +9,15 @@ import {
   alphaValidator,
 } from '../utils/validators'
 import AlertNotification from '@/components/layout/commons/AlertNotification.vue'
+import AlertModal from '@/components/layout/commons/AlertModal.vue'
+import { useAlertModal } from '@/composables/useAlertModal.js'
 import { supabase, formActionDefault } from '@/services/supabase.js'
 
 const router = useRouter()
+
+// Alert modal composable
+const { showAlert, alertConfig, showSuccess, showError, showWarning, showInfo, hideAlert } =
+  useAlertModal()
 
 const name = ref('')
 const email = ref('')
@@ -100,23 +106,6 @@ const validate = () => {
 const handleRegister = async () => {
   if (!validate()) return
 
-  // Enhanced registration with Supabase
-  if (
-    !formData.value.firstname ||
-    !formData.value.lastname ||
-    !formData.value.email ||
-    !formData.value.password ||
-    !formData.value.password_confirmation
-  ) {
-    alert('Please fill in all fields.')
-    return
-  }
-
-  if (formData.value.password !== formData.value.password_confirmation) {
-    alert('Passwords do not match.')
-    return
-  }
-
   formAction.value = {
     ...formActionDefault,
   }
@@ -136,18 +125,30 @@ const handleRegister = async () => {
 
     if (error) {
       console.error(error)
-      formAction.value.formErrorMessage = error.message
+      showError(error.message || 'Registration failed. Please try again.', 'Registration Error')
       formAction.value.formStatus = error.status
     } else if (data) {
       console.log(data)
-      formAction.value.formSuccessMessage = 'Registration successful!'
-      router.replace('/login') // Redirect to the login page after successful registration
+      showSuccess(
+        'Account created successfully! Redirecting to login page...',
+        'Registration Successful',
+        {
+          autoClose: true,
+          autoCloseDelay: 2000,
+        },
+      )
 
-      Object.assign(formData.value, formDataDefault.value) // Reset formData to default values
+      // Reset form data
+      Object.assign(formData.value, formDataDefault.value)
+
+      // Redirect to login page after showing success message
+      setTimeout(() => {
+        router.replace({ name: 'login' })
+      }, 2000)
     }
   } catch (err) {
     console.error('Unexpected error:', err)
-    formAction.value.formErrorMessage = 'An unexpected error occurred.'
+    showError('An unexpected error occurred. Please try again.', 'System Error')
   } finally {
     formAction.value.formProcess = false
   }
@@ -159,7 +160,13 @@ const handleTwitterLogin = () => {}
 
 const setActiveTab = (tab) => {
   activeTab.value = tab
-  if (tab === 'login') router.push({ name: 'login' })
+  if (tab === 'login') {
+    // Clear form data when switching to login
+    formData.value = { ...formDataDefault.value }
+    errors.value = { name: '', email: '', password: '', confirmPassword: '' }
+    formAction.value = { ...formActionDefault }
+    router.push({ name: 'login' })
+  }
 }
 </script>
 
@@ -229,7 +236,7 @@ const setActiveTab = (tab) => {
           <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
         </div>
 
-        <button type="submit" class="login-btn mt-0">Create Account</button>
+        <button type="submit" class="login-btn mt-0" router-link to="/login">Register</button>
       </form>
 
       <!-- Alert Notifications -->
@@ -258,6 +265,18 @@ const setActiveTab = (tab) => {
         </button>
       </div>
     </div>
+
+    <!-- Alert Modal -->
+    <AlertModal
+      :show="showAlert"
+      :type="alertConfig.type"
+      :title="alertConfig.title"
+      :message="alertConfig.message"
+      :showCloseButton="alertConfig.showCloseButton"
+      :autoClose="alertConfig.autoClose"
+      :autoCloseDelay="alertConfig.autoCloseDelay"
+      @close="hideAlert"
+    />
   </div>
 </template>
 

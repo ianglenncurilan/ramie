@@ -1,38 +1,66 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase, formActionDefault } from '@/services/supabase.js'
+import AlertNotification from '@/components/layout/commons/AlertNotification.vue'
+import AlertModal from '@/components/layout/commons/AlertModal.vue'
+import { useAlertModal } from '@/composables/useAlertModal.js'
+import { requiredValidator, emailValidator, passwordValidator } from '@/utils/validators'
 
 const router = useRouter()
 
+// Alert modal composable
+const { showAlert, alertConfig, showSuccess, showError, showWarning, showInfo, hideAlert } =
+  useAlertModal()
+
 // Form data
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const name = ref('')
-const errors = ref({ email: '', password: '', confirmPassword: '', name: '' })
 const activeTab = ref('login')
 const passwordVisible = ref(false)
 const confirmPasswordVisible = ref(false)
 
-// Validation functions
+// Form data for login
+const formDataDefault = ref({
+  email: '',
+  password: '',
+})
+
+const formData = ref({
+  ...formDataDefault.value,
+})
+
+// Form data for register
+const registerData = ref({
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+})
+
+const errors = ref({ email: '', password: '', confirmPassword: '', name: '' })
+
+const formAction = ref({
+  ...formActionDefault,
+})
+
+const refVform = ref()
+
+// Validation functions using validators
 const validateLogin = () => {
   let valid = true
   errors.value = { email: '', password: '', confirmPassword: '', name: '' }
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  if (!email.value) {
-    errors.value.email = 'Email is required'
-    valid = false
-  } else if (!emailPattern.test(email.value)) {
-    errors.value.email = 'Enter a valid email address'
+  // Validate email using validators
+  const emailError = requiredValidator(formData.value.email) || emailValidator(formData.value.email)
+  if (emailError !== true) {
+    errors.value.email = emailError
     valid = false
   }
 
-  if (!password.value) {
-    errors.value.password = 'Password is required'
-    valid = false
-  } else if (password.value.length < 6) {
-    errors.value.password = 'Password must be at least 6 characters'
+  // Validate password using validators
+  const passwordError =
+    requiredValidator(formData.value.password) || passwordValidator(formData.value.password)
+  if (passwordError !== true) {
+    errors.value.password = passwordError
     valid = false
   }
 
@@ -42,34 +70,38 @@ const validateLogin = () => {
 const validateRegister = () => {
   let valid = true
   errors.value = { email: '', password: '', confirmPassword: '', name: '' }
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-  if (!name.value.trim()) {
-    errors.value.name = 'Name is required'
+  // Validate name using validators
+  const nameError = requiredValidator(registerData.value.name)
+  if (nameError !== true) {
+    errors.value.name = nameError
     valid = false
   }
 
-  if (!email.value) {
-    errors.value.email = 'Email is required'
-    valid = false
-  } else if (!emailPattern.test(email.value)) {
-    errors.value.email = 'Enter a valid email address'
-    valid = false
-  }
-
-  if (!password.value) {
-    errors.value.password = 'Password is required'
-    valid = false
-  } else if (password.value.length < 6) {
-    errors.value.password = 'Password must be at least 6 characters'
+  // Validate email using validators
+  const emailError =
+    requiredValidator(registerData.value.email) || emailValidator(registerData.value.email)
+  if (emailError !== true) {
+    errors.value.email = emailError
     valid = false
   }
 
-  if (!confirmPassword.value) {
-    errors.value.confirmPassword = 'Please confirm your password'
+  // Validate password using validators
+  const passwordError =
+    requiredValidator(registerData.value.password) || passwordValidator(registerData.value.password)
+  if (passwordError !== true) {
+    errors.value.password = passwordError
     valid = false
-  } else if (password.value !== confirmPassword.value) {
-    errors.value.confirmPassword = 'Passwords do not match'
+  }
+
+  // Validate confirm password
+  const confirmError =
+    requiredValidator(registerData.value.confirmPassword) ||
+    (registerData.value.password !== registerData.value.confirmPassword
+      ? 'Passwords do not match'
+      : true)
+  if (confirmError !== true) {
+    errors.value.confirmPassword = confirmError
     valid = false
   }
 
@@ -77,14 +109,128 @@ const validateRegister = () => {
 }
 
 // Form handlers
-const handleLogin = () => {
+const handleLogin = async () => {
   if (!validateLogin()) return
-  router.push({ name: 'dashboard' })
+
+  // Clear previous messages
+  formAction.value = {
+    ...formActionDefault,
+  }
+  formAction.value.formProcess = true
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: formData.value.email,
+      password: formData.value.password,
+    })
+
+    if (error) {
+      console.error('Login error:', error)
+
+      // Handle specific error cases with modal alerts
+      if (
+        error.message.includes('Invalid login credentials') ||
+        error.message.includes('Invalid email or password') ||
+        error.message.includes('Email not confirmed')
+      ) {
+        showError(
+          'Invalid email or password. Please check your credentials and try again.',
+          'Login Failed',
+        )
+      } else if (error.message.includes('User not found')) {
+        showError(
+          'No account found with this email address. Please register first.',
+          'Account Not Found',
+        )
+      } else if (error.message.includes('Too many requests')) {
+        showWarning('Too many login attempts. Please wait a moment and try again.', 'Rate Limited')
+      } else {
+        showError(error.message || 'Login failed. Please try again.', 'Login Error')
+      }
+
+      formAction.value.formStatus = error.status || 400
+    } else if (data && data.user) {
+      console.log('Login successful:', data)
+      showSuccess('Welcome back! You have been logged in successfully.', 'Login Successful', {
+        autoClose: true,
+        autoCloseDelay: 2000,
+      })
+
+      // Small delay to show success message before redirect
+      setTimeout(() => {
+        handleLoginSuccess()
+      }, 2000)
+    } else {
+      showError('Login failed. Please try again.', 'Login Error')
+    }
+  } catch (err) {
+    console.error('Unexpected error:', err)
+    showError('An unexpected error occurred. Please try again.', 'System Error')
+  } finally {
+    formAction.value.formProcess = false
+  }
 }
 
-const handleRegister = () => {
+const handleLoginSuccess = () => {
+  // Navigate to dashboard after successful login
+  router.replace({ name: 'dashboard' })
+}
+
+// Form validation function from provided code
+const onFormSubmit = () => {
+  // First validate using our custom validation
+  if (!validateLogin()) {
+    console.error('Form validation failed.')
+    return
+  }
+
+  // Then call the login function
+  handleLogin()
+}
+
+const handleRegister = async () => {
   if (!validateRegister()) return
-  router.push({ name: 'dashboard' })
+
+  // Enhanced registration with Supabase
+  formAction.value = {
+    ...formActionDefault,
+  }
+  formAction.value.formProcess = true
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: registerData.value.email,
+      password: registerData.value.password,
+      options: {
+        data: {
+          name: registerData.value.name,
+        },
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      showError(error.message || 'Registration failed. Please try again.', 'Registration Error')
+      formAction.value.formStatus = error.status
+    } else if (data) {
+      console.log(data)
+      showSuccess('Account created successfully! You can now log in.', 'Registration Successful', {
+        autoClose: true,
+        autoCloseDelay: 3000,
+      })
+      // Reset form data
+      registerData.value = { name: '', email: '', password: '', confirmPassword: '' }
+      // Switch to login tab after successful registration
+      setTimeout(() => {
+        setActiveTab('login')
+      }, 3000)
+    }
+  } catch (err) {
+    console.error('Unexpected error:', err)
+    showError('An unexpected error occurred. Please try again.', 'System Error')
+  } finally {
+    formAction.value.formProcess = false
+  }
 }
 
 const handleGoogleLogin = () => {
@@ -102,11 +248,10 @@ const handleTwitterLogin = () => {
 const setActiveTab = (tab) => {
   activeTab.value = tab
   // Clear form data when switching tabs
-  email.value = ''
-  password.value = ''
-  confirmPassword.value = ''
-  name.value = ''
+  formData.value = { ...formDataDefault.value }
+  registerData.value = { name: '', email: '', password: '', confirmPassword: '' }
   errors.value = { email: '', password: '', confirmPassword: '', name: '' }
+  formAction.value = { ...formActionDefault }
 }
 
 const togglePasswordVisibility = () => {
@@ -115,6 +260,16 @@ const togglePasswordVisibility = () => {
 
 const toggleConfirmPasswordVisibility = () => {
   confirmPasswordVisible.value = !confirmPasswordVisible.value
+}
+
+// Clear error messages when user starts typing
+const clearErrors = () => {
+  if (formAction.value.formErrorMessage) {
+    formAction.value.formErrorMessage = ''
+  }
+  if (formAction.value.formSuccessMessage) {
+    formAction.value.formSuccessMessage = ''
+  }
 }
 </script>
 
@@ -139,18 +294,24 @@ const toggleConfirmPasswordVisibility = () => {
       </div>
 
       <!-- Login Form -->
-      <form v-if="activeTab === 'login'" @submit.prevent="handleLogin" class="form">
+      <form v-if="activeTab === 'login'" @submit.prevent="onFormSubmit" class="form">
         <div class="input-group1">
           <i class="mdi mdi-email-outline"></i>
-          <input v-model="email" type="email" placeholder="Email Address" />
+          <input
+            v-model="formData.email"
+            type="email"
+            placeholder="Email Address"
+            @input="clearErrors"
+          />
           <p v-if="errors.email" class="err">{{ errors.email }}</p>
         </div>
         <div class="input-group2">
           <i class="mdi mdi-lock-outline"></i>
           <input
             :type="passwordVisible ? 'text' : 'password'"
-            v-model="password"
+            v-model="formData.password"
             placeholder="Password"
+            @input="clearErrors"
           />
           <i
             class="mdi"
@@ -161,26 +322,40 @@ const toggleConfirmPasswordVisibility = () => {
           <p v-if="errors.password" class="err">{{ errors.password }}</p>
         </div>
 
-        <button type="submit" class="login-btn mt-0">Login</button>
+        <!-- Alert Notifications -->
+        <div class="alert-container">
+          <AlertNotification
+            :formSuccessMessage="formAction.formSuccessMessage"
+            :formErrorMessage="formAction.formErrorMessage"
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="login-btn mt-0"
+          :disabled="formAction.formProcess || !formData.email || !formData.password"
+        >
+          {{ formAction.formProcess ? 'Logging in...' : 'Login' }}
+        </button>
       </form>
 
       <!-- Register Form -->
       <form v-if="activeTab === 'register'" @submit.prevent="handleRegister" class="form">
         <div class="input-group1">
           <i class="mdi mdi-account-outline"></i>
-          <input v-model="name" type="text" placeholder="Full Name" />
+          <input v-model="registerData.name" type="text" placeholder="Full Name" />
           <p v-if="errors.name" class="err">{{ errors.name }}</p>
         </div>
         <div class="input-group1">
           <i class="mdi mdi-email-outline"></i>
-          <input v-model="email" type="email" placeholder="Email Address" />
+          <input v-model="registerData.email" type="email" placeholder="Email Address" />
           <p v-if="errors.email" class="err">{{ errors.email }}</p>
         </div>
         <div class="input-group2">
           <i class="mdi mdi-lock-outline"></i>
           <input
             :type="passwordVisible ? 'text' : 'password'"
-            v-model="password"
+            v-model="registerData.password"
             placeholder="Password"
           />
           <i
@@ -194,7 +369,7 @@ const toggleConfirmPasswordVisibility = () => {
           <i class="mdi mdi-lock-outline"></i>
           <input
             :type="confirmPasswordVisible ? 'text' : 'password'"
-            v-model="confirmPassword"
+            v-model="registerData.confirmPassword"
             placeholder="Confirm Password"
           />
           <i
@@ -205,7 +380,17 @@ const toggleConfirmPasswordVisibility = () => {
           <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
         </div>
 
-        <button type="submit" class="login-btn mt-0">Register</button>
+        <!-- Alert Notifications -->
+        <div class="alert-container">
+          <AlertNotification
+            :formSuccessMessage="formAction.formSuccessMessage"
+            :formErrorMessage="formAction.formErrorMessage"
+          />
+        </div>
+
+        <button type="submit" class="login-btn mt-0" :disabled="formAction.formProcess">
+          {{ formAction.formProcess ? 'Registering...' : 'Register' }}
+        </button>
       </form>
 
       <!-- Divider -->
@@ -226,6 +411,18 @@ const toggleConfirmPasswordVisibility = () => {
         </button>
       </div>
     </div>
+
+    <!-- Alert Modal -->
+    <AlertModal
+      :show="showAlert"
+      :type="alertConfig.type"
+      :title="alertConfig.title"
+      :message="alertConfig.message"
+      :showCloseButton="alertConfig.showCloseButton"
+      :autoClose="alertConfig.autoClose"
+      :autoCloseDelay="alertConfig.autoCloseDelay"
+      @close="hideAlert"
+    />
   </div>
 </template>
 
@@ -456,6 +653,15 @@ const toggleConfirmPasswordVisibility = () => {
   color: #cc0000;
   font-size: 12px;
   margin-top: 6px;
+}
+
+.alert-container {
+  margin: 15px 0;
+}
+
+.login-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 /* Mobile Responsive */
