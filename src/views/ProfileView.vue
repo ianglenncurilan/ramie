@@ -12,7 +12,8 @@
         />
         <span v-else>👤</span>
       </div>
-      <div class="name">{{ userProfile.name }}</div>
+      <div class="name">{{ userProfile.name || 'Loading...' }}</div>
+      <div class="email">{{ userProfile.email }}</div>
 
       <div class="menu">
         <button class="row" @click="openEditModal">
@@ -23,7 +24,7 @@
           <span>{{ pinStore.isPinSet ? 'Change PIN' : 'Set PIN' }}</span>
           <span>›</span>
         </button>
-        <button class="signout">Sign out</button>
+        <button class="signout" @click="handleSignOut">Sign out</button>
       </div>
     </div>
 
@@ -136,8 +137,23 @@
             </div>
 
             <div class="form-group">
+              <label>Email Address</label>
+              <input
+                v-model="editForm.email"
+                type="email"
+                placeholder="Enter your email address"
+                :class="{ error: editErrors.email }"
+              />
+              <span v-if="editErrors.email" class="error-text">{{ editErrors.email }}</span>
+            </div>
+
+            <div class="form-group">
               <label>Phone Number</label>
               <input v-model="editForm.phone" type="tel" placeholder="Enter your phone number" />
+            </div>
+
+            <div v-if="editErrors.general" class="error-message general-error">
+              {{ editErrors.general }}
             </div>
 
             <div class="form-actions">
@@ -179,16 +195,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { usePinStore } from '../stores/pin'
+import { supabase } from '../services/supabase'
 
 const pinStore = usePinStore()
 
 // Profile state
 const userProfile = ref({
-  name: 'Olivier Terante',
+  name: '',
+  email: '',
   phone: '',
   profilePicture: null,
+  id: null,
 })
 
 // Modal state
@@ -201,11 +220,45 @@ const successMessage = ref('')
 // Edit profile form state
 const editForm = ref({
   name: '',
+  email: '',
   phone: '',
   profilePicture: null,
 })
 const editErrors = ref({})
 const profilePicturePreview = ref(null)
+
+// Fetch user data from Supabase
+async function fetchUserProfile() {
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
+
+    if (error) {
+      console.error('Error fetching user:', error.message)
+      return
+    }
+
+    if (user) {
+      userProfile.value = {
+        id: user.id,
+        name: user.user_metadata?.name || user.user_metadata?.full_name || '',
+        email: user.email || '',
+        phone: user.user_metadata?.phone || '',
+        profilePicture:
+          user.user_metadata?.avatar_url || user.user_metadata?.profile_picture || null,
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error)
+  }
+}
+
+// Load user data on component mount
+onMounted(() => {
+  fetchUserProfile()
+})
 
 // PIN modal functions
 function openPinModal() {
@@ -269,6 +322,7 @@ function openEditModal() {
   showEditModal.value = true
   editForm.value = {
     name: userProfile.value.name,
+    email: userProfile.value.email,
     phone: userProfile.value.phone,
     profilePicture: userProfile.value.profilePicture,
   }
@@ -280,6 +334,7 @@ function closeEditModal() {
   showEditModal.value = false
   editForm.value = {
     name: '',
+    email: '',
     phone: '',
     profilePicture: null,
   }
@@ -294,19 +349,47 @@ function validateEditForm() {
     errors.name = 'Name is required'
   }
 
+  if (!editForm.value.email.trim()) {
+    errors.email = 'Email is required'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.value.email)) {
+    errors.email = 'Please enter a valid email address'
+  }
+
   editErrors.value = errors
   return Object.keys(errors).length === 0
 }
 
-function saveProfile() {
+async function saveProfile() {
   if (validateEditForm()) {
-    userProfile.value = {
-      ...userProfile.value,
-      name: editForm.value.name.trim(),
-      phone: editForm.value.phone.trim(),
-      profilePicture: editForm.value.profilePicture,
+    try {
+      // Update user metadata in Supabase
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          name: editForm.value.name.trim(),
+          phone: editForm.value.phone.trim(),
+          profile_picture: editForm.value.profilePicture,
+        },
+      })
+
+      if (error) {
+        console.error('Error updating profile:', error.message)
+        editErrors.value.general = 'Failed to update profile. Please try again.'
+        return
+      }
+
+      // Update local profile data
+      userProfile.value = {
+        ...userProfile.value,
+        name: editForm.value.name.trim(),
+        phone: editForm.value.phone.trim(),
+        profilePicture: editForm.value.profilePicture,
+      }
+
+      closeEditModal()
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      editErrors.value.general = 'An unexpected error occurred. Please try again.'
     }
-    closeEditModal()
   }
 }
 
@@ -343,6 +426,21 @@ function removeProfilePicture() {
   editForm.value.profilePicture = null
   profilePicturePreview.value = null
   editErrors.value.profilePicture = ''
+}
+
+// Sign out function
+async function handleSignOut() {
+  try {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error('Error signing out:', error.message)
+    } else {
+      // Redirect to login page
+      window.location.href = '/login'
+    }
+  } catch (error) {
+    console.error('Error signing out:', error)
+  }
 }
 </script>
 
@@ -403,6 +501,12 @@ function removeProfilePicture() {
 .name {
   font-weight: 700;
   margin-top: 10px;
+  margin-bottom: 6px;
+}
+
+.email {
+  font-size: 14px;
+  opacity: 0.8;
   margin-bottom: 14px;
 }
 .menu {
@@ -643,6 +747,17 @@ button {
   color: #e74c3c;
   font-size: 12px;
   font-weight: 500;
+}
+
+.general-error {
+  background: #fdf2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
 }
 
 .form-actions {
