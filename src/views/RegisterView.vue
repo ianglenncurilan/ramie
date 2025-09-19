@@ -8,6 +8,8 @@ import {
   confirmedValidator,
   alphaValidator,
 } from '../utils/validators'
+import AlertNotification from '@/components/layout/commons/AlertNotification.vue'
+import { supabase, formActionDefault } from '@/services/supabase.js'
 
 const router = useRouter()
 
@@ -18,26 +20,66 @@ const confirmPassword = ref('')
 const errors = ref({ name: '', email: '', password: '', confirmPassword: '' })
 const activeTab = ref('register')
 
+// New functionality for enhanced registration
+const showPassword = ref(false)
+const showPasswordConfirmation = ref(false)
+
+function togglePasswordVisibility(field) {
+  if (field === 'password') {
+    showPassword.value = !showPassword.value
+  } else if (field === 'passwordConfirmation') {
+    showPasswordConfirmation.value = !showPasswordConfirmation.value
+  }
+}
+
+const formDataDefault = ref({
+  firstname: '',
+  lastname: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+})
+
+const formData = ref({
+  ...formDataDefault.value,
+})
+
+const formAction = ref({
+  ...formActionDefault,
+})
+
+const refVform = ref(null) // Define the form reference
+
 const validate = () => {
   let valid = true
   errors.value = { name: '', email: '', password: '', confirmPassword: '' }
 
-  // Validate name
-  const nameError = requiredValidator(name.value) || alphaValidator(name.value)
-  if (nameError !== true) {
-    errors.value.name = nameError
+  // Validate first name
+  const firstNameError =
+    requiredValidator(formData.value.firstname) || alphaValidator(formData.value.firstname)
+  if (firstNameError !== true) {
+    errors.value.name = firstNameError
+    valid = false
+  }
+
+  // Validate last name
+  const lastNameError =
+    requiredValidator(formData.value.lastname) || alphaValidator(formData.value.lastname)
+  if (lastNameError !== true) {
+    errors.value.name = lastNameError
     valid = false
   }
 
   // Validate email
-  const emailError = requiredValidator(email.value) || emailValidator(email.value)
+  const emailError = requiredValidator(formData.value.email) || emailValidator(formData.value.email)
   if (emailError !== true) {
     errors.value.email = emailError
     valid = false
   }
 
   // Validate password
-  const passwordError = requiredValidator(password.value) || passwordValidator(password.value)
+  const passwordError =
+    requiredValidator(formData.value.password) || passwordValidator(formData.value.password)
   if (passwordError !== true) {
     errors.value.password = passwordError
     valid = false
@@ -45,8 +87,8 @@ const validate = () => {
 
   // Validate confirm password
   const confirmError =
-    requiredValidator(confirmPassword.value) ||
-    confirmedValidator(confirmPassword.value, password.value)
+    requiredValidator(formData.value.password_confirmation) ||
+    confirmedValidator(formData.value.password_confirmation, formData.value.password)
   if (confirmError !== true) {
     errors.value.confirmPassword = confirmError
     valid = false
@@ -55,9 +97,60 @@ const validate = () => {
   return valid
 }
 
-const handleRegister = () => {
+const handleRegister = async () => {
   if (!validate()) return
-  router.push({ name: 'dashboard' })
+
+  // Enhanced registration with Supabase
+  if (
+    !formData.value.firstname ||
+    !formData.value.lastname ||
+    !formData.value.email ||
+    !formData.value.password ||
+    !formData.value.password_confirmation
+  ) {
+    alert('Please fill in all fields.')
+    return
+  }
+
+  if (formData.value.password !== formData.value.password_confirmation) {
+    alert('Passwords do not match.')
+    return
+  }
+
+  formAction.value = {
+    ...formActionDefault,
+  }
+  formAction.value.formProcess = true
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.value.email,
+      password: formData.value.password,
+      options: {
+        data: {
+          firstname: formData.value.firstname,
+          lastname: formData.value.lastname,
+        },
+      },
+    })
+
+    if (error) {
+      console.error(error)
+      formAction.value.formErrorMessage = error.message
+      formAction.value.formStatus = error.status
+    } else if (data) {
+      console.log(data)
+      formAction.value.formSuccessMessage = 'Registration successful!'
+      router.replace('/login') // Redirect to the login page after successful registration
+
+      Object.assign(formData.value, formDataDefault.value) // Reset formData to default values
+    }
+  } catch (err) {
+    console.error('Unexpected error:', err)
+    formAction.value.formErrorMessage = 'An unexpected error occurred.'
+  } finally {
+    formAction.value.formProcess = false
+  }
 }
 
 const handleGoogleLogin = () => {}
@@ -94,27 +187,58 @@ const setActiveTab = (tab) => {
       <form @submit.prevent="handleRegister" class="form">
         <div class="input-group1">
           <i class="mdi mdi-account-outline"></i>
-          <input v-model="name" type="text" placeholder="Full Name" />
+          <input v-model="formData.firstname" type="text" placeholder="First Name" />
+          <p v-if="errors.name" class="err">{{ errors.name }}</p>
+        </div>
+        <div class="input-group1">
+          <i class="mdi mdi-account-outline"></i>
+          <input v-model="formData.lastname" type="text" placeholder="Last Name" />
           <p v-if="errors.name" class="err">{{ errors.name }}</p>
         </div>
         <div class="input-group1">
           <i class="mdi mdi-email-outline"></i>
-          <input v-model="email" type="email" placeholder="Email Address" />
+          <input v-model="formData.email" type="email" placeholder="Email Address" />
           <p v-if="errors.email" class="err">{{ errors.email }}</p>
         </div>
         <div class="input-group2">
           <i class="mdi mdi-lock-outline"></i>
-          <input v-model="password" type="password" placeholder="Password" />
+          <input
+            v-model="formData.password"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="Password"
+          />
+          <i
+            :class="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+            class="password-toggle"
+            @click="togglePasswordVisibility('password')"
+          ></i>
           <p v-if="errors.password" class="err">{{ errors.password }}</p>
         </div>
         <div class="input-group2">
           <i class="mdi mdi-lock-outline"></i>
-          <input v-model="confirmPassword" type="password" placeholder="Confirm Password" />
+          <input
+            v-model="formData.password_confirmation"
+            :type="showPasswordConfirmation ? 'text' : 'password'"
+            placeholder="Confirm Password"
+          />
+          <i
+            :class="showPasswordConfirmation ? 'mdi-eye' : 'mdi-eye-off'"
+            class="password-toggle"
+            @click="togglePasswordVisibility('passwordConfirmation')"
+          ></i>
           <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
         </div>
 
         <button type="submit" class="login-btn mt-0">Create Account</button>
       </form>
+
+      <!-- Alert Notifications -->
+      <div class="alert-container">
+        <AlertNotification
+          :formSuccessMessage="formAction.formSuccessMessage"
+          :formErrorMessage="formAction.formErrorMessage"
+        />
+      </div>
 
       <!-- Divider -->
       <div class="divider">
@@ -348,5 +472,24 @@ const setActiveTab = (tab) => {
   color: #cc0000;
   font-size: 12px;
   margin-top: 6px;
+}
+
+.alert-container {
+  margin: 15px 0;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  color: #777;
+  cursor: pointer;
+  font-size: 18px;
+  z-index: 1;
+}
+
+.password-toggle:hover {
+  color: #2c7a4b;
 }
 </style>
