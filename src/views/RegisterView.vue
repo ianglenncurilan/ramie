@@ -154,9 +154,32 @@ const handleRegister = async () => {
   }
 }
 
-const handleGoogleLogin = () => {}
-const handleFacebookLogin = () => {}
-const handleTwitterLogin = () => {}
+const handleGoogleLogin = async () => {
+  try {
+    // Clear previous messages
+    formAction.value = {
+      ...formActionDefault,
+    }
+    formAction.value.formProcess = true
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    })
+
+    if (error) {
+      console.error('Google login error:', error)
+      showError('Google authentication failed. Please try again.', 'Authentication Error')
+    } else {
+      console.log('Google login initiated:', data)
+      showInfo('Redirecting to Google for authentication...', 'Google Sign-In')
+    }
+  } catch (err) {
+    console.error('Unexpected error during Google login:', err)
+    showError('An unexpected error occurred during Google authentication.', 'System Error')
+  } finally {
+    formAction.value.formProcess = false
+  }
+}
 
 const setActiveTab = (tab) => {
   activeTab.value = tab
@@ -252,16 +275,11 @@ const setActiveTab = (tab) => {
         <span>or login with</span>
       </div>
 
-      <!-- Social Buttons -->
-      <div class="social">
-        <button @click="handleGoogleLogin">
+      <!-- Google Sign Up Button -->
+      <div class="google-signin">
+        <button @click="handleGoogleLogin" class="google-btn" :disabled="formAction.formProcess">
           <i class="mdi mdi-google"></i>
-        </button>
-        <button @click="handleFacebookLogin">
-          <i class="mdi mdi-facebook"></i>
-        </button>
-        <button @click="handleTwitterLogin">
-          <i class="mdi mdi-twitter"></i>
+          <span>{{ formAction.formProcess ? 'Signing up...' : 'Sign up with Google' }}</span>
         </button>
       </div>
     </div>
@@ -449,43 +467,46 @@ const setActiveTab = (tab) => {
   margin: 0 10px;
 }
 
-.social {
+.google-signin {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  margin-top: 10px;
 }
 
-.social button {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid #ccc;
+.google-btn {
+  width: 100%;
+  max-width: 280px;
+  height: 45px;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   cursor: pointer;
-  background: #fff;
-  transition: 0.3s;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #3c4043;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.social button:hover {
-  background: #f5f5f5;
+.google-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
 }
 
-.social i {
+.google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.google-btn i {
   font-size: 18px;
-}
-
-.social .mdi-google {
-  color: #db4437;
-}
-
-.social .mdi-facebook {
-  color: #1877f2;
-}
-
-.social .mdi-twitter {
-  color: #1da1f2;
+  color: #4285f4;
 }
 .err {
   color: #cc0000;
