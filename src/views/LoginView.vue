@@ -416,7 +416,7 @@ const clearErrors = () => {
       <!-- Google Sign In Button -->
       <div class="google-signin">
         <button @click="handleGoogleLogin" class="google-btn" :disabled="formAction.formProcess">
-          <i class="mdi mdi-google"></i>
+          <img src="/google.png" alt="Google" class="google-icon" />
           <span>{{ formAction.formProcess ? 'Signing in...' : 'Sign in with Google' }}</span>
         </button>
       </div>
@@ -677,26 +677,33 @@ const clearErrors = () => {
 .google-btn {
   width: 100%;
   max-width: 280px;
-  height: 45px;
+  height: 40px;
   border: 1px solid #dadce0;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-size: 14px;
   font-weight: 500;
   color: #3c4043;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-family: 'Google Sans', 'Roboto', sans-serif;
 }
 
 .google-btn:hover:not(:disabled) {
   background: #f8f9fa;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-color: #c1c1c1;
+}
+
+.google-btn:active:not(:disabled) {
+  background: #f1f3f4;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transform: none;
 }
 
 .google-btn:disabled {
@@ -705,9 +712,10 @@ const clearErrors = () => {
   transform: none;
 }
 
-.google-btn i {
-  font-size: 18px;
-  color: #4285f4;
+.google-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 .err {
   color: #cc0000;
@@ -781,6 +789,17 @@ const clearErrors = () => {
   .login-btn {
     padding: 10px;
     font-size: 14px;
+  }
+
+  .google-btn {
+    height: 38px;
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .google-icon {
+    width: 16px;
+    height: 16px;
   }
 
   .social button {
@@ -862,6 +881,17 @@ const clearErrors = () => {
   .login-btn {
     padding: 8px;
     font-size: 13px;
+  }
+
+  .google-btn {
+    height: 36px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .google-icon {
+    width: 14px;
+    height: 14px;
   }
 
   .divider {
