@@ -573,29 +573,45 @@ const clearErrors = () => {
   transform: translateY(-50%);
   color: #777;
   z-index: 1;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-group2 {
   position: relative;
-  margin-bottom: 5px;
+  margin-bottom: 20px;
 }
 
 .input-group2 i {
   position: absolute;
-  top: 32%;
+  top: 50%;
   transform: translateY(-50%);
   color: #777;
   cursor: pointer;
   z-index: 1;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-group2 i.mdi-lock-outline {
   left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .input-group2 i.mdi-eye,
 .input-group2 i.mdi-eye-off {
   right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .form input {
@@ -720,7 +736,10 @@ const clearErrors = () => {
 .err {
   color: #cc0000;
   font-size: 12px;
-  margin-top: 6px;
+  margin-top: 8px;
+  margin-left: 12px;
+  position: relative;
+  z-index: 0;
 }
 
 .alert-container {
@@ -768,9 +787,20 @@ const clearErrors = () => {
     font-size: 13px;
   }
 
+  .err {
+    margin-left: 10px;
+    margin-top: 6px;
+  }
+
+  .input-group2 {
+    margin-bottom: 15px;
+  }
+
   .input-group1 i,
   .input-group2 i {
-    font-size: 16px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
   }
 
   .input-group1 i {
@@ -779,11 +809,15 @@ const clearErrors = () => {
 
   .input-group2 i.mdi-lock-outline {
     left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .input-group2 i.mdi-eye,
   .input-group2 i.mdi-eye-off {
     right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .login-btn {
@@ -860,9 +894,20 @@ const clearErrors = () => {
     font-size: 12px;
   }
 
+  .err {
+    margin-left: 8px;
+    margin-top: 5px;
+  }
+
+  .input-group2 {
+    margin-bottom: 12px;
+  }
+
   .input-group1 i,
   .input-group2 i {
-    font-size: 14px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
   }
 
   .input-group1 i {
@@ -871,11 +916,15 @@ const clearErrors = () => {
 
   .input-group2 i.mdi-lock-outline {
     left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .input-group2 i.mdi-eye,
   .input-group2 i.mdi-eye-off {
     right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .login-btn {

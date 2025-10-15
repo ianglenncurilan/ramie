@@ -58,6 +58,9 @@ const go = (name) => {
       <button @click="go('expenses')" :class="{ active: $route.name === 'expenses' }">
         <img src="/expensesicon.png" alt="Expenses" />
       </button>
+      <button @click="go('manage-staff')" :class="{ active: $route.name === 'manage-staff' }">
+        <img src="/staff.png" alt="Manage Staff" />
+      </button>
       <button @click="go('profile')" :class="{ active: $route.name === 'profile' }">
         <img src="/profile.png" alt="Profile" />
       </button>
@@ -150,7 +153,7 @@ const go = (name) => {
 .bottombar {
   margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   padding: 20px 24px;
   background: #fff;

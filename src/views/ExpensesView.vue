@@ -1,42 +1,6 @@
 <template>
   <div class="screen">
-    <!-- PIN Verification Screen -->
-    <div v-if="!pinStore.isAuthenticated" class="pin-screen">
-      <div class="pin-container">
-        <div class="pin-header">
-          <button class="back-btn" @click="$router.back()">←</button>
-          <h2>Enter PIN</h2>
-          <p>Access to expenses requires PIN verification</p>
-        </div>
-
-        <div class="pin-input-container">
-          <div class="pin-display">
-            <div
-              v-for="i in 4"
-              :key="i"
-              class="pin-dot"
-              :class="{ filled: pinInput.length >= i }"
-            ></div>
-          </div>
-          <div class="pin-keypad">
-            <button v-for="num in 9" :key="num" class="pin-key" @click="addDigit(num.toString())">
-              {{ num }}
-            </button>
-            <button class="pin-key" @click="clearPin">Clear</button>
-            <button v-for="num in [0]" :key="num" class="pin-key" @click="addDigit(num.toString())">
-              {{ num }}
-            </button>
-            <button class="pin-key" @click="removeDigit">⌫</button>
-          </div>
-          <div v-if="errorMessage" class="error-message">
-            {{ errorMessage }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content (only shown when authenticated) -->
-    <div v-else>
+    <div>
       <section class="hero">
         <img src="/pig.jpg" alt="hero" />
         <div class="overlay">
@@ -213,6 +177,12 @@
         <img src="/expensesicon.png" alt="Expenses" />
       </button>
       <button
+        @click="$router.push({ name: 'manage-staff' })"
+        :class="{ active: $route.name === 'manage-staff' }"
+      >
+        <img src="/staff.png" alt="Manage Staff" />
+      </button>
+      <button
         @click="$router.push({ name: 'profile' })"
         :class="{ active: $route.name === 'profile' }"
       >
@@ -223,16 +193,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, reactive } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
-import { usePinStore } from '../stores/pin'
 
 const feeds = useFeedsStore()
-const pinStore = usePinStore()
-
-// PIN verification state
-const pinInput = ref('')
-const errorMessage = ref('')
 
 // Modal state
 const showIncomeModal = ref(false)
@@ -248,55 +212,6 @@ const expenseForm = reactive({
   label: '',
   amount: '',
 })
-
-// Check if PIN is set on mount
-onMounted(() => {
-  if (!pinStore.isPinSet) {
-    // If no PIN is set, redirect to profile to set one
-    // For now, we'll just show the PIN screen
-  }
-})
-
-// PIN functions
-function addDigit(digit) {
-  if (pinInput.value.length < 4) {
-    pinInput.value += digit
-    errorMessage.value = ''
-
-    // Auto-verify when 4 digits are entered
-    if (pinInput.value.length === 4) {
-      setTimeout(() => {
-        verifyPin()
-      }, 300)
-    }
-  }
-}
-
-function removeDigit() {
-  if (pinInput.value.length > 0) {
-    pinInput.value = pinInput.value.slice(0, -1)
-    errorMessage.value = ''
-  }
-}
-
-function clearPin() {
-  pinInput.value = ''
-  errorMessage.value = ''
-}
-
-function verifyPin() {
-  if (pinInput.value.length === 4) {
-    const isValid = pinStore.verifyPin(pinInput.value)
-    if (isValid) {
-      errorMessage.value = ''
-    } else {
-      errorMessage.value = 'Invalid PIN. Please try again.'
-      pinInput.value = ''
-    }
-  } else {
-    errorMessage.value = 'Please enter 4 digits'
-  }
-}
 
 // Modal functions
 function openIncomeModal() {
@@ -667,7 +582,7 @@ function saveExpense() {
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   padding: 20px 24px;
   background: #fff;
@@ -711,129 +626,7 @@ function saveExpense() {
 }
 
 /* PIN Verification Styles */
-.pin-screen {
-  height: 100vh;
-  background: #2f8b60;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.pin-container {
-  background: white;
-  border-radius: 20px;
-  padding: 40px 30px;
-  text-align: center;
-  max-width: 400px;
-  width: 100%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-}
-
-.pin-header {
-  position: relative;
-}
-
-.back-btn {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid #e6e6e6;
-  background: #fff;
-  color: #333;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.back-btn:hover {
-  background: #f5f5f5;
-  transform: scale(1.05);
-}
-
-.pin-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #333;
-}
-
-.pin-header p {
-  margin: 0 0 30px 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.pin-input-container {
-  text-align: center;
-}
-
-.pin-display {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 30px;
-}
-
-.pin-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid #ddd;
-  background: transparent;
-  transition: all 0.2s ease;
-}
-
-.pin-dot.filled {
-  background: #2f8b60;
-  border-color: #2f8b60;
-}
-
-.pin-keypad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  max-width: 240px;
-  margin: 0 auto;
-}
-
-.pin-key {
-  width: 60px;
-  height: 60px;
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pin-key:hover {
-  background: #f5f5f5;
-  transform: scale(1.05);
-}
-
-.pin-key:active {
-  transform: scale(0.95);
-}
-
-.error-message {
-  color: #d32f2f;
-  font-size: 14px;
-  margin-top: 16px;
-  font-weight: 500;
-}
+/* Removed PIN styles */
 
 /* Mobile responsiveness for action buttons */
 @media (max-width: 480px) {

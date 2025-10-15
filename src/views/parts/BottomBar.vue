@@ -19,6 +19,12 @@
       <img src="/expensesicon.png" alt="Expenses" />
     </button>
     <button
+      @click="$router.push({ name: 'manage-staff' })"
+      :class="{ active: $route.name === 'manage-staff' }"
+    >
+      <img src="/staff.png" alt="Manage Staff" />
+    </button>
+    <button
       @click="$router.push({ name: 'profile' })"
       :class="{ active: $route.name === 'profile' }"
     >
@@ -26,6 +32,10 @@
     </button>
   </nav>
 </template>
+
+<script setup>
+// No need to import useAuth since we're not using conditional rendering anymore
+</script>
 
 <style scoped>
 * {
@@ -35,7 +45,7 @@
 .bottombar {
   margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   padding: 20px 24px;
   background: #fff;

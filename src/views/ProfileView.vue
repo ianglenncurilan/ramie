@@ -20,55 +20,11 @@
           <span>Edit Profile</span>
           <span>›</span>
         </button>
-        <button class="row" @click="openPinModal">
-          <span>{{ pinStore.isPinSet ? 'Change PIN' : 'Set PIN' }}</span>
+        <button v-if="isAdminUser" class="row" @click="$router.push({ name: 'admin' })">
+          <span>Admin</span>
           <span>›</span>
         </button>
         <button class="signout" @click="handleSignOut">Sign out</button>
-      </div>
-    </div>
-
-    <!-- PIN Modal -->
-    <div v-if="showPinModal" class="modal-overlay" @click="closePinModal">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3>{{ pinStore.isPinSet ? 'Change PIN' : 'Set PIN' }}</h3>
-          <button class="close-btn" @click="closePinModal">×</button>
-        </div>
-
-        <div class="modal-content">
-          <div class="pin-input-container">
-            <div class="pin-display">
-              <div
-                v-for="i in 4"
-                :key="i"
-                class="pin-dot"
-                :class="{ filled: pinInput.length >= i }"
-              ></div>
-            </div>
-            <div class="pin-keypad">
-              <button v-for="num in 9" :key="num" class="pin-key" @click="addDigit(num.toString())">
-                {{ num }}
-              </button>
-              <button class="pin-key" @click="clearPin">Clear</button>
-              <button
-                v-for="num in [0]"
-                :key="num"
-                class="pin-key"
-                @click="addDigit(num.toString())"
-              >
-                {{ num }}
-              </button>
-              <button class="pin-key" @click="removeDigit">⌫</button>
-            </div>
-            <div v-if="errorMessage" class="error-message">
-              {{ errorMessage }}
-            </div>
-            <div v-if="successMessage" class="success-message">
-              {{ successMessage }}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -196,11 +152,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { usePinStore } from '../stores/pin'
-import { supabase } from '../services/supabase'
+import { supabase, isAdmin as checkIsAdmin } from '../services/supabase'
+import { useRouter } from 'vue-router'
 
-const pinStore = usePinStore()
-
+const router = useRouter()
 // Profile state
 const userProfile = ref({
   name: '',
@@ -211,11 +166,15 @@ const userProfile = ref({
 })
 
 // Modal state
-const showPinModal = ref(false)
 const showEditModal = ref(false)
-const pinInput = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
+
+// Admin flag
+const isAdminUser = ref(false)
+onMounted(async () => {
+  isAdminUser.value = await checkIsAdmin()
+})
 
 // Edit profile form state
 const editForm = ref({
@@ -260,62 +219,7 @@ onMounted(() => {
   fetchUserProfile()
 })
 
-// PIN modal functions
-function openPinModal() {
-  showPinModal.value = true
-  pinInput.value = ''
-  errorMessage.value = ''
-  successMessage.value = ''
-}
-
-function closePinModal() {
-  showPinModal.value = false
-  pinInput.value = ''
-  errorMessage.value = ''
-  successMessage.value = ''
-}
-
-function addDigit(digit) {
-  if (pinInput.value.length < 4) {
-    pinInput.value += digit
-    errorMessage.value = ''
-
-    // Auto-submit when 4 digits are entered
-    if (pinInput.value.length === 4) {
-      setTimeout(() => {
-        setPin()
-      }, 300)
-    }
-  }
-}
-
-function removeDigit() {
-  if (pinInput.value.length > 0) {
-    pinInput.value = pinInput.value.slice(0, -1)
-    errorMessage.value = ''
-  }
-}
-
-function clearPin() {
-  pinInput.value = ''
-  errorMessage.value = ''
-}
-
-function setPin() {
-  if (pinInput.value.length === 4) {
-    const success = pinStore.setPin(pinInput.value)
-    if (success) {
-      successMessage.value = 'PIN set successfully!'
-      setTimeout(() => {
-        closePinModal()
-      }, 1500)
-    } else {
-      errorMessage.value = 'Please enter a valid 4-digit PIN'
-    }
-  } else {
-    errorMessage.value = 'Please enter 4 digits'
-  }
-}
+// Removed PIN functions
 
 // Edit profile functions
 function openEditModal() {
@@ -436,7 +340,7 @@ async function handleSignOut() {
       console.error('Error signing out:', error.message)
     } else {
       // Redirect to login page
-      window.location.href = '/login'
+      router.replace('/login')
     }
   } catch (error) {
     console.error('Error signing out:', error)
@@ -583,7 +487,7 @@ button {
   transition: filter 0.2s ease-in-out;
 }
 
-/* PIN Modal Styles */
+/* Removed PIN styles */
 .modal-overlay {
   position: fixed;
   top: 0;

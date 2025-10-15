@@ -1,42 +1,6 @@
 <template>
   <div class="screen">
-    <!-- PIN Verification Screen -->
-    <div v-if="!pinStore.isAuthenticated" class="pin-screen">
-      <div class="pin-container">
-        <div class="pin-header">
-          <button class="back-btn" @click="$router.back()">←</button>
-          <h2>Enter PIN</h2>
-          <p>Access to staff management requires PIN verification</p>
-        </div>
-
-        <div class="pin-input-container">
-          <div class="pin-display">
-            <div
-              v-for="i in 4"
-              :key="i"
-              class="pin-dot"
-              :class="{ filled: pinInput.length >= i }"
-            ></div>
-          </div>
-          <div class="pin-keypad">
-            <button v-for="num in 9" :key="num" class="pin-key" @click="addDigit(num.toString())">
-              {{ num }}
-            </button>
-            <button class="pin-key" @click="clearPin">Clear</button>
-            <button v-for="num in [0]" :key="num" class="pin-key" @click="addDigit(num.toString())">
-              {{ num }}
-            </button>
-            <button class="pin-key" @click="removeDigit">⌫</button>
-          </div>
-          <div v-if="errorMessage" class="error-message">
-            {{ errorMessage }}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content (only shown when authenticated) -->
-    <div v-else>
+    <div>
       <section class="panel">
         <div class="panel-header">
           <button class="back" @click="$router.back()">←</button>
@@ -79,6 +43,12 @@
           <img src="/expensesicon.png" alt="Expenses" />
         </button>
         <button
+          @click="$router.push({ name: 'manage-staff' })"
+          :class="{ active: $route.name === 'manage-staff' }"
+        >
+          <img src="/staff.png" alt="Manage Staff" />
+        </button>
+        <button
           @click="$router.push({ name: 'profile' })"
           :class="{ active: $route.name === 'profile' }"
         >
@@ -90,63 +60,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { usePinStore } from '../stores/pin'
-
-const pinStore = usePinStore()
-
-// PIN verification state
-const pinInput = ref('')
-const errorMessage = ref('')
-
-// Check if PIN is set on mount
-onMounted(() => {
-  if (!pinStore.isPinSet) {
-    // If no PIN is set, redirect to profile to set one
-    // For now, we'll just show the PIN screen
-  }
-})
-
-// PIN functions
-function addDigit(digit) {
-  if (pinInput.value.length < 4) {
-    pinInput.value += digit
-    errorMessage.value = ''
-
-    // Auto-verify when 4 digits are entered
-    if (pinInput.value.length === 4) {
-      setTimeout(() => {
-        verifyPin()
-      }, 300)
-    }
-  }
-}
-
-function removeDigit() {
-  if (pinInput.value.length > 0) {
-    pinInput.value = pinInput.value.slice(0, -1)
-    errorMessage.value = ''
-  }
-}
-
-function clearPin() {
-  pinInput.value = ''
-  errorMessage.value = ''
-}
-
-function verifyPin() {
-  if (pinInput.value.length === 4) {
-    const isValid = pinStore.verifyPin(pinInput.value)
-    if (isValid) {
-      errorMessage.value = ''
-    } else {
-      errorMessage.value = 'Invalid PIN. Please try again.'
-      pinInput.value = ''
-    }
-  } else {
-    errorMessage.value = 'Please enter 4 digits'
-  }
-}
+// No need for auth composable since we're not using conditional rendering
 </script>
 
 <style scoped>
@@ -379,7 +293,7 @@ button {
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   padding: 20px 24px;
   background: #fff;
