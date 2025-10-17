@@ -126,21 +126,33 @@ const router = createRouter({
 // Global admin guard
 router.beforeEach(async (to, from, next) => {
   try {
+    // Check if route requires admin access
     if (to.meta?.requiresAdmin) {
+      console.log(`Router guard: Checking admin access for route: ${to.name}`)
+      
+      // First check if user is authenticated
       const authed = await isAuthenticated()
       if (!authed) {
-        console.log('User not authenticated, redirecting to login')
+        console.warn('Router guard: User not authenticated, redirecting to login')
         return next({ name: 'login' })
       }
+      
+      console.log('Router guard: User is authenticated, checking admin status...')
+      
+      // Then check if user is admin
       const admin = await isAdmin()
       if (!admin) {
-        console.log('User not admin, redirecting to forbidden')
+        console.warn('Router guard: User is not admin, redirecting to forbidden page')
+        console.warn('Router guard: If you are an admin, please check ADMIN_SETUP.md for setup instructions')
         return next({ name: 'forbidden' })
       }
+      
+      console.log('Router guard: Admin access granted for route:', to.name)
     }
     next()
   } catch (error) {
     console.error('Router guard error:', error)
+    console.error('Router guard: Allowing navigation despite error')
     // If there's an error, allow navigation but log it
     next()
   }

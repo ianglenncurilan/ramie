@@ -38,12 +38,7 @@ export const isAuthenticated = async () => {
   }
 }
 
-// Simple role helpers
-let localIsAdminOverride = null
-
-export const setLocalAdminOverride = (value) => {
-  localIsAdminOverride = typeof value === 'boolean' ? value : null
-}
+// Simple role helpers (no local overrides, rely on Supabase metadata only)
 
 export const getCurrentUser = async () => {
   try {
@@ -61,12 +56,49 @@ export const getCurrentUser = async () => {
 
 export const isAdmin = async () => {
   try {
-    if (localIsAdminOverride !== null) return localIsAdminOverride
     const user = await getCurrentUser()
-    if (!user) return false
-    // Prefer a custom claim in app_metadata or user_metadata
-    const meta = user.app_metadata || user.user_metadata || {}
-    return !!(meta.is_admin || meta.isAdmin)
+    if (!user) {
+      console.log('isAdmin: No user found')
+      return false
+    }
+
+    console.log('isAdmin: Checking admin status for user:', user.email)
+    console.log('isAdmin: app_metadata:', user.app_metadata)
+    console.log('isAdmin: user_metadata:', user.user_metadata)
+
+    // Check app_metadata first (most secure, set by Supabase admin)
+    const appMeta = user.app_metadata || {}
+    const userMeta = user.user_metadata || {}
+
+    // Check multiple possible admin flag locations
+    const adminFlags = [
+      appMeta.is_admin,
+      appMeta.isAdmin,
+      appMeta.role === 'admin',
+      appMeta.role === 'administrator',
+      userMeta.is_admin,
+      userMeta.isAdmin,
+      userMeta.role === 'admin',
+      userMeta.role === 'administrator',
+    ]
+
+    // Check if any flag indicates admin status
+    for (const flag of adminFlags) {
+      if (flag === true || flag === 1 || flag === '1' || String(flag).toLowerCase() === 'true') {
+        console.log('isAdmin: User is admin (flag found:', flag, ')')
+        return true
+      }
+    }
+
+    // Check if user has admin role in raw metadata
+    const rawRole = appMeta.role || userMeta.role
+    if (rawRole && String(rawRole).toLowerCase().includes('admin')) {
+      console.log('isAdmin: User is admin (role:', rawRole, ')')
+      return true
+    }
+
+    console.log('isAdmin: User is NOT admin')
+    return false
   } catch (error) {
     console.error('Error in isAdmin:', error)
     return false

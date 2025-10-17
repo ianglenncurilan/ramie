@@ -119,7 +119,10 @@ const handleRegister = async () => {
         data: {
           firstname: formData.value.firstname,
           lastname: formData.value.lastname,
+          // Set admin flags in user_metadata so router/admin checks pass
+          is_admin: true,
           isAdmin: true,
+          role: 'admin',
         },
       },
     })

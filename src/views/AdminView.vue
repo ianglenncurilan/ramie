@@ -4,35 +4,98 @@
       <div class="panel-header">
         <button class="back" @click="$router.back()">←</button>
         <div class="title-wrap">
-          <h2 class="title-lg">Admin</h2>
+          <h2 class="title-lg">Admin Dashboard</h2>
           <p class="sub">Administrator controls and settings</p>
         </div>
+        <img class="panel-illustration" src="/staff.png" alt="icon" />
       </div>
 
-      <div class="cards">
-        <div class="card">
+      <!-- Admin Info Cards -->
+      <div class="info-cards">
+        <div class="info-card">
           <div class="label">Role</div>
-          <div class="value">Admin</div>
+          <div class="value">{{ userRole }}</div>
         </div>
-
-        <div class="card">
-          <div class="label">Access</div>
+        <div class="info-card">
+          <div class="label">Access Level</div>
           <div class="value">Full</div>
         </div>
+        <div class="info-card">
+          <div class="label">User</div>
+          <div class="value">{{ userName }}</div>
+        </div>
       </div>
 
-      <div class="section">
-        <h3>Quick Actions</h3>
-        <div class="actions">
-          <button class="btn" @click="toggleLocalAdmin(false)">Simulate Regular</button>
-          <button class="btn primary" @click="toggleLocalAdmin(true)">Simulate Admin</button>
+      <!-- Admin Features Section -->
+      <div class="features-section">
+        <h3 class="section-title">Admin Features</h3>
+        <div class="feature-grid">
+          <!-- Records Feature -->
+          <button class="feature-card" @click="$router.push({ name: 'records' })">
+            <div class="feature-icon">
+              <img src="/record.png" alt="Records" />
+            </div>
+            <div class="feature-content">
+              <div class="feature-title">Records</div>
+              <div class="feature-desc">View feed formulation records</div>
+            </div>
+            <span class="feature-arrow">›</span>
+          </button>
+
+          <!-- Expenses Feature -->
+          <button class="feature-card" @click="$router.push({ name: 'expenses' })">
+            <div class="feature-icon">
+              <img src="/expensesicon.png" alt="Expenses" />
+            </div>
+            <div class="feature-content">
+              <div class="feature-title">Expenses</div>
+              <div class="feature-desc">Track income and expenses</div>
+            </div>
+            <span class="feature-arrow">›</span>
+          </button>
+
+          <!-- Manage Staff Feature -->
+          <button class="feature-card" @click="$router.push({ name: 'manage-staff' })">
+            <div class="feature-icon">
+              <img src="/staff.png" alt="Manage Staff" />
+            </div>
+            <div class="feature-content">
+              <div class="feature-title">Manage Staff</div>
+              <div class="feature-desc">Manage staff activities</div>
+            </div>
+            <span class="feature-arrow">›</span>
+          </button>
+
+          <!-- Hogs Tracked Feature -->
+          <button class="feature-card" @click="$router.push({ name: 'hogs-tracked' })">
+            <div class="feature-icon">
+              <img src="/pig2.png" alt="Hogs Tracked" />
+            </div>
+            <div class="feature-content">
+              <div class="feature-title">Hogs Tracked</div>
+              <div class="feature-desc">Monitor hog tracking</div>
+            </div>
+            <span class="feature-arrow">›</span>
+          </button>
         </div>
-        <p class="muted">
-          Use these to locally override admin role for testing. This does not change the user in
-          Supabase. Remove the override to rely on `app_metadata.is_admin`.
-        </p>
-        <div class="actions">
-          <button class="btn" @click="clearOverride()">Clear Override</button>
+      </div>
+
+      <!-- Statistics Section -->
+      <div class="stats-section">
+        <h3 class="section-title">Quick Stats</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">{{ stats.totalRecords }}</div>
+            <div class="stat-label">Total Records</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ stats.totalHogs }}</div>
+            <div class="stat-label">Hogs Tracked</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">₱{{ stats.netProfit }}</div>
+            <div class="stat-label">Net Profit</div>
+          </div>
         </div>
       </div>
     </section>
@@ -73,16 +136,53 @@
 </template>
 
 <script setup>
-import { setLocalAdminOverride } from '../services/supabase'
+import { ref, computed, onMounted } from 'vue'
+import { getCurrentUser, isAdmin } from '../services/supabase'
+import { useFeedsStore } from '../stores/feeds'
+import { useHogsStore } from '../stores/hogs'
+import { useRouter } from 'vue-router'
 
-function toggleLocalAdmin(value) {
-  setLocalAdminOverride(value)
-  // Navigate away and back to re-evaluate guard if needed
-}
+const router = useRouter()
+const feedsStore = useFeedsStore()
+const hogsStore = useHogsStore()
 
-function clearOverride() {
-  setLocalAdminOverride(null)
-}
+// User info
+const userName = ref('Admin User')
+const userRole = ref('Administrator')
+const isAdminUser = ref(false)
+
+// Statistics
+const stats = computed(() => ({
+  totalRecords: feedsStore.records?.length || 0,
+  totalHogs: hogsStore.getAllHogs()?.length || 0,
+  netProfit: feedsStore.netProfit?.toFixed(2) || '0.00',
+}))
+
+// Check admin status and load user info
+onMounted(async () => {
+  try {
+    // Verify admin status
+    const adminStatus = await isAdmin()
+    isAdminUser.value = adminStatus
+
+    if (!adminStatus) {
+      console.warn('User is not an admin, redirecting to forbidden page')
+      router.push({ name: 'forbidden' })
+      return
+    }
+
+    // Get current user info
+    const user = await getCurrentUser()
+    if (user) {
+      userName.value = user.user_metadata?.name || user.email || 'Admin User'
+      console.log('Admin user loaded:', userName.value)
+      console.log('User metadata:', user.user_metadata)
+      console.log('App metadata:', user.app_metadata)
+    }
+  } catch (error) {
+    console.error('Error loading admin data:', error)
+  }
+})
 </script>
 
 <style scoped>
@@ -128,50 +228,136 @@ function clearOverride() {
   margin-top: 6px;
 }
 
-.cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
+.panel-illustration {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }
-.card {
+
+/* Info Cards */
+.info-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.info-card {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 12px;
-  padding: 16px;
+  padding: 12px;
+  text-align: center;
 }
 .label {
-  font-size: 12px;
+  font-size: 11px;
   color: #789;
+  margin-bottom: 4px;
 }
 .value {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 16px;
+  color: #2f8b60;
 }
 
-.section {
-  margin-top: 16px;
+/* Features Section */
+.features-section {
+  margin-top: 24px;
 }
-.actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #333;
 }
-.btn {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid #e6e6e6;
+.feature-grid {
+  display: grid;
+  gap: 12px;
+}
+.feature-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
   background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
-.btn.primary {
-  background: #2f8b60;
-  color: #fff;
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(47, 139, 96, 0.15);
   border-color: #2f8b60;
 }
-.muted {
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #f0f8f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.feature-icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.feature-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.feature-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #333;
+}
+.feature-desc {
+  font-size: 12px;
   color: #7a8b99;
-  margin-top: 8px;
+}
+.feature-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f0f8f4;
+  color: #2f8b60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* Statistics Section */
+.stats-section {
+  margin-top: 24px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.stat-card {
+  background: linear-gradient(135deg, #2f8b60 0%, #4caf50 100%);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(47, 139, 96, 0.2);
+}
+.stat-value {
+  font-weight: 700;
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 11px;
+  opacity: 0.9;
 }
 
 .bottombar {

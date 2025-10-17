@@ -23,8 +23,19 @@
       </div>
 
       <div class="help-text">
-        <p>
-          If you believe you should have access to this feature, please contact your administrator.
+        <p class="help-title">Need Admin Access?</p>
+        <p class="help-description">
+          If you should have admin access, you need to set up admin permissions in Supabase:
+        </p>
+        <ol class="help-steps">
+          <li>Go to your Supabase Dashboard</li>
+          <li>Navigate to Authentication → Users</li>
+          <li>Find your user account</li>
+          <li>Edit user metadata and add: <code>{ "is_admin": true }</code></li>
+          <li>Save changes and log out/in again</li>
+        </ol>
+        <p class="help-footer">
+          For detailed instructions, check the <strong>ADMIN_SETUP.md</strong> file in your project.
         </p>
       </div>
     </div>
@@ -139,12 +150,54 @@ function goBack() {
 .help-text {
   padding-top: 20px;
   border-top: 1px solid #ecf0f1;
+  text-align: left;
 }
 
-.help-text p {
+.help-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 12px 0;
+}
+
+.help-description {
   font-size: 14px;
+  color: #7f8c8d;
+  margin: 0 0 16px 0;
+}
+
+.help-steps {
+  text-align: left;
+  padding-left: 20px;
+  margin: 0 0 16px 0;
+}
+
+.help-steps li {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.help-steps code {
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #2f8b60;
+  border: 1px solid #e9ecef;
+}
+
+.help-footer {
+  font-size: 13px;
   color: #95a5a6;
   margin: 0;
+  text-align: center;
+}
+
+.help-footer strong {
+  color: #2f8b60;
 }
 
 @media (max-width: 480px) {
