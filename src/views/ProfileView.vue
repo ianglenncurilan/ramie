@@ -173,7 +173,34 @@ const successMessage = ref('')
 // Admin flag
 const isAdminUser = ref(false)
 onMounted(async () => {
-  isAdminUser.value = await checkIsAdmin()
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error) {
+      console.error('Error fetching user:', error)
+      return
+    }
+
+    const userId = data?.user?.id
+    if (!userId) {
+      console.error('User ID not found')
+      return
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('isAdmin')
+      .eq('id', userId)
+      .single()
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+      return
+    }
+
+    isAdminUser.value = profile?.isAdmin || false
+  } catch (err) {
+    console.error('Unexpected error:', err)
+  }
 })
 
 // Edit profile form state

@@ -112,7 +112,7 @@ const router = createRouter({
     {
       path: '/admin',
       name: 'admin',
-      component: AdminView,
+      component: () => import('@/views/AdminView.vue'),
       meta: { requiresAdmin: true },
     },
     {
@@ -129,24 +129,26 @@ router.beforeEach(async (to, from, next) => {
     // Check if route requires admin access
     if (to.meta?.requiresAdmin) {
       console.log(`Router guard: Checking admin access for route: ${to.name}`)
-      
+
       // First check if user is authenticated
       const authed = await isAuthenticated()
       if (!authed) {
         console.warn('Router guard: User not authenticated, redirecting to login')
         return next({ name: 'login' })
       }
-      
+
       console.log('Router guard: User is authenticated, checking admin status...')
-      
+
       // Then check if user is admin
       const admin = await isAdmin()
       if (!admin) {
         console.warn('Router guard: User is not admin, redirecting to forbidden page')
-        console.warn('Router guard: If you are an admin, please check ADMIN_SETUP.md for setup instructions')
+        console.warn(
+          'Router guard: If you are an admin, please check ADMIN_SETUP.md for setup instructions',
+        )
         return next({ name: 'forbidden' })
       }
-      
+
       console.log('Router guard: Admin access granted for route:', to.name)
     }
     next()

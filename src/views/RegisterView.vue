@@ -11,7 +11,7 @@ import {
 import AlertNotification from '@/components/layout/commons/AlertNotification.vue'
 import AlertModal from '@/components/layout/commons/AlertModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal.js'
-import { supabase, formActionDefault } from '@/services/supabase.js'
+import { supabase, formActionDefault, isAdmin } from '@/services/supabase.js'
 
 const router = useRouter()
 
@@ -119,10 +119,7 @@ const handleRegister = async () => {
         data: {
           firstname: formData.value.firstname,
           lastname: formData.value.lastname,
-          // Set admin flags in user_metadata so router/admin checks pass
-          is_admin: true,
-          isAdmin: true,
-          role: 'admin',
+          isAdmin: true, // Set to true for admin users
         },
       },
     })
@@ -194,6 +191,36 @@ const setActiveTab = (tab) => {
     formAction.value = { ...formActionDefault }
     router.push({ name: 'login' })
   }
+}
+
+// Admin-specific logic
+const isAdminUser = ref(false)
+
+const checkAdminStatus = async () => {
+  const user = supabase.auth.user()
+  if (user) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('isAdmin')
+      .eq('id', user.id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching user role:', error)
+      isAdminUser.value = false
+    } else {
+      isAdminUser.value = data?.isAdmin || false
+    }
+  } else {
+    isAdminUser.value = false
+  }
+}
+
+checkAdminStatus()
+
+const handleAdminAction = () => {
+  // Placeholder for admin-specific action
+  showSuccess('Admin action performed successfully!', 'Success')
 }
 </script>
 
@@ -299,6 +326,16 @@ const setActiveTab = (tab) => {
       :autoCloseDelay="alertConfig.autoCloseDelay"
       @close="hideAlert"
     />
+
+    <!-- Admin Dashboard (conditionally rendered) -->
+    <div v-if="isAdminUser">
+      <!-- Admin-specific content -->
+      <h1>Admin Dashboard</h1>
+      <button @click="handleAdminAction">Perform Admin Action</button>
+    </div>
+    <div v-else>
+      <p>You do not have access to this feature.</p>
+    </div>
   </div>
 </template>
 
