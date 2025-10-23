@@ -401,7 +401,7 @@ function saveFormulation() {
 
   // Add record with detailed information
   feedsStore.addRecord({
-    stage: 'starter',
+    stage: 'Starter',
     items,
     totalAmount: totalAmount,
     totalCost: totalCost,

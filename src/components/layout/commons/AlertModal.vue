@@ -100,7 +100,9 @@ const getBgColor = () => {
       <!-- Modal Header -->
       <div class="modal-header" :style="{ backgroundColor: getBgColor() }">
         <div class="modal-icon">
-          <i :class="getIcon()" :style="{ color: getColor() }"></i>
+          <div class="icon-badge" :style="{ backgroundColor: getBgColor(), color: getColor() }">
+            <i :class="['mdi', getIcon()]" />
+          </div>
         </div>
         <div class="modal-title">
           <h3 v-if="title" :style="{ color: getColor() }">{{ title }}</h3>
@@ -116,7 +118,7 @@ const getBgColor = () => {
             }}
           </h3>
         </div>
-        <button v-if="showCloseButton" class="close-button" @click="closeModal">
+        <button v-if="showCloseButton" class="icon-close" @click="closeModal">
           <i class="mdi mdi-close"></i>
         </button>
       </div>
@@ -136,12 +138,7 @@ const getBgColor = () => {
         >
           OK
         </button>
-        <button
-          v-else
-          class="modal-button close-button"
-          :style="{ backgroundColor: getColor() }"
-          @click="closeModal"
-        >
+        <button v-else class="modal-button" :style="{ backgroundColor: getColor() }" @click="closeModal">
           {{ type === 'success' ? 'Great!' : 'OK' }}
         </button>
       </div>
@@ -161,30 +158,43 @@ const getBgColor = () => {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease-out;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
 }
 
 .modal-container {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
   max-width: 400px;
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
-  animation: slideIn 0.3s ease-out;
+  animation: scaleIn 0.2s ease-out;
 }
 
 .modal-header {
   display: flex;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 18px 18px 12px 18px;
 }
 
 .modal-icon {
-  margin-right: 15px;
-  font-size: 24px;
+  margin-right: 12px;
+}
+
+.icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+}
+
+.icon-badge i {
+  font-size: 22px;
 }
 
 .modal-title {
@@ -193,11 +203,11 @@ const getBgColor = () => {
 
 .modal-title h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
 }
 
-.close-button {
+.icon-close {
   background: none;
   border: none;
   font-size: 20px;
@@ -208,26 +218,25 @@ const getBgColor = () => {
   transition: background-color 0.2s;
 }
 
-.close-button:hover {
+.icon-close:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 12px 18px 18px 18px;
 }
 
 .modal-message {
   margin: 0;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #333;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #2a2a2a;
 }
 
 .modal-footer {
-  padding: 20px;
+  padding: 12px 18px 18px 18px;
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid #e0e0e0;
 }
 
 .modal-button {
@@ -238,19 +247,19 @@ const getBgColor = () => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.05s ease-in-out;
 }
 
 .modal-button:hover {
   opacity: 0.9;
 }
 
-.confirm-button {
-  background-color: #4caf50;
+.modal-button:active {
+  transform: translateY(1px);
 }
 
-.close-button {
-  background-color: #2196f3;
+.confirm-button {
+  background-color: #4caf50;
 }
 
 /* Animations */
@@ -263,13 +272,13 @@ const getBgColor = () => {
   }
 }
 
-@keyframes slideIn {
+@keyframes scaleIn {
   from {
-    transform: translateY(-50px);
+    transform: scale(0.98);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
+    transform: scale(1);
     opacity: 1;
   }
 }
@@ -282,19 +291,19 @@ const getBgColor = () => {
   }
 
   .modal-header {
-    padding: 15px;
+    padding: 14px 14px 10px 14px;
   }
 
   .modal-body {
-    padding: 15px;
+    padding: 10px 14px 14px 14px;
   }
 
   .modal-footer {
-    padding: 15px;
+    padding: 10px 14px 14px 14px;
   }
 
   .modal-title h3 {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .modal-message {

@@ -119,7 +119,7 @@ const handleRegister = async () => {
         data: {
           firstname: formData.value.firstname,
           lastname: formData.value.lastname,
-          
+          isAdmin: true,
         },
       },
     })
