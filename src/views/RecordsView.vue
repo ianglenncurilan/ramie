@@ -26,7 +26,7 @@
               <span v-if="rec.items.length > 3" class="more">+{{ rec.items.length - 3 }} more</span>
             </div>
           </div>
-          <span class="muted">{{ new Date(rec.date).toLocaleDateString() }}</span>
+          <span class="muted">{{ formatDateTime(rec.date) }}</span>
         </div>
         <div v-if="!feeds.records.length" class="empty">No records yet</div>
       </div>
@@ -69,9 +69,7 @@
           <div class="record-info">
             <div class="record-header">
               <h4>{{ selectedRecord.stage }} Feed Formulation</h4>
-              <span class="record-date">{{
-                new Date(selectedRecord.date).toLocaleDateString()
-              }}</span>
+              <span class="record-date">{{ formatDateTime(selectedRecord.date) }}</span>
             </div>
 
             <div class="record-summary">
@@ -115,6 +113,18 @@ import { ref } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
 
 const feeds = useFeedsStore()
+
+function formatDateTime(dateLike) {
+  const d = new Date(dateLike)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 // Modal state
 const showRecordModal = ref(false)
