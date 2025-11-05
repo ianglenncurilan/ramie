@@ -15,6 +15,9 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key',
 )
 
+// Expose config presence so UI can guard actions
+export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey)
+
 // Define and export formActionDefault
 export const formActionDefault = {
   formProcess: false,

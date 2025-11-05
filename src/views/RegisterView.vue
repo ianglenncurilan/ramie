@@ -11,7 +11,7 @@ import {
 import AlertNotification from '@/components/layout/commons/AlertNotification.vue'
 import AlertModal from '@/components/layout/commons/AlertModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal.js'
-import { supabase, formActionDefault, isAdmin } from '@/services/supabase.js'
+import { supabase, formActionDefault, isAdmin, hasSupabaseConfig } from '@/services/supabase.js'
 
 const router = useRouter()
 
@@ -104,6 +104,13 @@ const validate = () => {
 }
 
 const handleRegister = async () => {
+  if (!hasSupabaseConfig) {
+    showError(
+      'Authentication is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in a .env file and restart the app.',
+      'Configuration Missing',
+    )
+    return
+  }
   if (!validate()) return
 
   formAction.value = {
@@ -119,7 +126,7 @@ const handleRegister = async () => {
         data: {
           firstname: formData.value.firstname,
           lastname: formData.value.lastname,
-          isAdmin: true,
+          role: 'admin',
         },
       },
     })
@@ -156,6 +163,12 @@ const handleRegister = async () => {
 }
 
 const handleGoogleLogin = async () => {
+  if (!hasSupabaseConfig) {
+    showError(
+      'Authentication is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in a .env file and restart the app.',
+      'Configuration Missing',
+    )
+  }
   try {
     // Clear previous messages
     formAction.value = {
@@ -197,7 +210,8 @@ const setActiveTab = (tab) => {
 const isAdminUser = ref(false)
 
 const checkAdminStatus = async () => {
-  const user = supabase.auth.user()
+  const { data: userRes } = await supabase.auth.getUser()
+  const user = userRes?.user
   if (user) {
     const { data, error } = await supabase
       .from('users')
@@ -290,7 +304,7 @@ const handleAdminAction = () => {
           <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
         </div>
 
-        <button type="submit" class="login-btn mt-0" router-link to="/login">Register</button>
+        <button type="submit" class="login-btn mt-0" :disabled="formAction.formProcess || !hasSupabaseConfig">Register</button>
       </form>
 
       <!-- Alert Notifications -->

@@ -152,7 +152,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { supabase, isAdmin as checkIsAdmin } from '../services/supabase'
+import { supabase, isAdmin as checkIsAdmin, hasSupabaseConfig } from '../services/supabase'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -362,15 +362,18 @@ function removeProfilePicture() {
 // Sign out function
 async function handleSignOut() {
   try {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Error signing out:', error.message)
+    if (hasSupabaseConfig) {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Error signing out:', error.message)
+      }
     } else {
-      // Redirect to login page
-      router.replace('/login')
+      console.warn('Supabase config missing; skipping remote signOut and redirecting to login.')
     }
   } catch (error) {
     console.error('Error signing out:', error)
+  } finally {
+    router.replace('/login')
   }
 }
 </script>
@@ -407,6 +410,7 @@ async function handleSignOut() {
   align-items: center;
   flex: 1;
   overflow-y: auto;
+  padding-bottom: 100px; /* space for fixed bottom bar */
 }
 .avatar {
   width: 90px;
