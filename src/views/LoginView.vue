@@ -369,7 +369,9 @@ const clearErrors = () => {
         <button
           type="submit"
           class="login-btn mt-0"
-          :disabled="formAction.formProcess || !formData.email || !formData.password || !hasSupabaseConfig"
+          :disabled="
+            formAction.formProcess || !formData.email || !formData.password || !hasSupabaseConfig
+          "
         >
           {{ formAction.formProcess ? 'Logging in...' : 'Login' }}
         </button>
@@ -424,7 +426,11 @@ const clearErrors = () => {
           />
         </div>
 
-        <button type="submit" class="login-btn mt-0" :disabled="formAction.formProcess || !hasSupabaseConfig">
+        <button
+          type="submit"
+          class="login-btn mt-0"
+          :disabled="formAction.formProcess || !hasSupabaseConfig"
+        >
           {{ formAction.formProcess ? 'Registering...' : 'Register' }}
         </button>
       </form>
@@ -436,7 +442,11 @@ const clearErrors = () => {
 
       <!-- Google Sign In Button -->
       <div class="google-signin">
-        <button @click="handleGoogleLogin" class="google-btn" :disabled="formAction.formProcess || !hasSupabaseConfig">
+        <button
+          @click="handleGoogleLogin"
+          class="google-btn"
+          :disabled="formAction.formProcess || !hasSupabaseConfig"
+        >
           <img src="/google.png" alt="Google" class="google-icon" />
           <span>{{ formAction.formProcess ? 'Signing in...' : 'Sign in with Google' }}</span>
         </button>

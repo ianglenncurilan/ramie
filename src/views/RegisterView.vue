@@ -119,90 +119,99 @@ const handleRegister = async () => {
   formAction.value.formProcess = true
 
   try {
+    // Combine first and last name for full name
+    const fullName = `${formData.value.firstname} ${formData.value.lastname}`.trim()
+
+    // 1. First create the user in the public.users table
+    const { data: newUser, error: userError } = await supabase
+      .from('users')
+      .insert([
+        {
+          email: formData.value.email,
+          first_name: formData.value.firstname,
+          last_name: formData.value.lastname,
+          full_name: fullName,
+          role: 'admin',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single()
+
+    if (userError) {
+      console.error('Error creating user profile:', userError)
+      throw new Error(userError.message || 'Failed to create user profile')
+    }
+
+    // 2. Then create the auth user
     const { data, error } = await supabase.auth.signUp({
       email: formData.value.email,
       password: formData.value.password,
       options: {
         data: {
-          firstname: formData.value.firstname,
-          lastname: formData.value.lastname,
+          first_name: formData.value.firstname,
+          last_name: formData.value.lastname,
+          full_name: fullName,
           role: 'admin',
+          user_metadata: {
+            // Add user_metadata explicitly
+            first_name: formData.value.firstname,
+            last_name: formData.value.lastname,
+            full_name: fullName,
+            role: 'admin',
+          },
         },
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     })
 
     if (error) {
-      console.error(error)
-      showError(error.message || 'Registration failed. Please try again.', 'Registration Error')
-      formAction.value.formStatus = error.status
-    } else if (data) {
-      console.log(data)
+      console.error('Auth error:', error)
+      // Try to clean up the user record if auth fails
+      await supabase.from('users').delete().eq('email', formData.value.email)
+
+      throw new Error(error.message || 'Failed to create authentication account')
+    }
+
+    if (data?.user) {
+      // Update the user record with the auth ID
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ id: data.user.id })
+        .eq('email', formData.value.email)
+
+      if (updateError) {
+        console.error('Error updating user with auth ID:', updateError)
+        throw new Error('Failed to complete user registration')
+      }
+
+      console.log('User registration successful:', data)
       showSuccess(
-        'Account created successfully! Redirecting to login page...',
+        'Account created successfully! Please check your email to verify your account.',
         'Registration Successful',
         {
           autoClose: true,
-          autoCloseDelay: 2000,
+          autoCloseDelay: 5000,
         },
       )
 
       // Reset form data
       Object.assign(formData.value, formDataDefault.value)
 
-      // Redirect to login page after showing success message
+      // Redirect to login after showing success message
       setTimeout(() => {
         router.replace({ name: 'login' })
-      }, 2000)
+      }, 5000)
     }
   } catch (err) {
-    console.error('Unexpected error:', err)
-    showError('An unexpected error occurred. Please try again.', 'System Error')
-  } finally {
-    formAction.value.formProcess = false
-  }
-}
-
-const handleGoogleLogin = async () => {
-  if (!hasSupabaseConfig) {
+    console.error('Registration error:', err)
     showError(
-      'Authentication is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in a .env file and restart the app.',
-      'Configuration Missing',
+      err.message || 'An unexpected error occurred. Please try again.',
+      'Registration Error',
     )
-  }
-  try {
-    // Clear previous messages
-    formAction.value = {
-      ...formActionDefault,
-    }
-    formAction.value.formProcess = true
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    })
-
-    if (error) {
-      console.error('Google login error:', error)
-      showError('Google authentication failed. Please try again.', 'Authentication Error')
-    } else {
-      console.log('Google login initiated:', data)
-      showInfo('Redirecting to Google for authentication...', 'Google Sign-In')
-    }
-  } catch (err) {
-    console.error('Unexpected error during Google login:', err)
-    showError('An unexpected error occurred during Google authentication.', 'System Error')
   } finally {
     formAction.value.formProcess = false
-  }
-}
-
-const setActiveTab = (tab) => {
-  activeTab.value = tab
-  if (tab === 'login') {
-    // Clear form data when switching to login
-    formData.value = { ...formDataDefault.value }
-    errors.value = { name: '', email: '', password: '', confirmPassword: '' }
-    formAction.value = { ...formActionDefault }
-    router.push({ name: 'login' })
   }
 }
 
