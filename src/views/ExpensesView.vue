@@ -1,6 +1,6 @@
 <template>
   <div class="screen">
-    <div>
+    <div class="expenses-content">
       <section class="hero">
         <img src="/pig.jpg" alt="hero" />
         <div class="overlay">
@@ -157,43 +157,13 @@
         </div>
       </div>
     </div>
-    <nav class="bottombar">
-      <button
-        @click="$router.push({ name: 'dashboard' })"
-        :class="{ active: $route.name === 'dashboard' }"
-      >
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button
-        @click="$router.push({ name: 'records' })"
-        :class="{ active: $route.name === 'records' }"
-      >
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button
-        @click="$router.push({ name: 'expenses' })"
-        :class="{ active: $route.name === 'expenses' }"
-      >
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button
-        @click="$router.push({ name: 'manage-staff' })"
-        :class="{ active: $route.name === 'manage-staff' }"
-      >
-        <img src="/staff.png" alt="Manage Staff" />
-      </button>
-      <button
-        @click="$router.push({ name: 'profile' })"
-        :class="{ active: $route.name === 'profile' }"
-      >
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
+    <BottomBar />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
+import BottomBar from '@/components/BottomBar.vue'
 import { useFeedsStore } from '../stores/feeds'
 
 const feeds = useFeedsStore()
@@ -262,6 +232,14 @@ function saveExpense() {
 </script>
 
 <style scoped>
+.screen {
+  padding-bottom: 80px; /* Space for bottom bar */
+}
+
+.expenses-content {
+  min-height: calc(100vh - 60px); /* Adjust based on your header height */
+  padding-bottom: 20px;
+}
 * {
   font-family: 'Quicksand', sans-serif;
 }

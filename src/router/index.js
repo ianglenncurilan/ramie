@@ -16,7 +16,6 @@ import FeedCalculatorView from '../views/FeedCalculatorView.vue'
 import StarterFeedCalculatorView from '../views/StarterFeedCalculatorView.vue'
 import GrowerFeedCalculatorView from '../views/GrowerFeedCalculatorView.vue'
 import FinisherFeedCalculatorView from '../views/FinisherFeedCalculatorView.vue'
-import AdminView from '../views/AdminView.vue'
 import ForbiddenView from '../views/ForbiddenView.vue'
 
 const router = createRouter({
@@ -108,12 +107,6 @@ const router = createRouter({
       name: 'feed-calculator',
       component: FeedCalculatorView,
       props: true,
-    },
-    {
-      path: '/admin',
-      name: 'admin',
-      component: () => import('@/views/AdminView.vue'),
-      meta: { requiresAdmin: true },
     },
     {
       path: '/forbidden',

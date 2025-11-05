@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import BottomBar from '@/components/BottomBar.vue'
 
 const router = useRouter()
 
@@ -17,7 +18,8 @@ const go = (name) => {
   <div class="dashboard">
     <header class="topbar"></header>
 
-    <section class="hero">
+    <main class="dashboard-content">
+      <section class="hero">
       <img src="/pig.jpg" alt="Hogs" />
       <div class="overlay">
         <div class="title">Olivier Ecovillage</div>
@@ -47,28 +49,20 @@ const go = (name) => {
         <div>Hogs Tracked</div>
       </button>
     </section>
-
-    <nav class="bottombar">
-      <button @click="go('dashboard')" :class="{ active: $route.name === 'dashboard' }">
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button @click="go('records')" :class="{ active: $route.name === 'records' }">
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button @click="go('expenses')" :class="{ active: $route.name === 'expenses' }">
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button @click="go('manage-staff')" :class="{ active: $route.name === 'manage-staff' }">
-        <img src="/staff.png" alt="Manage Staff" />
-      </button>
-      <button @click="go('profile')" :class="{ active: $route.name === 'profile' }">
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
+    </main>
+    <BottomBar />
   </div>
 </template>
 
 <style scoped>
+.dashboard {
+  padding-bottom: 80px; /* Add padding to prevent content from being hidden behind bottom bar */
+}
+
+.dashboard-content {
+  min-height: calc(100vh - 60px); /* Adjust based on your header height */
+  padding-bottom: 20px;
+}
 * {
   font-family: 'Quicksand', sans-serif;
 }

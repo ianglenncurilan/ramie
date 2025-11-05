@@ -31,33 +31,7 @@
         <div v-if="!feeds.records.length" class="empty">No records yet</div>
       </div>
     </div>
-    <nav class="bottombar">
-      <button
-        @click="$router.push({ name: 'dashboard' })"
-        :class="{ active: $route.name === 'dashboard' }"
-      >
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button
-        @click="$router.push({ name: 'records' })"
-        :class="{ active: $route.name === 'records' }"
-      >
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button
-        @click="$router.push({ name: 'expenses' })"
-        :class="{ active: $route.name === 'expenses' }"
-      >
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button
-        @click="$router.push({ name: 'profile' })"
-        :class="{ active: $route.name === 'profile' }"
-      >
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
-
+    <BottomBar />
     <!-- Record Detail Modal -->
     <div v-if="showRecordModal" class="modal-overlay" @click="closeRecordModal">
       <div class="modal" @click.stop>
@@ -109,8 +83,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
+import BottomBar from '@/components/BottomBar.vue'
 
 const feeds = useFeedsStore()
 
