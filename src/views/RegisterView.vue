@@ -259,7 +259,7 @@ const handleAdminAction = () => {
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleRegister" class="form">
+      <form @submit.prevent="handleRegister" class="form register-form">
         <div class="input-group1">
           <i class="mdi mdi-account-outline"></i>
           <input v-model="formData.firstname" type="text" placeholder="First Name" />
@@ -304,7 +304,13 @@ const handleAdminAction = () => {
           <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
         </div>
 
-        <button type="submit" class="login-btn mt-0" :disabled="formAction.formProcess || !hasSupabaseConfig">Register</button>
+        <button
+          type="submit"
+          class="login-btn mt-0"
+          :disabled="formAction.formProcess || !hasSupabaseConfig"
+        >
+          Register
+        </button>
       </form>
 
       <!-- Alert Notifications -->
@@ -317,7 +323,7 @@ const handleAdminAction = () => {
 
       <!-- Divider -->
       <div class="divider">
-        <span>or login with</span>
+        <span>or register with</span>
       </div>
 
       <!-- Google Sign Up Button -->
@@ -486,7 +492,7 @@ const handleAdminAction = () => {
 }
 
 .login-btn {
-  margin-top: 10px;
+  margin-top: 6px;
   width: 100%;
   padding: 12px;
   background: #2c7a4b;
@@ -587,4 +593,31 @@ const handleAdminAction = () => {
 .password-toggle:hover {
   color: #2c7a4b;
 }
+
+/* tighten vertical spacing only for register form */
+.form.register-form {
+  gap: 8px; /* reduce spacing between form rows */
+}
+
+/* remove any extra bottom margin on the last input group */
+.form.register-form .input-group2:last-of-type,
+.form.register-form .input-group1:last-of-type {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* nudge the button closer but avoid overlap */
+.form.register-form .login-btn {
+  margin-top: 4px; /* small gap between confirm input and button */
+}
+
+/* reduce space for inline error messages so they don't push the button down */
+.form.register-form .err {
+  margin-top: 4px;
+  margin-bottom: 0;
+  font-size: 12px;
+}
+
+/* Optional alternative: use transform rather than margin for subtle lift */
+/* .form.register-form .login-btn { transform: translateY(-3px); } */
 </style>

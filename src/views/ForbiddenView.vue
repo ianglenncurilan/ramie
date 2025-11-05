@@ -21,23 +21,6 @@
           Go Back
         </button>
       </div>
-
-      <div class="help-text">
-        <p class="help-title">Need Admin Access?</p>
-        <p class="help-description">
-          If you should have admin access, you need to set up admin permissions in Supabase:
-        </p>
-        <ol class="help-steps">
-          <li>Go to your Supabase Dashboard</li>
-          <li>Navigate to Authentication → Users</li>
-          <li>Find your user account</li>
-          <li>Edit user metadata and add: <code>{ "is_admin": true }</code></li>
-          <li>Save changes and log out/in again</li>
-        </ol>
-        <p class="help-footer">
-          For detailed instructions, check the <strong>ADMIN_SETUP.md</strong> file in your project.
-        </p>
-      </div>
     </div>
   </div>
 </template>
