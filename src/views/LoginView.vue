@@ -14,9 +14,7 @@ const { showAlert, alertConfig, showSuccess, showError, showWarning, showInfo, h
   useAlertModal()
 
 // Form data
-const activeTab = ref('login')
 const passwordVisible = ref(false)
-const confirmPasswordVisible = ref(false)
 
 // Form data for login
 const formDataDefault = ref({
@@ -28,15 +26,7 @@ const formData = ref({
   ...formDataDefault.value,
 })
 
-// Form data for register
-const registerData = ref({
-  name: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-})
-
-const errors = ref({ email: '', password: '', confirmPassword: '', name: '' })
+const errors = ref({ email: '', password: '' })
 
 const formAction = ref({
   ...formActionDefault,
@@ -44,10 +34,10 @@ const formAction = ref({
 
 const refVform = ref()
 
-// Validation functions using validators
+// Validation function for login
 const validateLogin = () => {
   let valid = true
-  errors.value = { email: '', password: '', confirmPassword: '', name: '' }
+  errors.value = { email: '', password: '' }
 
   // Validate email using validators
   const emailError = requiredValidator(formData.value.email) || emailValidator(formData.value.email)
@@ -61,47 +51,6 @@ const validateLogin = () => {
     requiredValidator(formData.value.password) || passwordValidator(formData.value.password)
   if (passwordError !== true) {
     errors.value.password = passwordError
-    valid = false
-  }
-
-  return valid
-}
-
-const validateRegister = () => {
-  let valid = true
-  errors.value = { email: '', password: '', confirmPassword: '', name: '' }
-
-  // Validate name using validators
-  const nameError = requiredValidator(registerData.value.name)
-  if (nameError !== true) {
-    errors.value.name = nameError
-    valid = false
-  }
-
-  // Validate email using validators
-  const emailError =
-    requiredValidator(registerData.value.email) || emailValidator(registerData.value.email)
-  if (emailError !== true) {
-    errors.value.email = emailError
-    valid = false
-  }
-
-  // Validate password using validators
-  const passwordError =
-    requiredValidator(registerData.value.password) || passwordValidator(registerData.value.password)
-  if (passwordError !== true) {
-    errors.value.password = passwordError
-    valid = false
-  }
-
-  // Validate confirm password
-  const confirmError =
-    requiredValidator(registerData.value.confirmPassword) ||
-    (registerData.value.password !== registerData.value.confirmPassword
-      ? 'Passwords do not match'
-      : true)
-  if (confirmError !== true) {
-    errors.value.confirmPassword = confirmError
     valid = false
   }
 
@@ -195,117 +144,19 @@ const onFormSubmit = () => {
   handleLogin()
 }
 
-const handleRegister = async () => {
-  if (!hasSupabaseConfig) {
-    showError(
-      'Authentication is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in a .env file and restart the app.',
-      'Configuration Missing',
-    )
-    return
-  }
-  if (!validateRegister()) return
-
-  // Enhanced registration with Supabase
-  formAction.value = {
-    ...formActionDefault,
-  }
-  formAction.value.formProcess = true
-
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email: registerData.value.email,
-      password: registerData.value.password,
-      options: {
-        data: {
-          name: registerData.value.name,
-        },
-      },
-    })
-
-    if (error) {
-      console.error(error)
-      showError(error.message || 'Registration failed. Please try again.', 'Registration Error')
-      formAction.value.formStatus = error.status
-    } else if (data) {
-      console.log(data)
-      showSuccess('Account created successfully! You can now log in.', 'Registration Successful', {
-        autoClose: true,
-        autoCloseDelay: 3000,
-      })
-      // Reset form data
-      registerData.value = { name: '', email: '', password: '', confirmPassword: '' }
-      // Switch to login tab after successful registration
-      setTimeout(() => {
-        setActiveTab('login')
-      }, 3000)
-    }
-  } catch (err) {
-    console.error('Unexpected error:', err)
-    showError('An unexpected error occurred. Please try again.', 'System Error')
-  } finally {
-    formAction.value.formProcess = false
-  }
+const navigateToRegister = () => {
+  router.push({ name: 'register' })
 }
 
-const handleGoogleLogin = async () => {
-  if (!hasSupabaseConfig) {
-    showError(
-      'Authentication is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in a .env file and restart the app.',
-      'Configuration Missing',
-    )
-    return
+// Clear specific error when user starts typing
+const clearErrors = (field) => {
+  if (field in errors.value) {
+    errors.value[field] = ''
   }
-  try {
-    // Clear previous messages
-    formAction.value = {
-      ...formActionDefault,
-    }
-    formAction.value.formProcess = true
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    })
-
-    if (error) {
-      console.error('Google login error:', error)
-      showError('Google authentication failed. Please try again.', 'Authentication Error')
-    } else {
-      console.log('Google login initiated:', data)
-      showInfo('Redirecting to Google for authentication...', 'Google Sign-In')
-    }
-  } catch (err) {
-    console.error('Unexpected error during Google login:', err)
-    showError('An unexpected error occurred during Google authentication.', 'System Error')
-  } finally {
-    formAction.value.formProcess = false
-  }
-}
-
-const setActiveTab = (tab) => {
-  activeTab.value = tab
-  // Clear form data when switching tabs
-  formData.value = { ...formDataDefault.value }
-  registerData.value = { name: '', email: '', password: '', confirmPassword: '' }
-  errors.value = { email: '', password: '', confirmPassword: '', name: '' }
-  formAction.value = { ...formActionDefault }
 }
 
 const togglePasswordVisibility = () => {
   passwordVisible.value = !passwordVisible.value
-}
-
-const toggleConfirmPasswordVisibility = () => {
-  confirmPasswordVisible.value = !confirmPasswordVisible.value
-}
-
-// Clear error messages when user starts typing
-const clearErrors = () => {
-  if (formAction.value.formErrorMessage) {
-    formAction.value.formErrorMessage = ''
-  }
-  if (formAction.value.formSuccessMessage) {
-    formAction.value.formSuccessMessage = ''
-  }
 }
 </script>
 
@@ -319,25 +170,15 @@ const clearErrors = () => {
         <h1>RAMIE</h1>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button :class="{ active: activeTab === 'login' }" @click="setActiveTab('login')">
-          Login
-        </button>
-        <button :class="{ active: activeTab === 'register' }" @click="setActiveTab('register')">
-          Register
-        </button>
-      </div>
-
       <!-- Login Form -->
-      <form v-if="activeTab === 'login'" @submit.prevent="onFormSubmit" class="form">
+      <form @submit.prevent="onFormSubmit" class="login-form">
         <div class="input-group1">
           <i class="mdi mdi-email-outline"></i>
           <input
             v-model="formData.email"
             type="email"
             placeholder="Email Address"
-            @input="clearErrors"
+            @input="clearErrors('email')"
           />
           <p v-if="errors.email" class="err">{{ errors.email }}</p>
         </div>
@@ -347,14 +188,13 @@ const clearErrors = () => {
             :type="passwordVisible ? 'text' : 'password'"
             v-model="formData.password"
             placeholder="Password"
-            @input="clearErrors"
+            @input="clearErrors('password')"
           />
           <i
             class="mdi"
             :class="passwordVisible ? 'mdi-eye-off' : 'mdi-eye'"
             @click="togglePasswordVisibility"
           ></i>
-          <div class="forgot">Forgot Password?</div>
           <p v-if="errors.password" class="err">{{ errors.password }}</p>
         </div>
 
@@ -377,67 +217,8 @@ const clearErrors = () => {
         </button>
       </form>
 
-      <!-- Register Form -->
-      <form v-if="activeTab === 'register'" @submit.prevent="handleRegister" class="form">
-        <div class="input-group1">
-          <i class="mdi mdi-account-outline"></i>
-          <input v-model="registerData.name" type="text" placeholder="Full Name" />
-          <p v-if="errors.name" class="err">{{ errors.name }}</p>
-        </div>
-        <div class="input-group1">
-          <i class="mdi mdi-email-outline"></i>
-          <input v-model="registerData.email" type="email" placeholder="Email Address" />
-          <p v-if="errors.email" class="err">{{ errors.email }}</p>
-        </div>
-        <div class="input-group2">
-          <i class="mdi mdi-lock-outline"></i>
-          <input
-            :type="passwordVisible ? 'text' : 'password'"
-            v-model="registerData.password"
-            placeholder="Password"
-          />
-          <i
-            class="mdi"
-            :class="passwordVisible ? 'mdi-eye-off' : 'mdi-eye'"
-            @click="togglePasswordVisibility"
-          ></i>
-          <p v-if="errors.password" class="err">{{ errors.password }}</p>
-        </div>
-        <div class="input-group2">
-          <i class="mdi mdi-lock-outline"></i>
-          <input
-            :type="confirmPasswordVisible ? 'text' : 'password'"
-            v-model="registerData.confirmPassword"
-            placeholder="Confirm Password"
-          />
-          <i
-            class="mdi"
-            :class="confirmPasswordVisible ? 'mdi-eye-off' : 'mdi-eye'"
-            @click="toggleConfirmPasswordVisibility"
-          ></i>
-          <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
-        </div>
-
-        <!-- Alert Notifications -->
-        <div class="alert-container">
-          <AlertNotification
-            :formSuccessMessage="formAction.formSuccessMessage"
-            :formErrorMessage="formAction.formErrorMessage"
-          />
-        </div>
-
-        <button
-          type="submit"
-          class="login-btn mt-0"
-          :disabled="formAction.formProcess || !hasSupabaseConfig"
-        >
-          {{ formAction.formProcess ? 'Registering...' : 'Register' }}
-        </button>
-      </form>
-
-      <!-- Divider -->
-      <div class="divider">
-        <span>or login with</span>
+      <div class="register-prompt">
+        <p>Don't have an account? <a href="#" @click.prevent="navigateToRegister">Sign up</a></p>
       </div>
 
       <!-- Google Sign In Button -->
@@ -468,6 +249,247 @@ const clearErrors = () => {
 </template>
 
 <style scoped>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family:
+    'Quicksand',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    sans-serif;
+}
+
+:root {
+  --primary: #46e57e;
+  --primary-hover: #3bc96d;
+  --primary-light: #e8f9f0;
+  --text: #1f2937;
+  --text-light: #6b7280;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --border: #e2e8f0;
+  --error: #ef4444;
+  --success: #10b981;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --pill-bg: rgba(44, 122, 75, 0.08); /* New variable for pill background */
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.logo {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo img {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  background: var(--primary-light);
+  padding: 10px;
+}
+
+.logo h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Update/replace the input group styles */
+.input-group1,
+.input-group2 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--pill-bg);
+  border: 2px solid #2c7a4b; /* Make border more visible */
+  border-radius: 9999px;
+  height: 48px;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+/* Left icon (email, lock) */
+.input-group1 i,
+.input-group2 i.mdi-lock-outline {
+  position: absolute;
+  left: 12px;
+  color: #2c7a4b;
+  font-size: 18px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Right icon (eye) */
+.input-group2 i.mdi-eye,
+.input-group2 i.mdi-eye-off {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #2c7a4b;
+  font-size: 18px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Adjust input padding to accommodate both icons */
+.input-group1 input,
+.input-group2 input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 40px;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+/* Focus states */
+.input-group1:focus-within,
+.input-group2:focus-within {
+  box-shadow: 0 8px 20px rgba(44, 122, 75, 0.12);
+  background: rgba(44, 122, 75, 0.06);
+  border-color: #2c7a4b;
+}
+
+/* Error state */
+.input-group1.error,
+.input-group2.error {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+/* Error text position (won't push layout) */
+.err {
+  color: var(--error);
+  font-size: 12px;
+  margin-top: 6px;
+  margin-left: 12px;
+}
+
+/* Make primary and social buttons pill-shaped and consistent height */
+.btn-primary,
+.google-btn,
+.login-btn {
+  border-radius: 9999px;
+  height: 48px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* smaller variant on narrow screens */
+@media (max-width: 360px) {
+  .input-group {
+    height: 44px;
+  }
+  .input-group input {
+    padding-left: 44px;
+  }
+  .btn-primary,
+  .google-btn,
+  .login-btn {
+    height: 44px;
+  }
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .card {
+    padding: 2rem 1.5rem;
+  }
+
+  .logo img {
+    width: 56px;
+    height: 56px;
+  }
+
+  h2 {
+    font-size: 1.375rem;
+  }
+}
 * {
   font-family: 'Quicksand', sans-serif;
 }
@@ -1071,5 +1093,25 @@ const clearErrors = () => {
     background-image: url('/pig.jpg');
     background-size: cover;
   }
+}
+
+.register-prompt {
+  margin-top: 20px; /* Add margin to the top */
+  text-align: center;
+}
+
+.register-prompt p {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.register-prompt a {
+  color: #2c7a4b;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.register-prompt a:hover {
+  text-decoration: underline;
 }
 </style>

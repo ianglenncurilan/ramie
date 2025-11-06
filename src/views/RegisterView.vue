@@ -19,17 +19,40 @@ const router = useRouter()
 const { showAlert, alertConfig, showSuccess, showError, showWarning, showInfo, hideAlert } =
   useAlertModal()
 
-const name = ref('')
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const errors = ref({ name: '', email: '', password: '', confirmPassword: '' })
-const activeTab = ref('register')
-
-// New functionality for enhanced registration
+// Form state
+const errors = ref({
+  firstname: '',
+  lastname: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+})
 const showPassword = ref(false)
 const showPasswordConfirmation = ref(false)
 
+// Form data
+const formDataDefault = {
+  firstname: '',
+  lastname: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+}
+
+const formData = ref({ ...formDataDefault })
+
+const formAction = ref({
+  ...formActionDefault,
+})
+
+const refVform = ref(null)
+
+// Navigation to login page
+const navigateToLogin = () => {
+  router.push({ name: 'login' })
+}
+
+// Toggle password visibility
 function togglePasswordVisibility(field) {
   if (field === 'password') {
     showPassword.value = !showPassword.value
@@ -38,33 +61,22 @@ function togglePasswordVisibility(field) {
   }
 }
 
-const formDataDefault = ref({
-  firstname: '',
-  lastname: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-})
-
-const formData = ref({
-  ...formDataDefault.value,
-})
-
-const formAction = ref({
-  ...formActionDefault,
-})
-
-const refVform = ref(null) // Define the form reference
+// Clear specific error when user starts typing
+const clearErrors = (field) => {
+  if (field in errors.value) {
+    errors.value[field] = ''
+  }
+}
 
 const validate = () => {
   let valid = true
-  errors.value = { name: '', email: '', password: '', confirmPassword: '' }
+  errors.value = { firstname: '', lastname: '', email: '', password: '', password_confirmation: '' }
 
   // Validate first name
   const firstNameError =
     requiredValidator(formData.value.firstname) || alphaValidator(formData.value.firstname)
   if (firstNameError !== true) {
-    errors.value.name = firstNameError
+    errors.value.firstname = firstNameError
     valid = false
   }
 
@@ -72,7 +84,7 @@ const validate = () => {
   const lastNameError =
     requiredValidator(formData.value.lastname) || alphaValidator(formData.value.lastname)
   if (lastNameError !== true) {
-    errors.value.name = lastNameError
+    errors.value.lastname = lastNameError
     valid = false
   }
 
@@ -96,7 +108,7 @@ const validate = () => {
     requiredValidator(formData.value.password_confirmation) ||
     confirmedValidator(formData.value.password_confirmation, formData.value.password)
   if (confirmError !== true) {
-    errors.value.confirmPassword = confirmError
+    errors.value.password_confirmation = confirmError
     valid = false
   }
 
@@ -111,40 +123,18 @@ const handleRegister = async () => {
     )
     return
   }
+
   if (!validate()) return
 
   formAction.value = {
     ...formActionDefault,
+    formProcess: true,
   }
-  formAction.value.formProcess = true
 
   try {
-    // Combine first and last name for full name
     const fullName = `${formData.value.firstname} ${formData.value.lastname}`.trim()
 
-    // 1. First create the user in the public.users table
-    const { data: newUser, error: userError } = await supabase
-      .from('users')
-      .insert([
-        {
-          email: formData.value.email,
-          first_name: formData.value.firstname,
-          last_name: formData.value.lastname,
-          full_name: fullName,
-          role: 'admin',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single()
-
-    if (userError) {
-      console.error('Error creating user profile:', userError)
-      throw new Error(userError.message || 'Failed to create user profile')
-    }
-
-    // 2. Then create the auth user
+    // First, sign up the user with Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email: formData.value.email,
       password: formData.value.password,
@@ -153,40 +143,36 @@ const handleRegister = async () => {
           first_name: formData.value.firstname,
           last_name: formData.value.lastname,
           full_name: fullName,
-          role: 'admin',
-          user_metadata: {
-            // Add user_metadata explicitly
-            first_name: formData.value.firstname,
-            last_name: formData.value.lastname,
-            full_name: fullName,
-            role: 'admin',
-          },
         },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     })
 
-    if (error) {
-      console.error('Auth error:', error)
-      // Try to clean up the user record if auth fails
-      await supabase.from('users').delete().eq('email', formData.value.email)
+    if (error) throw error
 
-      throw new Error(error.message || 'Failed to create authentication account')
-    }
-
+    // If user is created successfully
     if (data?.user) {
-      // Update the user record with the auth ID
-      const { error: updateError } = await supabase
+      // Insert user data into public.users table
+      const { error: dbError } = await supabase
         .from('users')
-        .update({ id: data.user.id })
-        .eq('email', formData.value.email)
+        .insert({
+          id: data.user.id,
+          email: formData.value.email,
+          first_name: formData.value.firstname,
+          last_name: formData.value.lastname,
+          full_name: fullName,
+          role: 'user',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
 
-      if (updateError) {
-        console.error('Error updating user with auth ID:', updateError)
-        throw new Error('Failed to complete user registration')
+      if (dbError) {
+        console.error('Error saving user profile:', dbError)
+        // Don't throw the error, as the auth user was created successfully
       }
 
-      console.log('User registration successful:', data)
       showSuccess(
         'Account created successfully! Please check your email to verify your account.',
         'Registration Successful',
@@ -196,152 +182,164 @@ const handleRegister = async () => {
         },
       )
 
-      // Reset form data
-      Object.assign(formData.value, formDataDefault.value)
+      // Reset form
+      formData.value = { ...formDataDefault }
 
-      // Redirect to login after showing success message
+      // Redirect to login after a short delay
       setTimeout(() => {
-        router.replace({ name: 'login' })
-      }, 5000)
+        router.push({ name: 'login' })
+      }, 3000)
     }
-  } catch (err) {
-    console.error('Registration error:', err)
+  } catch (error) {
+    console.error('Registration error:', error)
     showError(
-      err.message || 'An unexpected error occurred. Please try again.',
-      'Registration Error',
+      error.message || 'An error occurred during registration. Please try again.',
+      'Registration Failed',
     )
   } finally {
     formAction.value.formProcess = false
   }
 }
-
-// Admin-specific logic
-const isAdminUser = ref(false)
-
-const checkAdminStatus = async () => {
-  const { data: userRes } = await supabase.auth.getUser()
-  const user = userRes?.user
-  if (user) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('isAdmin')
-      .eq('id', user.id)
-      .single()
-
-    if (error) {
-      console.error('Error fetching user role:', error)
-      isAdminUser.value = false
-    } else {
-      isAdminUser.value = data?.isAdmin || false
-    }
-  } else {
-    isAdminUser.value = false
-  }
-}
-
-checkAdminStatus()
-
-const handleAdminAction = () => {
-  // Placeholder for admin-specific action
-  showSuccess('Admin action performed successfully!', 'Success')
-}
 </script>
 
 <template>
-  <div class="login-page">
-    <!-- Login Card -->
+  <div class="register-page">
+    <!-- Register Card -->
     <div class="card">
       <!-- Logo -->
       <div class="logo">
-        <img src="/favicon.ico" alt="Logo" />
+        <img src="/leaf.png" alt="Logo" />
         <h1>RAMIE</h1>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button :class="{ active: activeTab === 'login' }" @click="setActiveTab('login')">
-          Login
-        </button>
-        <button :class="{ active: activeTab === 'register' }" @click="setActiveTab('register')">
-          Register
-        </button>
+      <div class="back-to-login">
+        <a href="#" @click.prevent="navigateToLogin">
+          <i class="mdi mdi-arrow-left"></i> Back to Login
+        </a>
       </div>
 
-      <!-- Form -->
-      <form @submit.prevent="handleRegister" class="form register-form">
-        <div class="input-group1">
-          <i class="mdi mdi-account-outline"></i>
-          <input v-model="formData.firstname" type="text" placeholder="First Name" />
-          <p v-if="errors.name" class="err">{{ errors.name }}</p>
+      <h2>Create an Account</h2>
+
+      <!-- Register Form -->
+      <form @submit.prevent="handleRegister" class="register-form">
+        <div class="form-group">
+          <label>First Name</label>
+          <div class="input-group">
+            <i class="mdi mdi-account-outline"></i>
+            <input
+              v-model="formData.firstname"
+              type="text"
+              placeholder="Enter your first name"
+              @input="clearErrors('firstname')"
+              :class="{ error: errors.firstname }"
+            />
+          </div>
+          <span v-if="errors.firstname" class="error-message">{{ errors.firstname }}</span>
         </div>
-        <div class="input-group1">
-          <i class="mdi mdi-account-outline"></i>
-          <input v-model="formData.lastname" type="text" placeholder="Last Name" />
-          <p v-if="errors.name" class="err">{{ errors.name }}</p>
+
+        <div class="form-group">
+          <label>Last Name</label>
+          <div class="input-group">
+            <i class="mdi mdi-account-outline"></i>
+            <input
+              v-model="formData.lastname"
+              type="text"
+              placeholder="Enter your last name"
+              @input="clearErrors('lastname')"
+              :class="{ error: errors.lastname }"
+            />
+          </div>
+          <span v-if="errors.lastname" class="error-message">{{ errors.lastname }}</span>
         </div>
-        <div class="input-group1">
-          <i class="mdi mdi-email-outline"></i>
-          <input v-model="formData.email" type="email" placeholder="Email Address" />
-          <p v-if="errors.email" class="err">{{ errors.email }}</p>
+
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-group">
+            <i class="mdi mdi-email-outline"></i>
+            <input
+              v-model="formData.email"
+              type="email"
+              placeholder="Enter your email"
+              @input="clearErrors('email')"
+              :class="{ error: errors.email }"
+            />
+          </div>
+          <span v-if="errors.email" class="error-message">{{ errors.email }}</span>
         </div>
-        <div class="input-group2">
-          <i class="mdi mdi-lock-outline"></i>
-          <input
-            v-model="formData.password"
-            :type="showPassword ? 'text' : 'password'"
-            placeholder="Password"
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-group">
+            <i class="mdi mdi-lock-outline"></i>
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="formData.password"
+              placeholder="Create a password"
+              @input="clearErrors('password')"
+              :class="{ error: errors.password }"
+            />
+            <i
+              class="mdi"
+              :class="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              @click="togglePasswordVisibility('password')"
+            ></i>
+          </div>
+          <span v-if="errors.password" class="error-message">{{ errors.password }}</span>
+        </div>
+
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <div class="input-group">
+            <i class="mdi mdi-lock-outline"></i>
+            <input
+              :type="showPasswordConfirmation ? 'text' : 'password'"
+              v-model="formData.password_confirmation"
+              placeholder="Confirm your password"
+              @input="clearErrors('password_confirmation')"
+              :class="{ error: errors.password_confirmation }"
+            />
+            <i
+              class="mdi"
+              :class="showPasswordConfirmation ? 'mdi-eye-off' : 'mdi-eye'"
+              @click="togglePasswordVisibility('passwordConfirmation')"
+            ></i>
+          </div>
+          <span v-if="errors.password_confirmation" class="error-message">{{
+            errors.password_confirmation
+          }}</span>
+        </div>
+
+        <!-- Alert Notifications -->
+        <div class="alert-container">
+          <AlertNotification
+            :formSuccessMessage="formAction.formSuccessMessage"
+            :formErrorMessage="formAction.formErrorMessage"
           />
-          <i
-            :class="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
-            class="password-toggle"
-            @click="togglePasswordVisibility('password')"
-          ></i>
-          <p v-if="errors.password" class="err">{{ errors.password }}</p>
         </div>
-        <div class="input-group2">
-          <i class="mdi mdi-lock-outline"></i>
-          <input
-            v-model="formData.password_confirmation"
-            :type="showPasswordConfirmation ? 'text' : 'password'"
-            placeholder="Confirm Password"
-          />
-          <i
-            :class="showPasswordConfirmation ? 'mdi-eye' : 'mdi-eye-off'"
-            class="password-toggle"
-            @click="togglePasswordVisibility('passwordConfirmation')"
-          ></i>
-          <p v-if="errors.confirmPassword" class="err">{{ errors.confirmPassword }}</p>
+
+        <button type="submit" class="btn" :disabled="formAction.formProcess">
+          {{ formAction.formProcess ? 'Creating Account...' : 'Create Account' }}
+        </button>
+
+        <div class="divider">
+          <span>or register with</span>
         </div>
 
         <button
-          type="submit"
-          class="login-btn mt-0"
-          :disabled="formAction.formProcess || !hasSupabaseConfig"
+          type="button"
+          class="btn google-btn"
+          @click="handleGoogleLogin"
+          :disabled="formAction.formProcess"
         >
-          Register
-        </button>
-      </form>
-
-      <!-- Alert Notifications -->
-      <div class="alert-container">
-        <AlertNotification
-          :formSuccessMessage="formAction.formSuccessMessage"
-          :formErrorMessage="formAction.formErrorMessage"
-        />
-      </div>
-
-      <!-- Divider -->
-      <div class="divider">
-        <span>or register with</span>
-      </div>
-
-      <!-- Google Sign Up Button -->
-      <div class="google-signin">
-        <button @click="handleGoogleLogin" class="google-btn" :disabled="formAction.formProcess">
           <i class="mdi mdi-google"></i>
-          <span>{{ formAction.formProcess ? 'Signing up...' : 'Sign up with Google' }}</span>
+          {{ formAction.formProcess ? 'Signing up...' : 'Sign up with Google' }}
         </button>
-      </div>
+
+        <p class="login-link">
+          Already have an account?
+          <a href="#" @click.prevent="navigateToLogin">Sign in</a>
+        </p>
+      </form>
     </div>
 
     <!-- Alert Modal -->
@@ -355,278 +353,343 @@ const handleAdminAction = () => {
       :autoCloseDelay="alertConfig.autoCloseDelay"
       @close="hideAlert"
     />
-
-    <!-- Admin Dashboard (conditionally rendered) -->
-    <div v-if="isAdminUser">
-      <!-- Admin-specific content -->
-      <h1>Admin Dashboard</h1>
-      <button @click="handleAdminAction">Perform Admin Action</button>
-    </div>
-    <div v-else>
-      <p>You do not have access to this feature.</p>
-    </div>
   </div>
 </template>
 
 <style scoped>
+:root {
+  --primary: #46e57e;
+  --primary-hover: #3bc96d;
+  --primary-light: #e8f9f0;
+  --text: #2c7a4b; /* changed to dark green for all text */
+  --text-light: rgba(44, 122, 75, 0.75); /* lighter green variant */
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --border: #cbd5e1;
+  --border-strong: rgba(44, 122, 75, 0.95);
+  --error: #ef4444;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --pill-bg: rgba(44, 122, 75, 0.06);
+}
+
+/* Base/Reset */
 * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
   font-family: 'Quicksand', sans-serif;
+  color: var(--text);
 }
 
-.login-page {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* Page background same treatment as login */
+.register-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 16px;
+  background: linear-gradient(135deg, #87ceeb 0%, #98fb98 50%, #90ee90 100%);
+  background-image: url('/pig.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow-x: hidden;
 }
 
+.register-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(135, 206, 235, 0.18) 0%,
+    rgba(152, 251, 152, 0.28) 50%,
+    rgba(144, 238, 144, 0.16) 100%
+  );
+  z-index: 1;
+}
+.register-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.06) 100%);
+  z-index: 1;
+}
+
+/* Card - mirror login style but with stronger border */
 .card {
+  position: relative;
+  z-index: 2;
   width: 100%;
-  max-width: 340px;
-  background: #fff;
-  padding: 1.5rem;
+  max-width: 420px;
+  background: #ffffff; /* force solid white card background */
+  padding: 2rem;
   border-radius: 20px;
-  box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow);
+  border: 2px solid var(--border-strong); /* keep visible border */
+  animation: fadeIn 0.36s ease-out forwards;
 }
 
+/* Logo / heading */
 .logo {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem; /* Increased margin for better spacing */
 }
 
 .logo img {
-  width: 50px;
-  height: 50px;
-  margin-bottom: 0.5rem;
+  width: 88px; /* Increased from 64px */
+  height: 88px; /* Increased from 64px */
+  border-radius: 16px; /* Slightly larger radius */
+  padding: 12px; /* Slightly more padding */
+  background: var(--primary-light);
+  margin: 0 auto 1rem; /* Increased bottom margin */
+  display: block;
 }
 
 .logo h1 {
-  font-size: 22px;
-  font-weight: bold;
-  color: #2c7a4b;
+  margin: 0;
+  font-size: 2.2rem; /* Increased from 1.6rem */
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.4px;
 }
 
-.tabs {
-  display: flex;
-  justify-content: center;
+/* Back link */
+.back-to-login {
+  margin-bottom: 1rem;
+}
+.back-to-login a {
+  color: #475569;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 1.5rem;
-  padding: 4px;
-  background: #f8f9fa;
-  border-radius: 24px;
-  width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.tabs button {
-  padding: 10px 20px;
-  border-radius: 20px;
-  border: none;
-  background: transparent;
-  color: #2c7a4b;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease-in-out;
-  white-space: nowrap;
-  min-width: 80px;
+}
+.back-to-login a:hover {
+  color: var(--primary-hover);
 }
 
-.tabs button.active {
-  background: #2c7a4b;
-  color: #fff;
-  box-shadow: 0px 3px 8px rgba(44, 122, 75, 0.4);
+/* Title */
+h2 {
+  text-align: center;
+  color: #475569;
+  margin-bottom: 1.25rem;
+  font-size: 1.25rem;
 }
 
-.tabs button:hover:not(.active) {
-  background: #e8f5e8;
-}
-
-.form {
+/* Form layout */
+.register-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 8px; /* smaller overall gaps between inputs */
+}
+.form-group {
+  text-align: left;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text); /* dark green */
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
-.input-group1 {
+/* Update the input group styles */
+.input-group {
   position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--pill-bg);
+  border: 2px solid #2c7a4b; /* Make border more visible */
+  border-radius: 9999px;
+  height: 48px;
+  padding: 0 12px;
+  overflow: hidden;
 }
 
-.input-group1 i {
+/* Left icon (account, email, lock) */
+.input-group i:not(.mdi-eye):not(.mdi-eye-off) {
   position: absolute;
+  left: 12px;
+  color: #2c7a4b;
+  font-size: 18px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Right icon (eye) */
+.input-group .mdi-eye,
+.input-group .mdi-eye-off {
+  position: absolute;
+  right: 12px; /* Position on the right */
   top: 50%;
-  left: 10px;
   transform: translateY(-50%);
-  color: #777;
-}
-
-.input-group2 {
-  position: relative;
-}
-
-.input-group2 i {
-  position: absolute;
-  top: 35%;
-  left: 10px;
-  transform: translateY(-50%);
-  color: #777;
-}
-
-.form input {
-  width: 100%;
-  padding: 12px 15px;
-  padding-left: 40px;
-  border-radius: 20px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  outline: none;
-}
-
-.form input:focus {
-  border-color: #2c7a4b;
-}
-
-.forgot {
-  text-align: right;
-  font-size: 12px;
-  color: #777;
-  margin-top: 12px;
   cursor: pointer;
+  color: #2c7a4b;
+  font-size: 18px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.forgot:hover {
-  text-decoration: underline;
-}
-
-.login-btn {
-  margin-top: 6px;
-  width: 100%;
-  padding: 12px;
-  background: #2c7a4b;
-  color: white;
+/* Adjust input padding to accommodate both icons */
+.input-group input {
+  flex: 1;
   border: none;
-  border-radius: 20px;
-  font-weight: bold;
+  background: transparent;
+  padding: 12px 40px; /* Add padding on both sides for icons */
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+}
+
+/* error messages */
+.error-message,
+.err {
+  color: var(--error);
+  font-size: 12px;
+  margin-top: 6px;
+  padding-left: 12px;
+}
+
+/* Update the default button styles */
+.btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9999px;
+  padding: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: 0.3s;
+  border: none;
+  background: #2c7a4b; /* dark green background */
+  color: #fff; /* white text */
+  transition: all 0.2s ease;
+}
+.btn:hover:not(:disabled) {
+  background: #235f3f; /* darker green on hover */
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(44, 122, 75, 0.2);
 }
 
-.login-btn:hover {
-  background: #256c3c;
+/* Specific styles for Google button to override the green */
+.btn.google-btn {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
 }
 
+/* divider */
 .divider {
   display: flex;
   align-items: center;
-  text-align: center;
-  margin: 20px 0;
-  color: #666;
-  font-size: 14px;
+  margin: 8px 0 10px; /* tightened top margin */
+  color: var(--text-light);
+  font-size: 0.9rem;
 }
-
 .divider::before,
 .divider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid #ccc;
+  height: 1px;
+  background: var(--border);
+  margin: 0 12px;
 }
 
-.divider span {
-  margin: 0 10px;
+/* small helper link */
+.login-link {
+  text-align: center;
+  margin-top: 0.5rem;
+  color: var(--text-light);
+}
+.login-link a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+.login-link a:hover {
+  color: var(--primary-hover);
 }
 
-.google-signin {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-.google-btn {
-  width: 100%;
-  max-width: 280px;
-  height: 45px;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  font-weight: 500;
-  color: #3c4043;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.google-btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.google-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.google-btn i {
-  font-size: 18px;
-  color: #4285f4;
-}
-.err {
-  color: #cc0000;
-  font-size: 12px;
-  margin-top: 6px;
-}
-
+/* Alert area */
 .alert-container {
-  margin: 15px 0;
+  margin: 0.75rem 0;
 }
 
-.password-toggle {
-  position: absolute;
-  top: 50%;
-  right: 15px;
-  transform: translateY(-50%);
-  color: #777;
-  cursor: pointer;
-  font-size: 18px;
-  z-index: 1;
+/* subtle focus error styling */
+.error {
+  border-color: var(--error) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
 }
 
-.password-toggle:hover {
-  color: #2c7a4b;
+/* animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* tighten vertical spacing only for register form */
-.form.register-form {
-  gap: 8px; /* reduce spacing between form rows */
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  .card {
+    padding: 1.5rem;
+    border-radius: 16px;
+    max-width: 100%;
+    margin: 0 8px;
+  }
+  .logo img {
+    width: 56px;
+    height: 56px;
+  }
+  h2 {
+    font-size: 1.25rem;
+    color: var(--text);
+  }
+  .input-group {
+    height: 44px;
+    padding: 0 10px;
+  }
+  .input-group input {
+    padding: 10px 40px;
+    font-size: 13px;
+  }
+  .btn-primary,
+  .btn-google {
+    height: 40px;
+    font-size: 14px;
+  }
+  .register-form {
+    gap: 6px;
+  }
+  .register-form .form-group:last-of-type {
+    margin-bottom: 0;
+  }
 }
 
-/* remove any extra bottom margin on the last input group */
-.form.register-form .input-group2:last-of-type,
-.form.register-form .input-group1:last-of-type {
-  margin-bottom: 0;
-  padding-bottom: 0;
+/* Make border stand out on high DPI */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .card {
+    border-color: var(--border-strong);
+  }
 }
-
-/* nudge the button closer but avoid overlap */
-.form.register-form .login-btn {
-  margin-top: 4px; /* small gap between confirm input and button */
-}
-
-/* reduce space for inline error messages so they don't push the button down */
-.form.register-form .err {
-  margin-top: 4px;
-  margin-bottom: 0;
-  font-size: 12px;
-}
-
-/* Optional alternative: use transform rather than margin for subtle lift */
-/* .form.register-form .login-btn { transform: translateY(-3px); } */
 </style>
