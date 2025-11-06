@@ -133,7 +133,7 @@
             </div>
 
             <!-- Hidden type field - not shown in UI -->
-            <input v-model="form.type" type="hidden" />
+            <!-- <input v-model="form.type" type="hidden" /> -->
 
             <div class="form-actions">
               <button type="button" class="cancel-btn" @click="closeModal">Cancel</button>
@@ -190,8 +190,8 @@ const form = reactive({
   name: '',
   quantity: '',
   cost: '',
-  unit: 'kg',
-  type: 'carbs', // Hidden field for ingredient type
+  unit: '',
+  type: 'carbs',
 })
 
 // Modal functions
@@ -225,25 +225,18 @@ function editIngredient(ingredient) {
   showModal.value = true
 }
 
-function saveIngredient() {
-  if (editingIngredient.value) {
-    // Update existing ingredient
-    inventory.updateIngredient(editingIngredient.value.id, {
-      name: form.name,
-      quantity: form.quantity,
-      cost: form.cost,
-      unit: form.unit,
-    })
-  } else {
-    // Add new ingredient
-    inventory.addIngredient({
-      name: form.name,
-      quantity: form.quantity,
-      cost: form.cost,
-      unit: form.unit,
-    })
+async function saveIngredient() {
+  try {
+    const { data, error } = await inventory.addIngredient(form)
+    if (error) {
+      console.error('Error saving ingredient:', error)
+    }
+    if (data) closeModal()
+
+    console.log(form)
+  } catch (error) {
+    console.error('Error saving ingredient:', error)
   }
-  closeModal()
 }
 
 function deleteIngredient(id) {

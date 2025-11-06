@@ -1,154 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { supabase } from '@/services/supabase'
 
 export const useInventoryStore = defineStore('inventory', () => {
-  const ingredients = ref([
-    {
-      id: '1',
-      name: 'Corn',
-      quantity: 50,
-      cost: 12.5,
-      unit: 'kg',
-      type: 'carbs',
-      isAvailable: true,
-    },
-    {
-      id: '2',
-      name: 'Soybean Meal',
-      quantity: 25,
-      cost: 18.75,
-      unit: 'kg',
-      type: 'protein',
-      isAvailable: true,
-    },
-    {
-      id: '3',
-      name: 'Wheat Bran',
-      quantity: 0,
-      cost: 8.25,
-      unit: 'kg',
-      type: 'carbs',
-      isAvailable: false,
-    },
-    {
-      id: '4',
-      name: 'Fish Meal',
-      quantity: 15,
-      cost: 35.0,
-      unit: 'kg',
-      type: 'protein',
-      isAvailable: true,
-    },
-    {
-      id: '5',
-      name: 'Salt',
-      quantity: 5,
-      cost: 2.5,
-      unit: 'kg',
-      type: 'minerals',
-      isAvailable: true,
-    },
-    {
-      id: '6',
-      name: 'Vitamins',
-      quantity: 0,
-      cost: 45.0,
-      unit: 'kg',
-      type: 'vitamins',
-      isAvailable: false,
-    },
-    // Feed calculator ingredients
-    {
-      id: '7',
-      name: 'Banana Peels',
-      quantity: 20,
-      cost: 8.0,
-      unit: 'kg',
-      type: 'carbs',
-      isAvailable: true,
-    },
-    {
-      id: '8',
-      name: 'Rice Bran D2',
-      quantity: 30,
-      cost: 15.5,
-      unit: 'kg',
-      type: 'carbs',
-      isAvailable: true,
-    },
-    {
-      id: '9',
-      name: 'Ramie',
-      quantity: 25,
-      cost: 12.0,
-      unit: 'kg',
-      type: 'protein',
-      isAvailable: true,
-    },
-    {
-      id: '10',
-      name: 'Cadamba',
-      quantity: 15,
-      cost: 18.0,
-      unit: 'kg',
-      type: 'protein',
-      isAvailable: true,
-    },
-    {
-      id: '11',
-      name: 'Copra Meal',
-      quantity: 40,
-      cost: 22.5,
-      unit: 'kg',
-      type: 'protein',
-      isAvailable: true,
-    },
-    {
-      id: '12',
-      name: 'Molasses',
-      quantity: 10,
-      cost: 25.0,
-      unit: 'kg',
-      type: 'vitamins',
-      isAvailable: true,
-    },
-    {
-      id: '13',
-      name: 'Herbal Concoctions',
-      quantity: 5,
-      cost: 35.0,
-      unit: 'kg',
-      type: 'vitamins',
-      isAvailable: true,
-    },
-    {
-      id: '14',
-      name: 'Premix Animal Vita',
-      quantity: 8,
-      cost: 45.0,
-      unit: 'kg',
-      type: 'vitamins',
-      isAvailable: true,
-    },
-    {
-      id: '15',
-      name: 'Cececal',
-      quantity: 3,
-      cost: 30.0,
-      unit: 'kg',
-      type: 'vitamins',
-      isAvailable: true,
-    },
-    {
-      id: '16',
-      name: 'Carbonised Rice Hull',
-      quantity: 12,
-      cost: 10.0,
-      unit: 'kg',
-      type: 'minerals',
-      isAvailable: true,
-    },
-  ])
+  const ingredients = ref([])
 
   // Computed properties
   const availableIngredients = computed(() =>
@@ -167,17 +22,14 @@ export const useInventoryStore = defineStore('inventory', () => {
   )
 
   // Actions
-  function addIngredient(ingredientData) {
-    const newIngredient = {
-      id: crypto.randomUUID?.() || String(Date.now()),
-      quantity: Number(ingredientData.quantity) || 0,
-      cost: Number(ingredientData.cost) || 0,
-      unit: ingredientData.unit || 'kg',
-      type: ingredientData.type || 'carbs', // Default to carbs if not specified
-      isAvailable: (Number(ingredientData.quantity) || 0) > 0,
-      ...ingredientData,
-    }
-    ingredients.value.unshift(newIngredient)
+  async function fetchIngredients() {
+    const { data, error } = await supabase.from('inventory').select('*')
+    if (data) ingredients.value = data
+    if (error) console.log('Error fetching ingredients')
+  }
+
+  async function addIngredient(formData) {
+    return await supabase.from('inventory').insert(formData).select()
   }
 
   function updateIngredient(id, updates) {
@@ -271,5 +123,6 @@ export const useInventoryStore = defineStore('inventory', () => {
     deleteIngredient,
     updateQuantity,
     deductIngredientQuantity,
+    fetchIngredients,
   }
 })
