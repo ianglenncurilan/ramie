@@ -176,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useInventoryStore } from '../stores/inventory'
 
 const inventory = useInventoryStore()
@@ -192,6 +192,11 @@ const form = reactive({
   cost: '',
   unit: '',
   type: 'carbs',
+})
+
+// Fetch ingredients when component is mounted
+onMounted(() => {
+  inventory.fetchIngredients()
 })
 
 // Modal functions

@@ -20,35 +20,35 @@ const go = (name) => {
 
     <main class="dashboard-content">
       <section class="hero">
-      <img src="/pig.jpg" alt="Hogs" />
-      <div class="overlay">
-        <div class="title">Olivier Ecovillage</div>
-        <div class="stats">
-          <span>31 Production Logs</span>
-          <span>18 Staff</span>
-          <span>18 Hogs Tracked</span>
+        <img src="/pig.jpg" alt="Hogs" />
+        <div class="overlay">
+          <div class="title">Olivier Ecovillage</div>
+          <div class="stats">
+            <span>31 Production Logs</span>
+            <span>18 Staff</span>
+            <span>18 Hogs Tracked</span>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="grid">
-      <button class="card" @click="go('make-feeds')">
-        <img src="/makefeeds.png" alt="Make Feeds" />
-        <div>Make Feeds</div>
-      </button>
-      <button class="card" @click="go('manage-staff')">
-        <img src="/staff.png" alt="Manage Staff" />
-        <div>Manage Staff</div>
-      </button>
-      <button class="card" @click="go('inventory')">
-        <img src="/inventory.png" alt="Inventory" />
-        <div>Inventory</div>
-      </button>
-      <button class="card" @click="go('hogs-tracked')">
-        <img src="/pig2.png" alt="Hogs Tracked" />
-        <div>Hogs Tracked</div>
-      </button>
-    </section>
+      <section class="grid">
+        <button class="card" @click="go('make-feeds')">
+          <img src="/makefeeds.png" alt="Make Feeds" />
+          <div>Make Feeds</div>
+        </button>
+        <button class="card" @click="go('manage-staff')">
+          <img src="/staff.png" alt="Manage Staff" />
+          <div>Manage Staff</div>
+        </button>
+        <button class="card" @click="go('inventory')">
+          <img src="/inventory.png" alt="Inventory" />
+          <div>Inventory</div>
+        </button>
+        <button class="card" @click="go('hogs-tracked')">
+          <img src="/pig2.png" alt="Hogs Tracked" />
+          <div>Hogs Tracked</div>
+        </button>
+      </section>
     </main>
     <BottomBar />
   </div>
@@ -148,8 +148,8 @@ const go = (name) => {
   margin-top: auto;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-  padding: 20px 24px;
+  gap: 24pxx; /* Increased from 16px */
+  padding: 24px 32px; /* Increased from 20px 24px */
   background: #fff;
   border-top-left-radius: 18px;
   border-top-right-radius: 18px;
@@ -163,7 +163,7 @@ const go = (name) => {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 12px;
+  padding: 16px; /* Increased from 12px */
   border-radius: 12px;
   transition: all 0.2s ease-in-out;
 }
@@ -183,8 +183,8 @@ const go = (name) => {
 }
 
 .bottombar img {
-  width: 32px;
-  height: 32px;
+  width: 36px; /* Increased from 32px */
+  height: 36px; /* Increased from 32px */
   object-fit: contain;
   transition: filter 0.2s ease-in-out;
 }
