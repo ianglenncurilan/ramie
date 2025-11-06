@@ -3,13 +3,13 @@
     <div class="content">
       <div class="illustration">
         <div v-if="currentStep === 1" class="simplify-illustration">
-          <img src="/simplify.png" alt="Simplify" />
+          <img src="/arrow.png" alt="Simplify" />
         </div>
         <div v-else-if="currentStep === 2" class="track-illustration">
-          <img src="/track.png" alt="Track" />
+          <img src="/budget.png" alt="Track" />
         </div>
         <div v-else-if="currentStep === 3" class="manage-illustration">
-          <img src="/manage.png" alt="Manage" />
+          <img src="/manager.png" alt="Manage" />
         </div>
       </div>
 
