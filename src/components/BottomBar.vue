@@ -1,31 +1,48 @@
 <template>
-  <nav class="bottombar">
+  <nav class="bottombar" v-if="showBottomBar">
     <button
-      @click="$router.push({ name: 'dashboard' })"
-      :class="{ active: $route.name === 'dashboard' }"
+      v-for="item in menuItems"
+      :key="item.name"
+      @click="navigateTo(item.name)"
+      :class="{ active: isActive(item) }"
+      :disabled="item.disabled"
     >
-      <img src="/home.png" alt="Home" />
-    </button>
-    <button
-      @click="$router.push({ name: 'records' })"
-      :class="{ active: $route.name === 'records' }"
-    >
-      <img src="/record.png" alt="Records" />
-    </button>
-    <button
-      @click="$router.push({ name: 'expenses' })"
-      :class="{ active: $route.name === 'expenses' }"
-    >
-      <img src="/expensesicon.png" alt="Expenses" />
-    </button>
-    <button
-      @click="$router.push({ name: 'profile' })"
-      :class="{ active: $route.name === 'profile' }"
-    >
-      <img src="/profile.png" alt="Profile" />
+      <img :src="item.icon" :alt="item.label" />
+      <span class="label">{{ item.label }}</span>
     </button>
   </nav>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
+
+const menuItems = [
+  { name: 'dashboard', label: 'Home', icon: '/home.png', disabled: false },
+  { name: 'records', label: 'Records', icon: '/record.png', disabled: false },
+  { name: 'expenses', label: 'Expenses', icon: '/expensesicon.png', disabled: false },
+  { name: 'profile', label: 'Profile', icon: '/profile.png', disabled: false },
+]
+
+// Define routes where bottom bar should be hidden
+const hiddenRoutes = ['splash', 'login', 'register', 'onboarding-1']
+
+const showBottomBar = computed(() => {
+  return !hiddenRoutes.includes(route.name)
+})
+
+const isActive = (item) => {
+  return route.name === item.name || 
+         (route.matched[0] && route.matched[0].name === item.name)
+}
+
+const navigateTo = (routeName) => {
+  router.push({ name: routeName })
+}
+</script>
 
 <style scoped>
 .bottombar {
@@ -53,23 +70,39 @@
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s;
+  flex: 1;
+  max-width: 25%;
+  opacity: 0.7;
+}
+
+.bottombar button:hover {
+  opacity: 1;
+}
+
+.bottombar button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .bottombar button img {
   width: 24px;
   height: 24px;
   margin-bottom: 4px;
-  opacity: 0.7;
   transition: all 0.2s;
+}
+
+.bottombar button .label {
+  font-size: 10px;
+  margin-top: 2px;
 }
 
 .bottombar button.active {
   color: #2f8b60;
+  opacity: 1;
 }
 
 .bottombar button.active img {
-  opacity: 1;
-  filter: brightness(0) saturate(100%) invert(42%) sepia(65%) saturate(441%) hue-rotate(112deg)
-    brightness(90%) contrast(85%);
+  filter: brightness(0) saturate(100%) invert(42%) sepia(65%) saturate(441%) 
+    hue-rotate(112deg) brightness(90%) contrast(85%);
 }
 </style>

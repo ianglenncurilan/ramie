@@ -133,7 +133,7 @@ const go = (name) => {
   transition: transform 0.2s ease-in-out;
 }
 .card:hover {
-  transform: scale(1.05);
+  transform: scale(1.01);
 }
 .card img {
   width: 48px;
