@@ -1,34 +1,144 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { supabase } from '@/services/supabase'
 
 export const useHogsStore = defineStore('hogs', () => {
   const hogs = ref([])
-  const nextHogId = ref(1)
+  const loading = ref(false)
+  const error = ref(null)
 
-  // Add a new hog
-  function addHog(hogData) {
-    const newHog = {
-      id: nextHogId.value++,
-      code: hogData.code || `HOG${String(nextHogId.value - 1).padStart(3, '0')}`,
-      weight: hogData.weight || 0,
-      days: hogData.days || 0,
-      feedingCompleted: hogData.feedingCompleted || false,
-      createdAt: new Date().toISOString(),
-      lastFeedingDate: null,
-      totalFeedingDays: 0,
+  // Fetch all hogs from the database
+  async function fetchHogs() {
+    try {
+      loading.value = true
+      const { data, error: fetchError } = await supabase
+        .from('hogs')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (fetchError) throw fetchError
+
+      // Transform the data to match our frontend structure
+      hogs.value = (data || []).map((hog) => ({
+        id: hog.id,
+        code: hog.code,
+        weight: hog.weight || 0,
+        days: hog.days || 0,
+        feedingCompleted: hog.feeding_completed || false,
+        createdAt: hog.created_at,
+        lastFeedingDate: hog.last_feeding_date,
+        totalFeedingDays: hog.total_feeding_days || 0,
+        lastDayIncrement: hog.last_day_increment,
+      }))
+
+      return hogs.value
+    } catch (err) {
+      console.error('Error fetching hogs:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
-    hogs.value.push(newHog)
-    return newHog
   }
 
-  // Update hog data
-  function updateHog(hogId, updates) {
-    const hogIndex = hogs.value.findIndex((hog) => hog.id === hogId)
-    if (hogIndex !== -1) {
-      hogs.value[hogIndex] = { ...hogs.value[hogIndex], ...updates }
-      return hogs.value[hogIndex]
+  // Add a new hog to the database
+  async function addHog(hogData) {
+    try {
+      loading.value = true
+
+      // Generate a default code if not provided
+      const hogCode = hogData.code || `HOG${Date.now().toString().slice(-4)}`
+      const now = new Date().toISOString()
+
+      const { data, error: insertError } = await supabase
+        .from('hogs')
+        .insert([
+          {
+            code: hogCode,
+            weight: hogData.weight || 0,
+            days: hogData.days || 0,
+            feeding_completed: false,
+            created_at: now,
+            last_feeding_date: null,
+            total_feeding_days: 0,
+            last_day_increment: now,
+          },
+        ])
+        .select()
+
+      if (insertError) throw insertError
+
+      if (data && data.length > 0) {
+        const newHog = {
+          id: data[0].id,
+          code: data[0].code,
+          weight: data[0].weight,
+          days: data[0].days,
+          feedingCompleted: data[0].feeding_completed,
+          createdAt: data[0].created_at,
+          lastFeedingDate: data[0].last_feeding_date,
+          totalFeedingDays: data[0].total_feeding_days,
+          lastDayIncrement: data[0].last_day_increment,
+        }
+
+        hogs.value.unshift(newHog)
+        return newHog
+      }
+
+      return null
+    } catch (err) {
+      console.error('Error adding hog:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
-    return null
+  }
+
+  // Update hog data in the database
+  async function updateHog(hogId, updates) {
+    try {
+      loading.value = true
+
+      // Prepare the data to update in the database
+      const dbUpdates = {}
+
+      // Map frontend field names to database column names
+      if ('feedingCompleted' in updates) dbUpdates.feeding_completed = updates.feedingCompleted
+      if ('lastFeedingDate' in updates) dbUpdates.last_feeding_date = updates.lastFeedingDate
+      if ('totalFeedingDays' in updates) dbUpdates.total_feeding_days = updates.totalFeedingDays
+      if ('lastDayIncrement' in updates) dbUpdates.last_day_increment = updates.lastDayIncrement
+      if ('weight' in updates) dbUpdates.weight = updates.weight
+      if ('days' in updates) dbUpdates.days = updates.days
+
+      const { data, error: updateError } = await supabase
+        .from('hogs')
+        .update(dbUpdates)
+        .eq('id', hogId)
+        .select()
+
+      if (updateError) throw updateError
+
+      // Update local state
+      const hogIndex = hogs.value.findIndex((hog) => hog.id === hogId)
+      if (hogIndex !== -1 && data && data[0]) {
+        hogs.value[hogIndex] = {
+          ...hogs.value[hogIndex],
+          ...updates,
+          lastFeedingDate: data[0].last_feeding_date,
+          lastDayIncrement: data[0].last_day_increment,
+        }
+        return hogs.value[hogIndex]
+      }
+
+      return null
+    } catch (err) {
+      console.error('Error updating hog:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
   // Update hog weight
@@ -104,14 +214,30 @@ export const useHogsStore = defineStore('hogs', () => {
     return null
   }
 
-  // Delete a hog
-  function deleteHog(hogId) {
-    const index = hogs.value.findIndex((hog) => hog.id === hogId)
-    if (index !== -1) {
-      hogs.value.splice(index, 1)
-      return true
+  // Delete a hog from the database
+  async function deleteHog(hogId) {
+    try {
+      loading.value = true
+
+      const { error: deleteError } = await supabase.from('hogs').delete().eq('id', hogId)
+
+      if (deleteError) throw deleteError
+
+      // Update local state
+      const index = hogs.value.findIndex((hog) => hog.id === hogId)
+      if (index !== -1) {
+        hogs.value.splice(index, 1)
+        return true
+      }
+
+      return false
+    } catch (err) {
+      console.error('Error deleting hog:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
-    return false
   }
 
   // Get hog by ID
@@ -119,8 +245,11 @@ export const useHogsStore = defineStore('hogs', () => {
     return hogs.value.find((hog) => hog.id === hogId)
   }
 
-  // Get all hogs
-  function getAllHogs() {
+  // Get all hogs, fetching from the database if needed
+  async function getAllHogs() {
+    if (hogs.value.length === 0) {
+      await fetchHogs()
+    }
     return hogs.value
   }
 
@@ -180,6 +309,8 @@ export const useHogsStore = defineStore('hogs', () => {
 
   return {
     hogs,
+    loading: computed(() => loading.value),
+    error: computed(() => error.value),
     addHog,
     updateHog,
     updateHogWeight,
@@ -194,5 +325,6 @@ export const useHogsStore = defineStore('hogs', () => {
     incrementDaysForAllHogs,
     resetDailyFeedingStatus,
     getStats,
+    fetchHogs,
   }
 })

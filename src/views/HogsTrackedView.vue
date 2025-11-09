@@ -148,13 +148,17 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import BottomBar from './parts/BottomBar.vue'
 import { useHogsStore } from '../stores/hogs'
 
+const router = useRouter()
 const hogsStore = useHogsStore()
 
 // Reactive data
 const showAddHogModal = ref(false)
+const loading = ref(true)
+const error = ref(null)
 const newHog = ref({
   code: '',
   weight: 0,
@@ -162,11 +166,27 @@ const newHog = ref({
 })
 
 // Computed properties
-const hogs = computed(() => hogsStore.getAllHogs())
+const hogs = computed(() => hogsStore.hogs)
 const stats = computed(() => hogsStore.getStats())
+const isLoading = computed(() => hogsStore.loading)
+
+// Fetch hogs when component mounts
+onMounted(async () => {
+  try {
+    loading.value = true
+    await hogsStore.fetchHogs()
+    // Initialize daily tasks after loading hogs
+    hogsStore.incrementDaysForAllHogs()
+  } catch (err) {
+    console.error('Failed to load hogs:', err)
+    error.value = 'Failed to load hogs. Please try again.'
+  } finally {
+    loading.value = false
+  }
+})
 
 // Methods
-function addNewHog() {
+async function addNewHog() {
   if (!newHog.value.code.trim()) {
     alert('Please enter a hog code')
     return
@@ -182,21 +202,26 @@ function addNewHog() {
     return
   }
 
-  // Check if hog code already exists
-  const existingHog = hogs.value.find(
-    (hog) => hog.code.toLowerCase() === newHog.value.code.toLowerCase(),
-  )
-
-  if (existingHog) {
-    alert('A hog with this code already exists')
-    return
+  try {
+    loading.value = true
+    
+    // Add the new hog to the database
+    await hogsStore.addHog({
+      code: newHog.value.code.trim(),
+      weight: newHog.value.weight,
+      days: newHog.value.days,
+    })
+    
+    // Reset form and close modal
+    newHog.value = { code: '', weight: 0, days: 0 }
+    showAddHogModal.value = false
+  } catch (err) {
+    console.error('Error adding hog:', err)
+    error.value = err.message || 'Failed to add hog. Please try again.'
+    alert(error.value)
+  } finally {
+    loading.value = false
   }
-
-  hogsStore.addHog({
-    code: newHog.value.code.trim(),
-    weight: newHog.value.weight,
-    days: newHog.value.days,
-  })
 
   // Reset form and close modal
   newHog.value = { code: '', weight: 0, days: 0 }
@@ -208,34 +233,51 @@ function closeAddHogModal() {
   newHog.value = { code: '', weight: 0, days: 0 }
 }
 
-function updateHogWeight(hogId, weight) {
-  if (weight < 0) {
-    alert('Weight cannot be negative')
-    return
+async function updateHogWeight(hogId, weight) {
+  try {
+    await hogsStore.updateHogWeight(hogId, parseFloat(weight) || 0)
+  } catch (err) {
+    console.error('Error updating hog weight:', err)
+    error.value = 'Failed to update hog weight. Please try again.'
+    alert(error.value)
   }
-  hogsStore.updateHogWeight(hogId, weight)
 }
 
-function markFeedingComplete(hogId) {
-  hogsStore.markFeedingComplete(hogId)
+async function markFeedingComplete(hogId) {
+  try {
+    await hogsStore.markFeedingComplete(hogId)
+  } catch (err) {
+    console.error('Error marking feeding as complete:', err)
+    error.value = 'Failed to update feeding status. Please try again.'
+    alert(error.value)
+  }
 }
 
-function markFeedingIncomplete(hogId) {
-  hogsStore.markFeedingIncomplete(hogId)
+async function markFeedingIncomplete(hogId) {
+  try {
+    await hogsStore.markFeedingIncomplete(hogId)
+  } catch (err) {
+    console.error('Error marking feeding as incomplete:', err)
+    error.value = 'Failed to update feeding status. Please try again.'
+    alert(error.value)
+  }
 }
 
-function deleteHog(hogId) {
+async function deleteHog(hogId) {
   if (confirm('Are you sure you want to delete this hog? This action cannot be undone.')) {
-    hogsStore.deleteHog(hogId)
+    try {
+      await hogsStore.deleteHog(hogId)
+    } catch (err) {
+      console.error('Error deleting hog:', err)
+      error.value = 'Failed to delete hog. Please try again.'
+      alert(error.value)
+    }
   }
 }
 
-// Initialize daily tasks on mount
-onMounted(() => {
-  // Increment days for all hogs if needed
-  hogsStore.incrementDaysForAllHogs()
-})
-</script>
+// This is now handled in the onMounted hook above
+</script> 
+
 
 <style scoped>
 * {
