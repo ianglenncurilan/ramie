@@ -85,6 +85,18 @@
         </div>
       </div>
 
+      <!-- Loading State -->
+      <div v-if="loading && !error" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Loading...</p>
+      </div>
+
+      <!-- Error Message -->
+      <div v-if="error" class="error-message">
+        {{ error }}
+        <button @click="error = null" class="close-error">×</button>
+      </div>
+
       <!-- Income Modal -->
       <div v-if="showIncomeModal" class="modal-overlay" @click="closeIncomeModal">
         <div class="modal" @click.stop>
@@ -98,8 +110,9 @@
               <input
                 v-model="incomeForm.label"
                 type="text"
-                placeholder="e.g., Pig Sales, Feed Sales"
+                placeholder="e.g., Product Sales, Services"
                 required
+                :disabled="loading"
               />
             </div>
             <div class="form-group">
@@ -111,11 +124,34 @@
                 step="0.01"
                 placeholder="0.00"
                 required
+                :disabled="loading"
+              />
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input
+                v-model="incomeForm.date"
+                type="date"
+                required
+                :disabled="loading"
               />
             </div>
             <div class="form-actions">
-              <button type="button" class="cancel-btn" @click="closeIncomeModal">Cancel</button>
-              <button type="submit" class="save-btn">Add Income</button>
+              <button 
+                type="button" 
+                class="cancel-btn" 
+                @click="closeIncomeModal"
+                :disabled="loading"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                class="save-btn" 
+                :disabled="loading"
+              >
+                {{ loading ? 'Saving...' : 'Add Income' }}
+              </button>
             </div>
           </form>
         </div>
@@ -136,6 +172,7 @@
                 type="text"
                 placeholder="e.g., Feed Purchase, Veterinary"
                 required
+                :disabled="loading"
               />
             </div>
             <div class="form-group">
@@ -147,11 +184,34 @@
                 step="0.01"
                 placeholder="0.00"
                 required
+                :disabled="loading"
+              />
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input
+                v-model="expenseForm.date"
+                type="date"
+                required
+                :disabled="loading"
               />
             </div>
             <div class="form-actions">
-              <button type="button" class="cancel-btn" @click="closeExpenseModal">Cancel</button>
-              <button type="submit" class="save-btn">Add Expense</button>
+              <button 
+                type="button" 
+                class="cancel-btn" 
+                @click="closeExpenseModal"
+                :disabled="loading"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                class="save-btn" 
+                :disabled="loading"
+              >
+                {{ loading ? 'Saving...' : 'Add Expense' }}
+              </button>
             </div>
           </form>
         </div>
@@ -162,11 +222,13 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import BottomBar from '@/components/BottomBar.vue'
 import { useFeedsStore } from '../stores/feeds'
 
 const feeds = useFeedsStore()
+const loading = ref(false)
+const error = ref(null)
 
 // Modal state
 const showIncomeModal = ref(false)
@@ -176,11 +238,26 @@ const showExpenseModal = ref(false)
 const incomeForm = reactive({
   label: '',
   amount: '',
+  date: new Date().toISOString().split('T')[0] // Default to today's date
 })
 
 const expenseForm = reactive({
   label: '',
   amount: '',
+  date: new Date().toISOString().split('T')[0] // Default to today's date
+})
+
+// Fetch expenses when component mounts
+onMounted(async () => {
+  try {
+    loading.value = true
+    await feeds.fetchExpenses()
+  } catch (err) {
+    error.value = 'Failed to load expenses. Please try again.'
+    console.error('Error loading expenses:', err)
+  } finally {
+    loading.value = false
+  }
 })
 
 // Modal functions
@@ -207,33 +284,184 @@ function closeExpenseModal() {
 function resetIncomeForm() {
   incomeForm.label = ''
   incomeForm.amount = ''
+  incomeForm.date = new Date().toISOString().split('T')[0]
 }
 
 function resetExpenseForm() {
   expenseForm.label = ''
   expenseForm.amount = ''
+  expenseForm.date = new Date().toISOString().split('T')[0]
 }
 
-function saveIncome() {
-  feeds.addIncome({
-    label: incomeForm.label,
-    amount: Number(incomeForm.amount),
-  })
-  closeIncomeModal()
+async function saveIncome() {
+  try {
+    loading.value = true
+    await feeds.addIncome({
+      label: incomeForm.label,
+      amount: Number(incomeForm.amount),
+      date: incomeForm.date
+    })
+    closeIncomeModal()
+  } catch (err) {
+    error.value = 'Failed to save income. Please try again.'
+    console.error('Error saving income:', err)
+  } finally {
+    loading.value = false
+  }
 }
 
-function saveExpense() {
-  feeds.addExpense({
-    label: expenseForm.label,
-    amount: Number(expenseForm.amount),
-  })
-  closeExpenseModal()
+async function saveExpense() {
+  try {
+    loading.value = true
+    await feeds.addExpense({
+      label: expenseForm.label,
+      amount: Number(expenseForm.amount),
+      date: expenseForm.date
+    })
+    closeExpenseModal()
+  } catch (err) {
+    error.value = 'Failed to save expense. Please try again.'
+    console.error('Error saving expense:', err)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <style scoped>
+/* Base Styles */
 .screen {
   padding-bottom: 80px; /* Space for bottom bar */
+  position: relative;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error Message */
+.error-message {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 1rem;
+  margin: 1rem;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideIn 0.3s ease-out;
+}
+
+.close-error {
+  background: none;
+  border: none;
+  color: #c62828;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input[type="date"],
+.form-group input[type="number"],
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group input[type="date"] {
+  padding: 0.4rem 0.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.cancel-btn, .save-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.save-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.save-btn:hover:not(:disabled) {
+  background-color: #43a047;
+}
+
+.save-btn:disabled,
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .expenses-content {

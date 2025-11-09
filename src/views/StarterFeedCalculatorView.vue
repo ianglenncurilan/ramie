@@ -135,14 +135,18 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch, onMounted } from 'vue'
+import { computed, reactive, watch, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFeedsStore } from '../stores/feeds'
 import { useInventoryStore } from '../stores/inventory'
+import { useFeedFormulationsStore } from '../stores/feedFormulations'
 
 const router = useRouter()
 const feedsStore = useFeedsStore()
 const inventoryStore = useInventoryStore()
+// Initialize the store
+const feedFormulationsStore = useFeedFormulationsStore()
+const saveStatus = ref({ success: false, error: null })
 
 // Mapping between feed calculator ingredients and inventory items
 const INGREDIENT_MAPPING = {
@@ -266,9 +270,7 @@ const findInventoryItem = (ingredientId) => {
 
   // Find first matching inventory item
   return inventoryStore.ingredients.find((item) =>
-    possibleNames.some(
-      (name) => item.name.toLowerCase().trim() === name.toLowerCase().trim(),
-    ),
+    possibleNames.some((name) => item.name.toLowerCase().trim() === name.toLowerCase().trim()),
   )
 }
 
@@ -360,112 +362,139 @@ watch(
 )
 
 async function saveFormulation() {
+  // Calculate total kg and cost
+  const totalKg = Object.values(amounts).reduce((sum, val) => sum + (Number(val) || 0), 0)
+  const totalCost = Object.entries(amounts).reduce(
+    (sum, [id, amount]) => sum + (Number(amount) || 0) * (costs[id] || 0),
+    0,
+  )
+  const costPerKg = totalKg > 0 ? totalCost / totalKg : 0
+
+  // Prepare ingredients array
+  const ingredients = uiCategories.value.flatMap((category) =>
+    category.items.map((item) => ({
+      id: item.id,
+      label: item.label,
+      amountKg: Number(amounts[item.id]) || 0,
+      costPerKg: Number(costs[item.id]) || 0,
+      category: category.title,
+    })),
+  )
+
+  // Create formulation object
+  const formulation = {
+    feedType: 'starter',
+    name: `Starter Feed - ${new Date().toLocaleDateString()}`,
+    ingredients,
+    totalKg,
+    totalCost,
+    costPerKg,
+    notes: 'Generated from Starter Feed Calculator',
+    createdBy: 'current_user_id', // This should be replaced with the actual user ID
+  }
+
   try {
-    // Validate that all categories meet their requirements
-    const validationErrors = []
-    let hasInsufficientStock = false
+    // Ensure store is properly initialized
+    if (!feedFormulationsStore || typeof feedFormulationsStore.saveFormulation !== 'function') {
+      console.error('Feed formulations store is not properly initialized:', feedFormulationsStore)
+      throw new Error('Unable to save feed formulation. Please try again later.')
+    }
 
-    // First pass: Validate form and check inventory
-    uiCategories.value.forEach((category) => {
-      const categoryTotal = getCategoryTotal(category)
-      if (categoryTotal === 0) {
-        validationErrors.push(`${category.title} has no ingredients added`)
-      } else if (categoryTotal > category.total) {
-        validationErrors.push(`${category.title} exceeds limit (${categoryTotal}/${category.total})`)
-      }
-    })
+    console.log('Saving formulation:', formulation)
 
-    // Check inventory availability before proceeding
-    const inventoryChecks = []
+    // Track inventory deduction results
+    const deductionResults = []
+
+    // Create items array from form data
     const items = []
-    
-    uiCategories.value.forEach((cat) => {
-      cat.items.forEach((it) => {
-        const amountKg = Number(amounts[it.id]) || 0
-        const costPerKg = Number(costs[it.id]) || 0
-        
-        if (amountKg > 0) {
-          // Try to find the ingredient in inventory
-          let inventoryItem = findInventoryItem(it.id) || findInventoryItemByName(it.label)
-          
-          items.push({
-            id: it.id,
-            label: `${it.label}${it.note ? ' (' + it.note + ')' : ''}`,
-            amountKg,
-            costPerKg,
-            inventoryItem: inventoryItem || null
-          })
-          
-          // Check if we have enough in stock
-          if (inventoryItem) {
-            if (inventoryItem.quantity < amountKg) {
-              hasInsufficientStock = true
-              validationErrors.push(
-                `Not enough stock for ${it.label}. Available: ${inventoryItem.quantity} ${inventoryItem.unit}, Needed: ${amountKg}kg`
-              )
+    // Get the current value of uiCategories (it's a ref)
+    const categories = uiCategories.value || []
+
+    for (const [ingredientId, amount] of Object.entries(amounts)) {
+      if (amount > 0 && amount > 0) {
+        // Ensure amount is a positive number
+        // Find the ingredient in any category
+        let ingredient = null
+        for (const category of categories) {
+          if (category && category.items) {
+            const found = category.items.find((item) => item && item.id === ingredientId)
+            if (found) {
+              ingredient = found
+              break
             }
-          } else {
-            validationErrors.push(`Ingredient not found in inventory: ${it.label}`)
           }
         }
-      })
-    })
 
-    if (validationErrors.length > 0) {
-      alert('Cannot save feed formulation:\n\n' + validationErrors.join('\n'))
-      return
+        if (ingredient) {
+          items.push({
+            id: ingredientId,
+            label: ingredient.label || ingredientId,
+            amountKg: parseFloat(amount) || 0,
+            costPerKg: parseFloat(costs[ingredientId]) || 0,
+          })
+        }
+      }
     }
 
     // Calculate totals
     const totalAmount = items.reduce((sum, item) => sum + item.amountKg, 0)
-    const totalCost = items.reduce((sum, item) => sum + (item.amountKg * item.costPerKg), 0)
+    const totalCost = items.reduce((sum, item) => sum + item.amountKg * item.costPerKg, 0)
 
     // Deduct ingredients from inventory
-    const deductionResults = []
-    
     for (const item of items) {
-      if (item.amountKg > 0 && item.inventoryItem) {
+      if (item.amountKg > 0) {
         try {
-          // Update the inventory through the store
-          const result = await inventoryStore.updateQuantity(
-            item.inventoryItem.id,
-            item.inventoryItem.quantity - item.amountKg
-          )
-          
-          deductionResults.push({
-            success: true,
-            ingredient: item.label,
-            deducted: item.amountKg,
-            remaining: result.quantity
-          })
+          const inventoryItem = findInventoryItemByName(item.label)
+          if (inventoryItem) {
+            await inventoryStore.deductIngredientQuantity(inventoryItem.id, item.amountKg)
+            deductionResults.push({
+              success: true,
+              ingredient: item.label,
+              deducted: item.amountKg,
+              remaining: (inventoryItem.quantity_kg - item.amountKg).toFixed(2),
+            })
+          } else {
+            deductionResults.push({
+              success: false,
+              ingredient: item.label,
+              error: 'Item not found in inventory',
+            })
+          }
         } catch (error) {
-          console.error(`Error updating inventory for ${item.label}:`, error)
+          console.error(`Error deducting ${item.label}:`, error)
           deductionResults.push({
             success: false,
             ingredient: item.label,
-            error: error.message
+            error: error.message,
           })
         }
       }
     }
 
-    // Show deduction results
-    const successfulDeductions = deductionResults.filter(r => r.success)
-    const failedDeductions = deductionResults.filter(r => !r.success)
+    // Save to database
+    const result = await feedFormulationsStore.saveFormulation(formulation)
+    console.log('Save result:', result)
+
+    // Update UI state
+    saveStatus.value = { success: true, error: null }
+
+    // Filter successful and failed deductions
+    const successfulDeductions = deductionResults.filter((r) => r.success)
+    const failedDeductions = deductionResults.filter((r) => !r.success)
 
     // Add record with detailed information
     const record = {
       stage: 'Starter',
-      items: items.map(item => ({
+      items: items.map((item) => ({
         id: item.id,
         label: item.label,
         amountKg: item.amountKg,
-        costPerKg: item.costPerKg
+        costPerKg: item.costPerKg,
       })),
       totalAmount,
       totalCost,
       date: new Date().toISOString(),
-      inventoryDeductions: deductionResults
+      inventoryDeductions: deductionResults,
     }
 
     feedsStore.addRecord(record)
@@ -485,21 +514,20 @@ async function saveFormulation() {
 
     if (successfulDeductions.length > 0) {
       successMessage += '\n\nInventory updated:'
-      successfulDeductions.forEach(d => {
+      successfulDeductions.forEach((d) => {
         successMessage += `\n- ${d.deducted}kg of ${d.ingredient} (${d.remaining}kg remaining)`
       })
     }
 
     if (failedDeductions.length > 0) {
       successMessage += '\n\nWarning: Could not update inventory for:'
-      failedDeductions.forEach(d => {
+      failedDeductions.forEach((d) => {
         successMessage += `\n- ${d.ingredient}: ${d.error || 'Unknown error'}`
       })
     }
 
     alert(successMessage)
     router.push({ name: 'records' })
-    
   } catch (error) {
     console.error('Error saving feed formulation:', error)
     alert(`Error saving feed formulation: ${error.message}`)
