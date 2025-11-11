@@ -1,0 +1,69 @@
+import { supabase } from '@/supabase'
+
+export const ActivityType = {
+  HOG_ADDED: 'hog_added',
+  HOG_UPDATED: 'hog_updated',
+  HOG_DELETED: 'hog_deleted',
+  HOG_FED: 'hog_fed',
+  HOG_WEIGHT_UPDATED: 'hog_weight_updated',
+  FEEDING_COMPLETED: 'feeding_completed',
+  FEEDING_INCOMPLETE: 'feeding_incomplete'
+}
+
+export const logActivity = async (activity) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      console.error('No authenticated user found')
+      return { data: null, error: 'Not authenticated' }
+    }
+
+    const { data, error } = await supabase
+      .from('staff_activities')
+      .insert([
+        {
+          staff_member_id: user.id,
+          activity_type: activity.type,
+          details: activity.details || {},
+          reference_type: activity.referenceType,
+          reference_id: activity.referenceId
+        }
+      ])
+      .select()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error logging activity:', error)
+    return { data: null, error }
+  }
+}
+
+export const getActivities = async (filters = {}) => {
+  try {
+    let query = supabase
+      .from('staff_activities')
+      .select(`
+        *,
+        staff_member:staff_member_id (id, first_name, last_name, email)
+      `)
+      .order('created_at', { ascending: false })
+
+    // Apply filters
+    if (filters.type) {
+      query = query.eq('activity_type', filters.type)
+    }
+    if (filters.limit) {
+      query = query.limit(filters.limit)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error fetching activities:', error)
+    return { data: null, error }
+  }
+}

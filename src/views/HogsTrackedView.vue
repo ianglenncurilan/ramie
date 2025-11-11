@@ -149,11 +149,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useActivityLogger } from '@/composables/useActivityLogger'
 import BottomBar from './parts/BottomBar.vue'
 import { useHogsStore } from '../stores/hogs'
 
 const router = useRouter()
 const hogsStore = useHogsStore()
+const { logHogActivity, ActivityType } = useActivityLogger()
 
 // Reactive data
 const showAddHogModal = ref(false)
@@ -204,14 +206,21 @@ async function addNewHog() {
 
   try {
     loading.value = true
-    
+
     // Add the new hog to the database
-    await hogsStore.addHog({
+    const hog = await hogsStore.addHog({
       code: newHog.value.code.trim(),
       weight: newHog.value.weight,
       days: newHog.value.days,
     })
     
+    // Log the activity
+    await logHogActivity(ActivityType.HOG_ADDED, hog.id, {
+      code: hog.code,
+      weight: hog.weight,
+      days: hog.days
+    })
+
     // Reset form and close modal
     newHog.value = { code: '', weight: 0, days: 0 }
     showAddHogModal.value = false
@@ -235,7 +244,16 @@ function closeAddHogModal() {
 
 async function updateHogWeight(hogId, weight) {
   try {
+    const oldHog = hogs.value.find(h => h.id === hogId)
     await hogsStore.updateHogWeight(hogId, parseFloat(weight) || 0)
+    
+    // Log the activity
+    await logHogActivity(ActivityType.HOG_WEIGHT_UPDATED, hogId, {
+      code: oldHog.code,
+      oldWeight: oldHog.weight,
+      newWeight: weight,
+      difference: (parseFloat(weight) - parseFloat(oldHog.weight)).toFixed(2)
+    })
   } catch (err) {
     console.error('Error updating hog weight:', err)
     error.value = 'Failed to update hog weight. Please try again.'
@@ -245,7 +263,15 @@ async function updateHogWeight(hogId, weight) {
 
 async function markFeedingComplete(hogId) {
   try {
+    const hog = hogs.value.find(h => h.id === hogId)
     await hogsStore.markFeedingComplete(hogId)
+    
+    // Log the activity
+    await logHogActivity(ActivityType.FEEDING_COMPLETED, hogId, {
+      code: hog.code,
+      weight: hog.weight,
+      days: hog.days
+    })
   } catch (err) {
     console.error('Error marking feeding as complete:', err)
     error.value = 'Failed to update feeding status. Please try again.'
@@ -255,7 +281,15 @@ async function markFeedingComplete(hogId) {
 
 async function markFeedingIncomplete(hogId) {
   try {
+    const hog = hogs.value.find(h => h.id === hogId)
     await hogsStore.markFeedingIncomplete(hogId)
+    
+    // Log the activity
+    await logHogActivity(ActivityType.FEEDING_INCOMPLETE, hogId, {
+      code: hog.code,
+      weight: hog.weight,
+      days: hog.days
+    })
   } catch (err) {
     console.error('Error marking feeding as incomplete:', err)
     error.value = 'Failed to update feeding status. Please try again.'
@@ -266,6 +300,16 @@ async function markFeedingIncomplete(hogId) {
 async function deleteHog(hogId) {
   if (confirm('Are you sure you want to delete this hog? This action cannot be undone.')) {
     try {
+      const hog = hogs.value.find(h => h.id === hogId)
+      
+      // Log the activity before deletion
+      await logHogActivity(ActivityType.HOG_DELETED, hogId, {
+        code: hog.code,
+        weight: hog.weight,
+        days: hog.days
+      })
+      
+      // Then delete the hog
       await hogsStore.deleteHog(hogId)
     } catch (err) {
       console.error('Error deleting hog:', err)
@@ -276,8 +320,7 @@ async function deleteHog(hogId) {
 }
 
 // This is now handled in the onMounted hook above
-</script> 
-
+</script>
 
 <style scoped>
 * {

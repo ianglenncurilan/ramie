@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '@/services/supabase'
+import { logStaffActivity } from '@/services/staffService'
 
 export const useHogsStore = defineStore('hogs', () => {
   const hogs = ref([])
@@ -178,26 +179,59 @@ export const useHogsStore = defineStore('hogs', () => {
   }
 
   // Mark feeding as not completed (X button)
-  function markFeedingIncomplete(hogId) {
-    return updateHog(hogId, {
-      feedingCompleted: false,
-      lastFeedingDate: null,
-    })
+  async function markFeedingIncomplete(hogId) {
+    try {
+      loading.value = true
+      const hog = hogs.value.find((h) => h.id === hogId)
+      if (!hog) throw new Error('Hog not found')
+      
+      const updates = {
+        feedingCompleted: false,
+        lastFeedingDate: null
+      }
+      
+      const updatedHog = await updateHog(hogId, updates)
+      
+      if (!updatedHog) throw new Error('Failed to update hog')
+      
+      // Log the activity
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await logStaffActivity(user.id, 'hog_feeding_undone', {
+          hog_id: hogId,
+          hog_code: hog.code,
+          feed_date: new Date().toISOString(),
+          days: hog.days
+        })
+      }
+      
+      return updatedHog
+    } catch (err) {
+      console.error('Error in markFeedingIncomplete:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
   // Mark feeding as completed (check button)
-  function markFeedingComplete(hogId) {
-    const hog = hogs.value.find((h) => h.id === hogId)
-    if (hog) {
+  async function markFeedingComplete(hogId) {
+    try {
+      loading.value = true
+      const hog = hogs.value.find((h) => h.id === hogId)
+      if (!hog) throw new Error('Hog not found')
+
       const now = new Date()
       const wasCompleted = hog.feedingCompleted
-
-      hog.feedingCompleted = true
-      hog.lastFeedingDate = now.toISOString()
+      const updates = {
+        feedingCompleted: true,
+        lastFeedingDate: now.toISOString()
+      }
 
       // Only increment total feeding days if it wasn't already completed
       if (!wasCompleted) {
-        hog.totalFeedingDays += 1
+        updates.totalFeedingDays = (hog.totalFeedingDays || 0) + 1
       }
 
       // Check if a full day has passed since last day increment
@@ -205,13 +239,36 @@ export const useHogsStore = defineStore('hogs', () => {
       const daysSinceLastIncrement = Math.floor((now - lastDayIncrement) / (1000 * 60 * 60 * 24))
 
       if (daysSinceLastIncrement >= 1) {
-        hog.days += 1
-        hog.lastDayIncrement = now.toISOString()
+        updates.days = (hog.days || 0) + 1
+        updates.lastDayIncrement = now.toISOString()
       }
 
-      return hog
+      // Update the database and local state
+      const updatedHog = await updateHog(hogId, updates)
+      
+      if (!updatedHog) throw new Error('Failed to update hog')
+      
+      // Log the activity if this is a new feeding
+      if (!wasCompleted) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          await logStaffActivity(user.id, 'hog_fed', {
+            hog_id: hogId,
+            hog_code: hog.code,
+            feed_date: now.toISOString(),
+            days: updates.days || hog.days
+          })
+        }
+      }
+      
+      return updatedHog
+    } catch (err) {
+      console.error('Error in markFeedingComplete:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
-    return null
   }
 
   // Delete a hog from the database
