@@ -98,6 +98,11 @@ const handleLogin = async () => {
           'No account found with this email address. Please register first.',
           'Account Not Found',
         )
+      } else if (error.message.includes('Email not confirmed')) {
+        showError(
+          'Please verify your email address before logging in. Check your inbox for a verification link.',
+          'Email Not Verified'
+        )
       } else if (error.message.includes('Too many requests')) {
         showWarning('Too many login attempts. Please wait a moment and try again.', 'Rate Limited')
       } else {
@@ -107,6 +112,32 @@ const handleLogin = async () => {
       formAction.value.formStatus = error.status || 400
     } else if (data && data.user) {
       console.log('Login successful:', data)
+      
+      // Fetch additional user data from the users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single()
+
+      if (userError) {
+        console.error('Error fetching user data:', userError)
+        // Continue with login even if we can't fetch additional data
+      }
+
+      // Store user data in session storage
+      if (userData) {
+        sessionStorage.setItem('user', JSON.stringify({
+          id: userData.id,
+          email: userData.email,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          full_name: userData.full_name,
+          is_admin: userData.is_admin,
+          role: userData.role
+        }))
+      }
+
       showSuccess('Welcome back! You have been logged in successfully.', 'Login Successful', {
         autoClose: true,
         autoCloseDelay: 2000,
@@ -114,7 +145,7 @@ const handleLogin = async () => {
 
       // Small delay to show success message before redirect
       setTimeout(() => {
-        handleLoginSuccess()
+        handleLoginSuccess(userData?.role || 'user')
       }, 2000)
     } else {
       showError('Login failed. Please try again.', 'Login Error')
@@ -127,9 +158,23 @@ const handleLogin = async () => {
   }
 }
 
-const handleLoginSuccess = () => {
-  // Navigate to dashboard after successful login
-  router.replace({ name: 'dashboard' })
+const handleLoginSuccess = (userRole = 'user') => {
+  // Check for redirect URL in query params
+  const redirectPath = router.currentRoute.value.query.redirect
+  
+  if (redirectPath) {
+    // If there's a redirect URL, navigate to it
+    router.push(redirectPath).then(() => {
+      // Force reload to ensure all auth state is properly initialized
+      window.location.reload()
+    })
+  } else {
+    // Otherwise, navigate to appropriate dashboard based on user role
+    const targetRoute = userRole === 'admin' ? 'manage-staff' : 'dashboard'
+    router.push({ name: targetRoute }).then(() => {
+      window.location.reload()
+    })
+  }
 }
 
 // Form validation function from provided code

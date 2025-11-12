@@ -152,25 +152,35 @@ const handleRegister = async () => {
 
     // If user is created successfully
     if (data?.user) {
-      // Insert user data into public.users table
-      const { error: dbError } = await supabase
-        .from('users')
-        .insert({
-          id: data.user.id,
-          email: formData.value.email,
-          first_name: formData.value.firstname,
-          last_name: formData.value.lastname,
-          full_name: fullName,
-          role: 'user',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single()
+      try {
+        // Insert user data into the users table
+        const { error: userError } = await supabase
+          .from('users')
+          .upsert({
+            id: data.user.id,
+            email: formData.value.email,
+            first_name: formData.value.firstname,
+            last_name: formData.value.lastname,
+            full_name: fullName,
+            is_admin: false,  // Default to non-admin
+            role: 'user',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            phone: '',  // Default empty phone
+            address: '', // Default empty address
+            profile_picture: null, // Default no profile picture
+            status: 'active' // Default status
+          })
+          .select()
+          .single()
 
-      if (dbError) {
-        console.error('Error saving user profile:', dbError)
-        // Don't throw the error, as the auth user was created successfully
+        if (userError) {
+          console.error('Error saving user data:', userError)
+          throw new Error('Failed to create user profile. Please contact support.')
+        }
+      } catch (profileSaveError) {
+        console.error('Error saving user profile:', profileSaveError)
+        // Don't fail the registration if profile save fails, but log it
       }
 
       showSuccess(
@@ -192,10 +202,21 @@ const handleRegister = async () => {
     }
   } catch (error) {
     console.error('Registration error:', error)
-    showError(
-      error.message || 'An error occurred during registration. Please try again.',
-      'Registration Failed',
-    )
+    
+    // More user-friendly error messages
+    let errorMessage = 'An error occurred during registration. Please try again.'
+    
+    if (error.message.includes('already registered')) {
+      errorMessage = 'This email is already registered. Please try logging in instead.'
+    } else if (error.message.includes('password')) {
+      errorMessage = 'Password does not meet requirements. It must be at least 6 characters long.'
+    } else if (error.message.includes('email')) {
+      errorMessage = 'Please enter a valid email address.'
+    } else if (error.message.includes('profile')) {
+      errorMessage = 'Your account was created, but we had trouble setting up your profile. Please contact support.'
+    }
+    
+    showError(errorMessage, 'Registration Failed')
   } finally {
     formAction.value.formProcess = false
   }

@@ -128,8 +128,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import BottomBar from '@/components/BottomBar.vue'
-import { supabase, isAdmin as checkIsAdmin, hasSupabaseConfig } from '../services/supabase'
 import { useRouter } from 'vue-router'
+import { supabase, hasSupabaseConfig } from '../services/supabase'
 
 const router = useRouter()
 // Profile state
@@ -192,10 +192,7 @@ const profilePicturePreview = ref(null)
 // Fetch user data from Supabase
 async function fetchUserProfile() {
   try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
+    const { data: { user }, error } = await supabase.auth.getUser()
 
     if (error) {
       console.error('Error fetching user:', error.message)
@@ -203,14 +200,23 @@ async function fetchUserProfile() {
     }
 
     if (user) {
+      // Get user metadata from both possible locations
+      const metadata = user.user_metadata || {}
+      const appMetadata = user.app_metadata || {}
+      
       userProfile.value = {
         id: user.id,
-        name: user.user_metadata?.name || user.user_metadata?.full_name || '',
+        name: metadata.name || metadata.full_name || user.email?.split('@')[0] || 'User',
         email: user.email || '',
-        phone: user.user_metadata?.phone || '',
-        profilePicture:
-          user.user_metadata?.avatar_url || user.user_metadata?.profile_picture || null,
+        phone: metadata.phone || '',
+        profilePicture: metadata.avatar_url || metadata.picture || null
       }
+      
+      // Update the edit form with current values
+      editForm.value.name = userProfile.value.name
+      editForm.value.email = userProfile.value.email
+      editForm.value.phone = userProfile.value.phone
+      editForm.value.profilePicture = userProfile.value.profilePicture
     }
   } catch (error) {
     console.error('Error fetching user profile:', error)
@@ -340,16 +346,25 @@ async function handleSignOut() {
   try {
     if (hasSupabaseConfig) {
       const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('Error signing out:', error.message)
-      }
+      if (error) throw error
+      
+      // Clear local storage and redirect
+      localStorage.clear()
+      sessionStorage.clear()
+      await router.push('/login')
+      window.location.reload() // Ensure a clean state
     } else {
-      console.warn('Supabase config missing; skipping remote signOut and redirecting to login.')
+      console.warn('Supabase config missing; performing local sign out only')
+      localStorage.clear()
+      sessionStorage.clear()
+      await router.push('/login')
+      window.location.reload()
     }
   } catch (error) {
     console.error('Error signing out:', error)
-  } finally {
-    router.replace('/login')
+    // Still redirect to login even if there was an error
+    await router.push('/login')
+    window.location.reload()
   }
 }
 </script>

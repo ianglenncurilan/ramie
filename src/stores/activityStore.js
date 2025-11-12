@@ -9,11 +9,13 @@ export const useActivityStore = defineStore('activity', () => {
   const onlineUsers = ref(new Set())
 
   const fetchActivities = async (filters = {}) => {
+    console.log('[ActivityStore] Fetching activities with filters:', filters);
     loading.value = true
     error.value = null
     try {
       const { data, error: fetchError } = await getActivities(filters)
       if (fetchError) throw fetchError
+      console.log('[ActivityStore] Received activities data:', data);
       activities.value = data || []
     } catch (err) {
       console.error('Error fetching activities:', err)

@@ -26,19 +26,14 @@
 
       <!-- Staff Management View -->
       <div v-if="activeTab === 'staff'" class="staff-management">
-        <div class="header-actions">
-          <div class="search-box">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search staff..."
-              @input="handleSearch"
-            />
-            <span class="search-icon">🔍</span>
-          </div>
-          <button class="btn btn-primary" @click="showAddStaffForm = true">
-            <span>+</span> Add Staff
-          </button>
+        <div class="search-box">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search staff..."
+            @input="handleSearch"
+          />
+          <span class="search-icon">🔍</span>
         </div>
 
         <div class="filters">
@@ -143,12 +138,13 @@
             <div v-for="activity in filteredActivities" :key="activity.id" class="activity-item">
               <div class="activity-avatar">
                 <img
-                  v-if="activity.profiles?.avatar_url"
-                  :src="activity.profiles.avatar_url"
-                  :alt="activity.profiles.full_name"
+                  v-if="activity.users?.avatar_url"
+                  :src="activity.users.avatar_url"
+                  :alt="activity.users.full_name || 'User'"
+                  class="avatar-img"
                 />
                 <div v-else class="default-avatar">
-                  {{ getInitials(activity.profiles?.full_name || 'U') }}
+                  {{ getInitials(activity.users?.full_name || 'S') }}
                 </div>
                 <div
                   class="status-indicator"
@@ -160,7 +156,7 @@
               <div class="activity-details">
                 <div class="activity-header">
                   <span class="staff-name">
-                    {{ activity.profiles?.full_name || 'Unknown User' }}
+                    {{ activity.users?.full_name || 'System' }}
                   </span>
                   <span class="activity-time">
                     {{ formatTime(activity.created_at) }}
@@ -184,23 +180,6 @@
       </div>
     </section>
 
-    <!-- Add/Edit Staff Modal -->
-    <div v-if="showStaffForm" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>{{ editingStaff ? 'Edit Staff' : 'Add New Staff' }}</h2>
-          <button class="close-btn" @click="closeModal">×</button>
-        </div>
-        <div class="modal-body">
-          <StaffForm
-            v-if="showStaffForm"
-            :staff-id="editingStaff"
-            @saved="handleStaffSaved"
-            @cancel="closeModal"
-          />
-        </div>
-      </div>
-    </div>
 
     <!-- Confirmation Dialog -->
     <div v-if="showConfirmDialog" class="modal">
@@ -233,7 +212,6 @@ import { useActivityStore } from '@/stores/activityStore'
 import { supabase } from '@/supabase'
 import { useStaffStore } from '@/stores/staff'
 import { getStaffActivities } from '@/services/staffService'
-import StaffForm from '@/components/StaffForm.vue'
 import BottomBar from '@/components/BottomBar.vue'
 
 const router = useRouter()
@@ -250,8 +228,6 @@ const statusFilter = ref('active')
 const roleFilter = ref('all')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
-const showStaffForm = ref(false)
-const editingStaff = ref(null)
 const showConfirmDialog = ref(false)
 const staffToDeactivate = ref(null)
 
@@ -381,15 +357,7 @@ const activateStaff = async (id) => {
   }
 }
 
-const handleStaffSaved = () => {
-  showStaffForm.value = false
-  editingStaff.value = null
-  fetchStaff()
-}
-
 const closeModal = () => {
-  showStaffForm.value = false
-  editingStaff.value = null
   showConfirmDialog.value = false
   staffToDeactivate.value = null
 }
@@ -397,9 +365,12 @@ const closeModal = () => {
 // Activity Log Methods
 const fetchActivities = async () => {
   try {
-    await activityStore.fetchActivities()
+    console.log('Fetching activities...');
+    await activityStore.fetchActivities();
+    // Debug log the activities from the store
+    console.log('Activities from store:', activityStore.activities);
   } catch (err) {
-    console.error('Error fetching activities:', err)
+    console.error('Error fetching activities:', err);
   }
 }
 

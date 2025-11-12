@@ -18,6 +18,26 @@ import GrowerFeedCalculatorView from '../views/GrowerFeedCalculatorView.vue'
 import FinisherFeedCalculatorView from '../views/FinisherFeedCalculatorView.vue'
 import ForbiddenView from '../views/ForbiddenView.vue'
 
+// Route guard function to check authentication
+const requireAuth = async (to, from, next) => {
+  const isAuth = await isAuthenticated()
+  if (!isAuth) {
+    next({ name: 'login', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
+}
+
+// Route guard for admin routes
+const requireAdmin = async (to, from, next) => {
+  const admin = await isAdmin()
+  if (!admin) {
+    next({ name: 'forbidden' })
+  } else {
+    next()
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -49,6 +69,7 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: DashboardView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/records',
@@ -59,12 +80,13 @@ const router = createRouter({
       path: '/expenses',
       name: 'expenses',
       component: ExpensesView,
-      meta: { requiresAdmin: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/profile',
       name: 'profile',
       component: ProfileView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/make-feeds',
@@ -75,12 +97,13 @@ const router = createRouter({
       path: '/manage-staff',
       name: 'manage-staff',
       component: ManageStaffView,
-      meta: { requiresAdmin: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/inventory',
       name: 'inventory',
       component: InventoryView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/hogs-tracked',
@@ -151,6 +174,34 @@ router.beforeEach(async (to, from, next) => {
     // If there's an error, allow navigation but log it
     next()
   }
+})
+
+// Navigation guard
+router.beforeEach(async (to, from, next) => {
+  // Check if route requires authentication
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    const isAuth = await isAuthenticated()
+    if (!isAuth) {
+      // Redirect to login with the attempted URL
+      next({
+        name: 'login',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
+
+    // Check if route requires admin access
+    if (to.matched.some(record => record.meta.requiresAdmin)) {
+      const admin = await isAdmin()
+      if (!admin) {
+        next({ name: 'forbidden' })
+        return
+      }
+    }
+  }
+
+  // Continue to the route
+  next()
 })
 
 export default router

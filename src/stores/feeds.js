@@ -9,17 +9,27 @@ export const useFeedsStore = defineStore('feeds', () => {
   const loading = ref(false)
   const error = ref(null)
 
-  // Fetch all expenses
+  // Fetch all expenses and income
   async function fetchExpenses() {
     try {
       loading.value = true
+      // Fetch all entries from expenses table
       const { data, error: fetchError } = await supabase
         .from('expenses')
         .select('*')
         .order('date', { ascending: false })
 
       if (fetchError) throw fetchError
-      expenses.value = data || []
+      
+      // Separate expenses and income based on type
+      if (data) {
+        expenses.value = data.filter(entry => !entry.type || entry.type !== 'income')
+        income.value = data.filter(entry => entry.type === 'income')
+      } else {
+        expenses.value = []
+        income.value = []
+      }
+      
       return data
     } catch (err) {
       console.error('Error fetching expenses:', err)
@@ -40,6 +50,7 @@ export const useFeedsStore = defineStore('feeds', () => {
           {
             label: entry.label,
             amount: Number(entry.amount),
+            type: 'expense',  // Explicitly mark as expense
             date: entry.date || new Date().toISOString(),
             reference_id: entry.reference_id || null,
             reference_type: entry.reference_type || null,
@@ -52,6 +63,7 @@ export const useFeedsStore = defineStore('feeds', () => {
 
       // Update local state
       if (data && data.length > 0) {
+        // Add to expenses array and sort by date
         expenses.value.unshift(data[0])
       }
 
@@ -147,16 +159,17 @@ export const useFeedsStore = defineStore('feeds', () => {
     }
   }
 
-  // Add income
+  // Add income (stored in expenses table with type 'income')
   async function addIncome(entry) {
     try {
       loading.value = true
       const { data, error: addError } = await supabase
-        .from('income')
+        .from('expenses')
         .insert([
           {
             label: entry.label,
             amount: Number(entry.amount),
+            type: 'income',  // Mark as income
             date: entry.date || new Date().toISOString(),
             reference_id: entry.reference_id || null,
             reference_type: entry.reference_type || null,
@@ -169,6 +182,7 @@ export const useFeedsStore = defineStore('feeds', () => {
 
       // Update local state
       if (data && data.length > 0) {
+        // Add to income array and sort by date
         income.value.unshift(data[0])
         return data[0]
       }
