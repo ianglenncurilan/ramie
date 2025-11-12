@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
+import { logActivity } from '@/services/activityService'
 
 export const useFeedsStore = defineStore('feeds', () => {
   const records = ref([]) // { id, date, stage, items:[{id,label,amountKg,costPerKg}], totalCostPerKg }
@@ -108,8 +109,49 @@ export const useFeedsStore = defineStore('feeds', () => {
         .order('date', { ascending: false })
 
       if (fetchError) throw fetchError
-      records.value = data || []
-      return data
+
+      // Fetch creator names in batch
+      const creatorIds = Array.from(
+        new Set((data || []).map((r) => r.created_by).filter(Boolean)),
+      )
+      let creatorsMap = {}
+      if (creatorIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', creatorIds)
+        creatorsMap = (usersData || []).reduce((acc, u) => {
+          acc[u.id] = u.full_name || u.email || u.id
+          return acc
+        }, {})
+      }
+
+      // Map DB rows to UI shape expected by RecordsView
+      const mapped = (data || []).map((row) => {
+        const items = Array.isArray(row.ingredients) ? row.ingredients : []
+        const totalAmount = items.reduce((s, it) => s + (Number(it.amountKg) || 0), 0)
+        // Derive stage from type like `feed-starter` or keep as provided
+        let stage = row.stage || ''
+        if (!stage && typeof row.type === 'string' && row.type.startsWith('feed-')) {
+          stage = row.type.replace('feed-', '')
+          stage = stage.charAt(0).toUpperCase() + stage.slice(1)
+        }
+        return {
+          id: row.id,
+          date: row.date || row.created_at,
+          created_at: row.created_at,
+          created_by: row.created_by || null,
+          creatorName: row.created_by ? creatorsMap[row.created_by] || null : null,
+          stage,
+          type: row.type,
+          items,
+          totalAmount,
+          totalCost: Number(row.total_cost) || 0,
+        }
+      })
+
+      records.value = mapped
+      return mapped
     } catch (err) {
       console.error('Error fetching records:', err)
       error.value = err.message
@@ -119,14 +161,39 @@ export const useFeedsStore = defineStore('feeds', () => {
     }
   }
 
-  // Add a new record
+  // Add a new record (supports feed formulations with items)
   async function addRecord(record) {
     try {
       loading.value = true
-      const { data, error: addError } = await supabase
-        .from('records')
-        .insert([
-          {
+
+      // If this looks like a feed formulation, save to DB accordingly
+      const isFeedFormulation = Array.isArray(record.items)
+
+      // Determine current user for created_by
+      const { data: auth } = await supabase.auth.getUser()
+      const currentUserId = auth?.user?.id || null
+      let currentUserName = null
+      if (currentUserId) {
+        const { data: me } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .eq('id', currentUserId)
+          .single()
+        currentUserName = me?.full_name || me?.email || null
+      }
+
+      const insertPayload = isFeedFormulation
+        ? {
+            date: record.date || new Date().toISOString(),
+            type:
+              record.type ||
+              (record.stage ? `feed-${String(record.stage).toLowerCase()}` : 'feed'),
+            ingredients: record.items || [],
+            total_cost: Number(record.totalCost) || 0,
+            notes: record.notes || '',
+            created_by: currentUserId,
+          }
+        : {
             date: record.date || new Date().toISOString(),
             type: record.type,
             description: record.description,
@@ -137,16 +204,55 @@ export const useFeedsStore = defineStore('feeds', () => {
             reference_id: record.reference_id || null,
             reference_type: record.reference_type || null,
             notes: record.notes || '',
-          },
-        ])
+            created_by: currentUserId,
+          }
+
+      const { data, error: addError } = await supabase
+        .from('records')
+        .insert([insertPayload])
         .select()
 
       if (addError) throw addError
 
-      // Update local state
+      // Update local state (map to UI shape right away)
       if (data && data.length > 0) {
-        records.value.unshift(data[0])
-        return data[0]
+        const row = data[0]
+        const items = Array.isArray(row.ingredients) ? row.ingredients : []
+        const totalAmount = items.reduce((s, it) => s + (Number(it.amountKg) || 0), 0)
+        let stage = record.stage || ''
+        if (!stage && typeof row.type === 'string' && row.type.startsWith('feed-')) {
+          stage = row.type.replace('feed-', '')
+          stage = stage.charAt(0).toUpperCase() + stage.slice(1)
+        }
+        const pushed = {
+          id: row.id,
+          date: row.date || row.created_at,
+          created_at: row.created_at,
+          created_by: row.created_by || currentUserId,
+          creatorName: currentUserName,
+          stage,
+          type: row.type,
+          items,
+          totalAmount,
+          totalCost: Number(row.total_cost) || Number(record.totalCost) || 0,
+        }
+        records.value.unshift(pushed)
+
+        // Log activity for feed creation
+        if (isFeedFormulation) {
+          await logActivity({
+            type: 'feed_formulated',
+            referenceType: 'records',
+            referenceId: row.id,
+            details: {
+              stage,
+              items_count: items.length,
+              total_amount: totalAmount,
+              total_cost: pushed.totalCost,
+            },
+          })
+        }
+        return pushed
       }
 
       return null
@@ -223,6 +329,7 @@ export const useFeedsStore = defineStore('feeds', () => {
     deleteExpense,
     addIncome,
     fetchExpenses,
+    fetchRecords,
     totalExpense,
     totalIncome,
     netProfit,

@@ -69,7 +69,7 @@ const navigateTo = (routeName) => {
   font-size: 12px;
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.18s ease, opacity 0.18s ease;
   flex: 1;
   max-width: 25%;
   opacity: 0.7;
@@ -77,6 +77,7 @@ const navigateTo = (routeName) => {
 
 .bottombar button:hover {
   opacity: 1;
+  transform: translateY(-2px) scale(1.06);
 }
 
 .bottombar button:disabled {
@@ -88,7 +89,7 @@ const navigateTo = (routeName) => {
   width: 24px;
   height: 24px;
   margin-bottom: 4px;
-  transition: all 0.2s;
+  transition: transform 0.18s ease, filter 0.18s ease;
 }
 
 .bottombar button .label {

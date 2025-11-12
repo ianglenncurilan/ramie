@@ -6,7 +6,7 @@ export const logStaffActivity = async (userId, activityType, details = {}) => {
       .from('staff_activities')
       .insert([
         {
-          user_id: userId,
+          staff_member_id: userId,
           activity_type: activityType,
           details: details,
         },
@@ -25,17 +25,14 @@ export const getStaffActivities = async (limit = 100, offset = 0) => {
   try {
     const { data, error } = await supabase
       .from('staff_activities')
-      .select(
-        `
+      .select(`
         *,
-        profiles:user_id (
+        users:staff_member_id (
           id,
           full_name,
-          avatar_url,
-          role
+          email
         )
-      `,
-      )
+      `)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 

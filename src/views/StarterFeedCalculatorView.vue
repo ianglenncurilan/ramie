@@ -411,13 +411,13 @@ async function saveFormulation() {
     const categories = uiCategories.value || []
 
     for (const [ingredientId, amount] of Object.entries(amounts)) {
-      if (amount > 0 && amount > 0) {
+      if (Number(amount) > 0) {
         // Ensure amount is a positive number
         // Find the ingredient in any category
         let ingredient = null
         for (const category of categories) {
           if (category && category.items) {
-            const found = category.items.find((item) => item && item.id === ingredientId)
+            const found = category.items.find((item) => item && item.id === Number(ingredientId))
             if (found) {
               ingredient = found
               break

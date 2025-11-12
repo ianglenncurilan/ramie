@@ -9,10 +9,10 @@
     <div class="panel">
       <h3>Records</h3>
       <div class="list">
-        <div class="item" v-for="rec in feeds.records" :key="rec.id" @click="openRecordModal(rec)">
+        <div class="item" v-for="rec in feeds.records" :key="rec.id || rec.date" @click="openRecordModal(rec)">
           <span class="dot"></span>
           <div class="item-content">
-            <div class="item-title">Feed: {{ rec.stage }} — {{ rec.items.length }} ingredients</div>
+            <div class="item-title">Feed: {{ rec.stage }} — {{ (rec.items || []).length }} ingredients</div>
             <div class="item-details">
               <span class="amount">{{
                 rec.totalAmount ? rec.totalAmount.toFixed(1) + 'kg' : 'N/A'
@@ -20,15 +20,15 @@
               <span class="cost">₱{{ rec.totalCost ? rec.totalCost.toFixed(2) : '0.00' }}</span>
             </div>
             <div class="ingredients">
-              <span v-for="(item, idx) in rec.items.slice(0, 3)" :key="idx" class="ingredient-tag">
+              <span v-for="(item, idx) in (rec.items || []).slice(0, 3)" :key="idx" class="ingredient-tag">
                 {{ item.amountKg }}kg {{ item.label.split('(')[0].trim() }}
               </span>
-              <span v-if="rec.items.length > 3" class="more">+{{ rec.items.length - 3 }} more</span>
+              <span v-if="(rec.items || []).length > 3" class="more">+{{ (rec.items || []).length - 3 }} more</span>
             </div>
           </div>
           <span class="muted">{{ formatDateTime(rec.date) }}</span>
         </div>
-        <div v-if="!feeds.records.length" class="empty">No records yet</div>
+        <div v-if="!(feeds.records && feeds.records.length)" class="empty">No records yet</div>
       </div>
     </div>
     <BottomBar />
@@ -42,35 +42,47 @@
         <div class="modal-content" v-if="selectedRecord">
           <div class="record-info">
             <div class="record-header">
-              <h4>{{ selectedRecord.stage }} Feed Formulation</h4>
-              <span class="record-date">{{ formatDateTime(selectedRecord.date) }}</span>
+              <h4>{{ getStage(selectedRecord) ? getStage(selectedRecord) + ' Feed' : 'Feed Formulation' }}</h4>
+              <div class="record-meta">
+                <span class="record-date">{{ formatDateTime(selectedRecord.date) }}</span>
+              </div>
             </div>
 
             <div class="record-summary">
               <div class="summary-item">
                 <span class="label">Total Amount:</span>
                 <span class="value">{{
-                  selectedRecord.totalAmount ? selectedRecord.totalAmount.toFixed(1) + 'kg' : 'N/A'
+                  selectedRecord.totalAmount && selectedRecord.totalAmount > 0
+                    ? selectedRecord.totalAmount.toFixed(1) + 'kg'
+                    : 'N/A'
                 }}</span>
               </div>
               <div class="summary-item">
                 <span class="label">Total Cost:</span>
                 <span class="value cost"
                   >₱{{
-                    selectedRecord.totalCost ? selectedRecord.totalCost.toFixed(2) : '0.00'
+                    (selectedRecord.totalCost || 0).toFixed(2)
                   }}</span
                 >
+              </div>
+              <div class="summary-item" v-if="typeLabel(selectedRecord)">
+                <span class="label">Feed Type:</span>
+                <span class="value">{{ typeLabel(selectedRecord) }}</span>
+              </div>
+              <div class="summary-item" v-if="selectedRecord.creatorName">
+                <span class="label">Created by:</span>
+                <span class="value">{{ selectedRecord.creatorName }}</span>
               </div>
             </div>
 
             <div class="ingredients-section">
-              <h5>Ingredients ({{ selectedRecord.items.length }})</h5>
+              <h5>Ingredients ({{ (selectedRecord.items || []).length }})</h5>
               <div class="ingredients-list">
-                <div v-for="(item, idx) in selectedRecord.items" :key="idx" class="ingredient-item">
+                <div v-for="(item, idx) in (selectedRecord.items || [])" :key="idx" class="ingredient-item">
                   <div class="ingredient-name">{{ item.label }}</div>
                   <div class="ingredient-details">
                     <span class="amount">{{ item.amountKg }}kg</span>
-                    <span class="total">₱{{ (item.amountKg * item.costPerKg).toFixed(2) }}</span>
+                    <span class="total">₱{{ ((Number(item.amountKg)||0) * (Number(item.costPerKg)||0)).toFixed(2) }}</span>
                   </div>
                 </div>
               </div>
@@ -114,6 +126,22 @@ function openRecordModal(record) {
 function closeRecordModal() {
   showRecordModal.value = false
   selectedRecord.value = null
+}
+
+function getStage(rec) {
+  if (!rec) return ''
+  let stage = rec.stage || ''
+  if (!stage && typeof rec.type === 'string' && rec.type.startsWith('feed-')) {
+    stage = rec.type.replace('feed-', '')
+  }
+  return stage ? stage.charAt(0).toUpperCase() + stage.slice(1) : ''
+}
+
+function typeLabel(rec) {
+  if (!rec) return ''
+  const stage = getStage(rec)
+  if (stage) return `${stage} Feed`
+  return typeof rec.type === 'string' ? rec.type : ''
 }
 </script>
 

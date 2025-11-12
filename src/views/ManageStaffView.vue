@@ -201,7 +201,7 @@
       </div>
     </div>
 
-    <BottomBar />
+    
   </div>
 </template>
 
@@ -212,7 +212,6 @@ import { useActivityStore } from '@/stores/activityStore'
 import { supabase } from '@/supabase'
 import { useStaffStore } from '@/stores/staff'
 import { getStaffActivities } from '@/services/staffService'
-import BottomBar from '@/components/BottomBar.vue'
 
 const router = useRouter()
 const staffStore = useStaffStore()
@@ -408,26 +407,35 @@ const formatRole = (role) => {
 }
 
 const getActivityMessage = (activity) => {
-  const user = activity.user || { first_name: 'System', last_name: '' }
-  const userName = user.first_name ? `${user.first_name} ${user.last_name}`.trim() : 'System'
   const details = activity.details || {}
 
   switch (activity.activity_type) {
     case 'hog_added':
-      return `${userName} added a new hog (${details.code || 'Unknown'})`
+      return `Added a new hog (${details.code || 'Unknown'})`
     case 'hog_updated':
-      return `${userName} updated hog ${details.code || ''}`
+      return `Updated hog ${details.code || ''}`
     case 'hog_deleted':
-      return `${userName} deleted hog ${details.code || ''}`
+      return `Deleted hog ${details.code || ''}`
     case 'hog_weight_updated':
-      return `${userName} updated weight for hog ${details.code || ''} from ${details.oldWeight}kg to ${details.newWeight}kg (${details.difference > 0 ? '+' : ''}${details.difference}kg)`
+      return `Updated weight for hog ${details.code || ''} from ${details.oldWeight}kg to ${details.newWeight}kg (${details.difference > 0 ? '+' : ''}${details.difference}kg)`
     case 'feeding_completed':
-      return `${userName} marked feeding as complete for hog ${details.code || ''}`
+      return `Marked feeding as complete for hog ${details.code || ''}`
     case 'feeding_incomplete':
-      return `${userName} marked feeding as incomplete for hog ${details.code || ''}`
-      return `Added new staff: ${details.staff_name || 'New User'}`
+      return `Marked feeding as incomplete for hog ${details.code || ''}`
+    case 'feed_formulated': {
+      // Show: Made Starter Feed / Made Grower Feed / Made Finisher Feed
+      const stageRaw = details.stage || ''
+      const stage = stageRaw
+        ? stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1)
+        : 'Feed'
+      return `Made ${stage} Feed`
+    }
     case 'staff_deactivated':
       return `Deactivated staff: ${details.staff_name || 'User'}`
+    case 'staff_added':
+      return `Added new staff: ${details.staff_name || 'New User'}`
+    case 'staff_updated':
+      return `Updated staff: ${details.staff_name || 'User'}`
     default:
       return 'Performed an action'
   }

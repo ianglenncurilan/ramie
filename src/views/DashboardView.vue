@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import BottomBar from '@/components/BottomBar.vue'
 
 const router = useRouter()
 
@@ -50,7 +49,7 @@ const go = (name) => {
         </button>
       </section>
     </main>
-    <BottomBar />
+    
   </div>
 </template>
 

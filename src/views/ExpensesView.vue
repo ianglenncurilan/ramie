@@ -217,13 +217,12 @@
         </div>
       </div>
     </div>
-    <BottomBar />
+    
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import BottomBar from '@/components/BottomBar.vue'
 import { useFeedsStore } from '../stores/feeds'
 
 const feeds = useFeedsStore()
@@ -473,9 +472,9 @@ async function saveExpense() {
 }
 
 .screen {
-  height: 100vh;
+  min-height: 100vh;
   background: #f5f5f5;
-  overflow: hidden;
+  overflow-y: auto; /* allow scroll */
   display: flex;
   flex-direction: column;
 }
@@ -537,6 +536,7 @@ async function saveExpense() {
   background: #fff;
   border-radius: 12px;
   margin-top: 12px;
+  color: #333; /* Ensure labels are visible on white background */
 }
 .row {
   display: flex;
