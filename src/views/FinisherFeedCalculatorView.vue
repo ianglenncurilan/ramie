@@ -250,19 +250,8 @@ onMounted(() => {
 
 // Function to find matching inventory item for a feed ingredient
 function findInventoryItem(ingredientId) {
-  const possibleNames = INGREDIENT_MAPPING[ingredientId] || [ingredientId]
-
-  for (const name of possibleNames) {
-    const inventoryItem = inventoryStore.ingredients.find(
-      (item) =>
-        item.name.toLowerCase().includes(name.toLowerCase()) ||
-        name.toLowerCase().includes(item.name.toLowerCase()),
-    )
-    if (inventoryItem) {
-      return inventoryItem
-    }
-  }
-  return null
+  // In Finisher view, items are generated from inventory; match directly by ID
+  return inventoryStore.ingredients.find((item) => item.id === ingredientId) || null
 }
 
 // Function to find inventory item by exact name match (for dynamic ingredients)
@@ -324,7 +313,10 @@ function getCategoryTotal(category) {
 }
 
 // Auto-populate costs when component mounts
-onMounted(() => {
+onMounted(async () => {
+  if (inventoryStore.ingredients.length === 0) {
+    await inventoryStore.fetchIngredients()
+  }
   autoPopulateCosts()
 })
 
