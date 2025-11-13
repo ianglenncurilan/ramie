@@ -50,29 +50,32 @@ const navigateTo = (routeName) => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: saturate(180%) blur(8px);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
   display: flex;
   justify-content: space-around;
-  padding: 10px 0;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  padding: 14px 0; /* taller bar */
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.15);
+  border-top: 1px solid #e5e7eb;
   z-index: 1000;
 }
 
 .bottombar button {
   background: none;
   border: none;
-  padding: 8px 16px;
+  padding: 10px 18px; /* bigger touch target */
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #666;
+  color: #334155; /* darker for contrast */
   font-size: 12px;
   text-decoration: none;
   cursor: pointer;
   transition: transform 0.18s ease, opacity 0.18s ease;
   flex: 1;
   max-width: 25%;
-  opacity: 0.7;
+  opacity: 0.9; /* more visible */
 }
 
 .bottombar button:hover {
@@ -86,14 +89,15 @@ const navigateTo = (routeName) => {
 }
 
 .bottombar button img {
-  width: 24px;
-  height: 24px;
-  margin-bottom: 4px;
+  width: 28px; /* larger icons */
+  height: 28px;
+  margin-bottom: 6px;
   transition: transform 0.18s ease, filter 0.18s ease;
 }
 
 .bottombar button .label {
-  font-size: 10px;
+  font-size: 12px; /* clearer labels */
+  font-weight: 600;
   margin-top: 2px;
 }
 

@@ -58,7 +58,6 @@
                 <span class="num">{{ idx + 1 }}.</span>
                 <span class="label">{{ item.label }}</span>
                 <span class="ghost" v-if="item.note">({{ item.note }})</span>
-                <span class="right">{{ item.base }}</span>
               </div>
               <div class="cell amount">
                 <div
@@ -329,7 +328,7 @@ watch(
   { deep: true },
 )
 
-function saveFormulation() {
+async function saveFormulation() {
   // Validate that all categories meet their requirements
   const validationErrors = []
 
@@ -363,36 +362,49 @@ function saveFormulation() {
     })
   })
 
-  // Deduct ingredients from inventory
-  const deductionResults = []
+  // Totals
   const totalAmount = items.reduce((sum, item) => sum + item.amountKg, 0)
   const totalCost = items.reduce((sum, item) => sum + item.amountKg * item.costPerKg, 0)
 
-  items.forEach((item) => {
-    const result = inventoryStore.deductIngredientQuantity(item.label, item.amountKg)
-    deductionResults.push(result)
-  })
-
-  // Show deduction results
-  const successfulDeductions = deductionResults.filter((result) => result.success)
-  const failedDeductions = deductionResults.filter((result) => !result.success)
-
-  if (successfulDeductions.length > 0) {
-    const successMessage = successfulDeductions
-      .map((r) => `${r.deducted}kg of ${r.ingredient}`)
-      .join(', ')
-    console.log(`Successfully deducted: ${successMessage}`)
+  // Pre-check inventory sufficiency to avoid partial deductions
+  const insufficient = []
+  for (const item of items) {
+    // Try to match by ID first (items are generated from inventory), then by name
+    const invItem =
+      inventoryStore.ingredients.find((ing) => ing.id === item.id) ||
+      inventoryStore.ingredients.find(
+        (ing) => ing.name.toLowerCase() === item.label.toLowerCase() ||
+          ing.name.toLowerCase().includes(item.label.toLowerCase()) ||
+          item.label.toLowerCase().includes(ing.name.toLowerCase()),
+      )
+    const currentQty = Number(invItem?.quantity) || 0
+    if (!invItem || currentQty < Number(item.amountKg)) {
+      insufficient.push({ name: item.label, available: currentQty, needed: item.amountKg })
+    }
   }
 
-  if (failedDeductions.length > 0) {
-    const failedNames = failedDeductions.map((r) => r.ingredient).join(', ')
-    alert(
-      `Warning: Could not deduct inventory for: ${failedNames}. These ingredients may not be in your inventory.`,
-    )
+  if (insufficient.length > 0) {
+    const msg = insufficient
+      .map((x) => `${x.name} (available: ${x.available}, needed: ${x.needed})`)
+      .join(', ')
+    alert(`Cannot save: insufficient quantity for ${msg}.`)
+    return
+  }
+
+  // All sufficient: perform actual deductions and await completion
+  const deductionResults = []
+  for (const item of items) {
+    const res = await inventoryStore.deductIngredientQuantity(item.id, item.amountKg)
+    deductionResults.push(res)
+    if (!res.success) {
+      // In case of a runtime failure (e.g., DB update), abort before saving
+      alert(`Failed to deduct ${item.label}: ${res.error || 'Unknown error'}`)
+      return
+    }
   }
 
   // Add record with detailed information
-  feedsStore.addRecord({
+  await feedsStore.addRecord({
     stage: 'Finisher',
     items,
     totalAmount: totalAmount,

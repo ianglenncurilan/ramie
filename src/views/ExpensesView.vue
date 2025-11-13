@@ -4,10 +4,22 @@
       <section class="hero">
         <img src="/pig.jpg" alt="hero" />
         <div class="overlay">
-          <div class="title">Track Expense</div>
+          <div class="brand">
+            <div class="title">RAMIE</div>
+          </div>
         </div>
       </section>
       <div class="panel">
+        <div class="action-buttons">
+          <button class="add-income-btn" @click="openIncomeModal">
+            <span>+</span>
+            Add Income
+          </button>
+          <button class="add-expense-btn" @click="openExpenseModal">
+            <span>+</span>
+            Add Expense
+          </button>
+        </div>
         <div class="cards">
           <div class="card success">
             <div class="label">Income</div>
@@ -38,50 +50,30 @@
           </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button class="add-income-btn" @click="openIncomeModal">
-            <span>+</span>
-            Add Income
-          </button>
-          <button class="add-expense-btn" @click="openExpenseModal">
-            <span>+</span>
-            Add Expense
-          </button>
-        </div>
+        
 
-        <!-- Income Table -->
+        <div class="view-sections-grid">
+        <!-- Income -->
         <div class="table-section">
           <div class="table-header">
             <h3>Income</h3>
             <span class="count">{{ feeds.income.length }} entries</span>
           </div>
-          <div class="table">
-            <div class="row" v-for="i in feeds.income" :key="i.id">
-              <span>{{ i.label }}</span>
-              <span class="amt income">+₱{{ Number(i.amount).toFixed(2) }}</span>
-            </div>
-            <div v-if="!feeds.income.length" class="row">
-              <span>No income yet</span><span class="amt">₱0.00</span>
-            </div>
+          <div class="view-btn-wrap">
+            <button class="view-btn view-income-btn" @click="openIncomeList()">View Income</button>
           </div>
         </div>
 
-        <!-- Expense Table -->
+        <!-- Expenses -->
         <div class="table-section">
           <div class="table-header">
             <h3>Expenses</h3>
             <span class="count">{{ feeds.expenses.length }} entries</span>
           </div>
-          <div class="table">
-            <div class="row" v-for="e in feeds.expenses" :key="e.id">
-              <span>{{ e.label }}</span>
-              <span class="amt expense">-₱{{ Number(e.amount).toFixed(2) }}</span>
-            </div>
-            <div v-if="!feeds.expenses.length" class="row">
-              <span>No expenses yet</span><span class="amt">₱0.00</span>
-            </div>
+          <div class="view-btn-wrap">
+            <button class="view-btn view-expense-btn" @click="openExpenseList()">View Expense</button>
           </div>
+        </div>
         </div>
       </div>
 
@@ -129,27 +121,18 @@
             </div>
             <div class="form-group">
               <label>Date</label>
-              <input
-                v-model="incomeForm.date"
-                type="date"
-                required
-                :disabled="loading"
-              />
+              <input v-model="incomeForm.date" type="date" required :disabled="loading" />
             </div>
             <div class="form-actions">
-              <button 
-                type="button" 
-                class="cancel-btn" 
+              <button
+                type="button"
+                class="cancel-btn"
                 @click="closeIncomeModal"
                 :disabled="loading"
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
-                class="save-btn" 
-                :disabled="loading"
-              >
+              <button type="submit" class="save-btn" :disabled="loading">
                 {{ loading ? 'Saving...' : 'Add Income' }}
               </button>
             </div>
@@ -189,35 +172,66 @@
             </div>
             <div class="form-group">
               <label>Date</label>
-              <input
-                v-model="expenseForm.date"
-                type="date"
-                required
-                :disabled="loading"
-              />
+              <input v-model="expenseForm.date" type="date" required :disabled="loading" />
             </div>
             <div class="form-actions">
-              <button 
-                type="button" 
-                class="cancel-btn" 
+              <button
+                type="button"
+                class="cancel-btn"
                 @click="closeExpenseModal"
                 :disabled="loading"
               >
                 Cancel
               </button>
-              <button 
-                type="submit" 
-                class="save-btn" 
-                :disabled="loading"
-              >
+              <button type="submit" class="save-btn" :disabled="loading">
                 {{ loading ? 'Saving...' : 'Add Expense' }}
               </button>
             </div>
           </form>
         </div>
       </div>
+      <!-- View Income Modal -->
+      <div v-if="showIncomeListModal" class="modal-overlay" @click="closeIncomeList">
+        <div class="modal" @click.stop>
+          <div class="modal-header">
+            <h3>Income</h3>
+            <button class="close-btn" @click="closeIncomeList">×</button>
+          </div>
+          <div class="modal-form">
+            <div class="table">
+              <div class="row" v-for="i in feeds.income" :key="i.id">
+                <span>{{ i.label }}</span>
+                <span class="amt income">+₱{{ Number(i.amount).toFixed(2) }}</span>
+              </div>
+              <div v-if="!feeds.income.length" class="row">
+                <span>No income yet</span><span class="amt">₱0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- View Expense Modal -->
+      <div v-if="showExpenseListModal" class="modal-overlay" @click="closeExpenseList">
+        <div class="modal" @click.stop>
+          <div class="modal-header">
+            <h3>Expenses</h3>
+            <button class="close-btn" @click="closeExpenseList">×</button>
+          </div>
+          <div class="modal-form">
+            <div class="table">
+              <div class="row" v-for="e in feeds.expenses" :key="e.id">
+                <span>{{ e.label }}</span>
+                <span class="amt expense">-₱{{ Number(e.amount).toFixed(2) }}</span>
+              </div>
+              <div v-if="!feeds.expenses.length" class="row">
+                <span>No expenses yet</span><span class="amt">₱0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    
   </div>
 </template>
 
@@ -233,17 +247,26 @@ const error = ref(null)
 const showIncomeModal = ref(false)
 const showExpenseModal = ref(false)
 
+
+// View list modals
+const showIncomeListModal = ref(false)
+const showExpenseListModal = ref(false)
+
+// Hero header state
+const farmName = ref('Olivier Ecovillage')
+
+
 // Form data
 const incomeForm = reactive({
   label: '',
   amount: '',
-  date: new Date().toISOString().split('T')[0] // Default to today's date
+  date: new Date().toISOString().split('T')[0], // Default to today's date
 })
 
 const expenseForm = reactive({
   label: '',
   amount: '',
-  date: new Date().toISOString().split('T')[0] // Default to today's date
+  date: new Date().toISOString().split('T')[0], // Default to today's date
 })
 
 // Fetch expenses when component mounts
@@ -280,6 +303,20 @@ function closeExpenseModal() {
   resetExpenseForm()
 }
 
+// View list modal handlers
+function openIncomeList() {
+  showIncomeListModal.value = true
+}
+function closeIncomeList() {
+  showIncomeListModal.value = false
+}
+function openExpenseList() {
+  showExpenseListModal.value = true
+}
+function closeExpenseList() {
+  showExpenseListModal.value = false
+}
+
 function resetIncomeForm() {
   incomeForm.label = ''
   incomeForm.amount = ''
@@ -298,7 +335,7 @@ async function saveIncome() {
     await feeds.addIncome({
       label: incomeForm.label,
       amount: Number(incomeForm.amount),
-      date: incomeForm.date
+      date: incomeForm.date,
     })
     closeIncomeModal()
   } catch (err) {
@@ -315,7 +352,7 @@ async function saveExpense() {
     await feeds.addExpense({
       label: expenseForm.label,
       amount: Number(expenseForm.amount),
-      date: expenseForm.date
+      date: expenseForm.date,
     })
     closeExpenseModal()
   } catch (err) {
@@ -353,15 +390,19 @@ async function saveExpense() {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #4CAF50;
+  border-top: 4px solid #4caf50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error Message */
@@ -409,9 +450,9 @@ async function saveExpense() {
   color: #333;
 }
 
-.form-group input[type="date"],
-.form-group input[type="number"],
-.form-group input[type="text"] {
+.form-group input[type='date'],
+.form-group input[type='number'],
+.form-group input[type='text'] {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ddd;
@@ -419,7 +460,7 @@ async function saveExpense() {
   font-size: 1rem;
 }
 
-.form-group input[type="date"] {
+.form-group input[type='date'] {
   padding: 0.4rem 0.5rem;
 }
 
@@ -430,7 +471,8 @@ async function saveExpense() {
   margin-top: 1.5rem;
 }
 
-.cancel-btn, .save-btn {
+.cancel-btn,
+.save-btn {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -449,7 +491,7 @@ async function saveExpense() {
 }
 
 .save-btn {
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
 }
 
@@ -498,6 +540,59 @@ async function saveExpense() {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
+.brand { display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { width: 32px; height: 32px; object-fit: contain; }
+.overlay .title { font-weight: 700; font-size: 22px; }
+.hero-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 6px 10px 6px;
+}
+.farm-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 18px;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+.pin {
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+}
+.pin.on { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+.location-actions { display: flex; align-items: center; }
+.loc-btn {
+  background: #0bac61;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.loc-text { font-size: 12px; opacity: 0.9; }
+.hero-stats {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  padding: 0 6px 8px 6px;
+}
+.hero-stats .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hero-stats .bubble {
+  background: rgba(255,255,255,0.95);
+  color: #333;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.hero-stats .label { font-size: 12px; opacity: 0.95; }
 .panel {
   margin: 0 16px 16px 16px;
   background: #2f8b60;
@@ -606,6 +701,7 @@ async function saveExpense() {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 16px;
+  margin-bottom: 24px;
 }
 .add-income-btn,
 .add-expense-btn {
@@ -621,7 +717,7 @@ async function saveExpense() {
   transition: all 0.2s ease;
 }
 .add-income-btn {
-  background: linear-gradient(135deg, #2f8b60 0%, #4caf50 100%);
+  background: #0bac61;
   color: white;
   box-shadow: 0 4px 12px rgba(47, 139, 96, 0.3);
   border: 2px solid #2f8b60;
@@ -665,7 +761,7 @@ async function saveExpense() {
 
 /* Table Sections */
 .table-section {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 .table-header {
   display: flex;
@@ -685,6 +781,30 @@ async function saveExpense() {
   background: rgba(255, 255, 255, 0.2);
   padding: 4px 8px;
   border-radius: 6px;
+}
+
+.view-btn-wrap {
+  margin-top: 12px;
+}
+.view-btn {
+  width: 100%;
+  padding: 20px 18px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 18px;
+  cursor: pointer;
+}
+.view-income-btn {
+  background: #0bac61;
+  color: #fff;
+}
+.view-expense-btn {
+  background: #c94d4d;
+  color: #fff;
+}
+.view-btn:hover {
+  filter: brightness(0.95);
 }
 
 /* Modal Styles */
@@ -859,6 +979,21 @@ async function saveExpense() {
 
   .add-income-btn:hover {
     box-shadow: 0 4px 12px rgba(47, 139, 96, 0.4);
+  }
+}
+
+/* View sections grid */
+.view-sections-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 8px;
+}
+@media (min-width: 768px) {
+  .view-sections-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 16px;
   }
 }
 </style>

@@ -162,14 +162,14 @@ const handleRegister = async () => {
             first_name: formData.value.firstname,
             last_name: formData.value.lastname,
             full_name: fullName,
-            is_admin: false,  // Default to non-admin
+            is_admin: false, // Default to non-admin
             role: 'user',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            phone: '',  // Default empty phone
+            phone: '', // Default empty phone
             address: '', // Default empty address
             profile_picture: null, // Default no profile picture
-            status: 'active' // Default status
+            status: 'active', // Default status
           })
           .select()
           .single()
@@ -202,10 +202,10 @@ const handleRegister = async () => {
     }
   } catch (error) {
     console.error('Registration error:', error)
-    
+
     // More user-friendly error messages
     let errorMessage = 'An error occurred during registration. Please try again.'
-    
+
     if (error.message.includes('already registered')) {
       errorMessage = 'This email is already registered. Please try logging in instead.'
     } else if (error.message.includes('password')) {
@@ -213,9 +213,10 @@ const handleRegister = async () => {
     } else if (error.message.includes('email')) {
       errorMessage = 'Please enter a valid email address.'
     } else if (error.message.includes('profile')) {
-      errorMessage = 'Your account was created, but we had trouble setting up your profile. Please contact support.'
+      errorMessage =
+        'Your account was created, but we had trouble setting up your profile. Please contact support.'
     }
-    
+
     showError(errorMessage, 'Registration Failed')
   } finally {
     formAction.value.formProcess = false
@@ -243,34 +244,36 @@ const handleRegister = async () => {
 
       <!-- Register Form -->
       <form @submit.prevent="handleRegister" class="register-form">
-        <div class="form-group">
-          <label>First Name</label>
-          <div class="input-group">
-            <i class="mdi mdi-account-outline"></i>
-            <input
-              v-model="formData.firstname"
-              type="text"
-              placeholder="Enter your first name"
-              @input="clearErrors('firstname')"
-              :class="{ error: errors.firstname }"
-            />
+        <div class="name-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <div class="input-group">
+              <i class="mdi mdi-account-outline"></i>
+              <input
+                v-model="formData.firstname"
+                type="text"
+                placeholder="Enter your first name"
+                @input="clearErrors('firstname')"
+                :class="{ error: errors.firstname }"
+              />
+            </div>
+            <span v-if="errors.firstname" class="error-message">{{ errors.firstname }}</span>
           </div>
-          <span v-if="errors.firstname" class="error-message">{{ errors.firstname }}</span>
-        </div>
 
-        <div class="form-group">
-          <label>Last Name</label>
-          <div class="input-group">
-            <i class="mdi mdi-account-outline"></i>
-            <input
-              v-model="formData.lastname"
-              type="text"
-              placeholder="Enter your last name"
-              @input="clearErrors('lastname')"
-              :class="{ error: errors.lastname }"
-            />
+          <div class="form-group">
+            <label>Last Name</label>
+            <div class="input-group">
+              <i class="mdi mdi-account-outline"></i>
+              <input
+                v-model="formData.lastname"
+                type="text"
+                placeholder="Enter your last name"
+                @input="clearErrors('lastname')"
+                :class="{ error: errors.lastname }"
+              />
+            </div>
+            <span v-if="errors.lastname" class="error-message">{{ errors.lastname }}</span>
           </div>
-          <span v-if="errors.lastname" class="error-message">{{ errors.lastname }}</span>
         </div>
 
         <div class="form-group">
@@ -340,20 +343,6 @@ const handleRegister = async () => {
 
         <button type="submit" class="btn" :disabled="formAction.formProcess">
           {{ formAction.formProcess ? 'Creating Account...' : 'Create Account' }}
-        </button>
-
-        <div class="divider">
-          <span>or register with</span>
-        </div>
-
-        <button
-          type="button"
-          class="btn google-btn"
-          @click="handleGoogleLogin"
-          :disabled="formAction.formProcess"
-        >
-          <i class="mdi mdi-google"></i>
-          {{ formAction.formProcess ? 'Signing up...' : 'Sign up with Google' }}
         </button>
 
         <p class="login-link">
@@ -452,7 +441,7 @@ const handleRegister = async () => {
   padding: 2rem;
   border-radius: 20px;
   box-shadow: var(--shadow);
-  border: 2px solid var(--border-strong); /* keep visible border */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* soften border */
   animation: fadeIn 0.36s ease-out forwards;
 }
 
@@ -474,9 +463,9 @@ const handleRegister = async () => {
 
 .logo h1 {
   margin: 0;
-  font-size: 2.2rem; /* Increased from 1.6rem */
+  font-size: 22px;
   font-weight: 700;
-  color: var(--primary);
+  color: #2c7a4b;
   letter-spacing: -0.4px;
 }
 
@@ -510,6 +499,11 @@ h2 {
   flex-direction: column;
   gap: 8px; /* smaller overall gaps between inputs */
 }
+.name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
 .form-group {
   text-align: left;
 }
@@ -526,19 +520,20 @@ h2 {
   position: relative;
   display: flex;
   align-items: center;
-  background: var(--pill-bg);
-  border: 2px solid #2c7a4b; /* Make border more visible */
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 9999px;
   height: 48px;
   padding: 0 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* Left icon (account, email, lock) */
 .input-group i:not(.mdi-eye):not(.mdi-eye-off) {
   position: absolute;
   left: 12px;
-  color: #2c7a4b;
+  color: #64748b;
   font-size: 18px;
   width: 20px;
   height: 20px;
@@ -555,7 +550,7 @@ h2 {
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
-  color: #2c7a4b;
+  color: #64748b;
   font-size: 18px;
   width: 20px;
   height: 20px;
@@ -574,6 +569,13 @@ h2 {
   color: var(--text);
   outline: none;
   width: 100%;
+}
+
+/* Soft focus state */
+.input-group:focus-within {
+  border-color: #2c7a4b;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  background: #fff;
 }
 
 /* error messages */
@@ -605,30 +607,6 @@ h2 {
   background: #235f3f; /* darker green on hover */
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(44, 122, 75, 0.2);
-}
-
-/* Specific styles for Google button to override the green */
-.btn.google-btn {
-  background: #fff;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-/* divider */
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 8px 0 10px; /* tightened top margin */
-  color: var(--text-light);
-  font-size: 0.9rem;
-}
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-  margin: 0 12px;
 }
 
 /* small helper link */
@@ -701,6 +679,10 @@ h2 {
   }
   .register-form {
     gap: 6px;
+  }
+  .name-row {
+    grid-template-columns: 1fr; /* stack on small screens */
+    gap: 8px;
   }
   .register-form .form-group:last-of-type {
     margin-bottom: 0;

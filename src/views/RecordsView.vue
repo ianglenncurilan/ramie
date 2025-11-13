@@ -3,35 +3,53 @@
     <section class="hero">
       <img src="/pig.jpg" alt="hero" />
       <div class="overlay">
-        <div class="title">Olivier Ecovillage</div>
+        <div class="brand">
+          <div class="title">RAMIE</div>
+        </div>
       </div>
     </section>
     <div class="panel">
-      <h3>Records</h3>
-      <div class="list">
-        <div class="item" v-for="rec in feeds.records" :key="rec.id || rec.date" @click="openRecordModal(rec)">
-          <span class="dot"></span>
-          <div class="item-content">
-            <div class="item-title">Feed: {{ rec.stage }} — {{ (rec.items || []).length }} ingredients</div>
-            <div class="item-details">
-              <span class="amount">{{
-                rec.totalAmount ? rec.totalAmount.toFixed(1) + 'kg' : 'N/A'
-              }}</span>
-              <span class="cost">₱{{ rec.totalCost ? rec.totalCost.toFixed(2) : '0.00' }}</span>
-            </div>
-            <div class="ingredients">
-              <span v-for="(item, idx) in (rec.items || []).slice(0, 3)" :key="idx" class="ingredient-tag">
-                {{ item.amountKg }}kg {{ item.label.split('(')[0].trim() }}
-              </span>
-              <span v-if="(rec.items || []).length > 3" class="more">+{{ (rec.items || []).length - 3 }} more</span>
-            </div>
-          </div>
-          <span class="muted">{{ formatDateTime(rec.date) }}</span>
+      <div class="records-header">
+        <div class="drag-indicator"></div>
+        <h3>Records</h3>
+        <div class="period-toggle">
+          <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">Year</button>
+          <button :class="{ active: selectedPeriod === 'Month' }" @click="selectedPeriod = 'Month'">Month</button>
         </div>
-        <div v-if="!(feeds.records && feeds.records.length)" class="empty">No records yet</div>
+        <div class="month-bar" @wheel.prevent="onWheel">
+          <button class="arrow" @click="prevMonth">‹</button>
+          <div class="month-track" ref="monthTrack">
+            <button
+              v-for="m in months"
+              :key="m.value"
+              class="month-chip"
+              :data-month="m.value"
+              :class="{ active: m.value === selectedMonth }"
+              @click="selectMonth(m.value)"
+            >{{ m.label }}</button>
+          </div>
+          <button class="arrow" @click="nextMonth">›</button>
+        </div>
+      </div>
+
+      <div class="groups">
+        <div v-for="group in groupedRecords" :key="group.key" class="group">
+          <div class="group-title">{{ group.label }}</div>
+          <div class="records-card">
+            <div v-for="rec in group.items" :key="rec.id || rec.date" class="record-row" @click="openRecordModal(rec)">
+              <div class="icon-box">
+                <img src="/doc.png" alt="record" />
+              </div>
+              <div class="row-content">
+                <div class="row-title">{{ typeLabel(rec) || 'Feed' }}</div>
+              </div>
+            </div>
+            <div v-if="group.items.length === 0" class="empty">No records</div>
+          </div>
+        </div>
+        <div v-if="groupedRecords.length === 0" class="empty">No records yet</div>
       </div>
     </div>
-    <BottomBar />
     <!-- Record Detail Modal -->
     <div v-if="showRecordModal" class="modal-overlay" @click="closeRecordModal">
       <div class="modal" @click.stop>
@@ -95,11 +113,97 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
-import BottomBar from '@/components/BottomBar.vue'
 
 const feeds = useFeedsStore()
+
+// Period toggle and month navigation
+const selectedPeriod = ref('Month')
+const now = new Date()
+const months = [
+  { value: 0, label: 'Jan' },
+  { value: 1, label: 'Feb' },
+  { value: 2, label: 'Mar' },
+  { value: 3, label: 'Apr' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'Jun' },
+  { value: 6, label: 'Jul' },
+  { value: 7, label: 'Aug' },
+  { value: 8, label: 'Sep' },
+  { value: 9, label: 'Oct' },
+  { value: 10, label: 'Nov' },
+  { value: 11, label: 'Dec' },
+]
+const selectedMonth = ref(now.getMonth())
+const monthTrack = ref(null)
+
+function selectMonth(m) { selectedMonth.value = m }
+function prevMonth() { selectedMonth.value = (selectedMonth.value + 11) % 12 }
+function nextMonth() { selectedMonth.value = (selectedMonth.value + 1) % 12 }
+
+function scrollSelectedIntoView() {
+  try {
+    const el = monthTrack.value?.querySelector(`[data-month='${selectedMonth.value}']`)
+    el?.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' })
+  } catch {}
+}
+
+function onWheel(e) {
+  if (monthTrack.value) monthTrack.value.scrollLeft += e.deltaY
+}
+
+onMounted(() => {
+  // Defer to allow rendering
+  setTimeout(scrollSelectedIntoView, 0)
+})
+
+watch(selectedMonth, () => {
+  scrollSelectedIntoView()
+})
+
+// Helpers
+function toDate(dLike) {
+  const d = new Date(dLike)
+  return isNaN(d.getTime()) ? new Date() : d
+}
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+function labelForDay(d) {
+  const today = new Date()
+  const yesterday = new Date(); yesterday.setDate(today.getDate() - 1)
+  if (isSameDay(d, today)) return 'Today'
+  if (isSameDay(d, yesterday)) return `Yesterday, ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
+}
+
+// Filter by period and group by day
+const filtered = computed(() => {
+  const recs = Array.isArray(feeds.records) ? feeds.records : []
+  if (selectedPeriod.value === 'Month') {
+    return recs.filter(r => {
+      const d = toDate(r.date)
+      return d.getMonth() === selectedMonth.value && d.getFullYear() === now.getFullYear()
+    })
+  }
+  // Year
+  return recs.filter(r => toDate(r.date).getFullYear() === now.getFullYear())
+})
+
+const groupedRecords = computed(() => {
+  const map = new Map()
+  const sorted = [...filtered.value].sort((a,b) => new Date(b.date) - new Date(a.date))
+  for (const r of sorted) {
+    const d = toDate(r.date)
+    const key = d.toDateString()
+    if (!map.has(key)) {
+      map.set(key, { key, date: d, label: labelForDay(d), items: [] })
+    }
+    map.get(key).items.push(r)
+  }
+  return Array.from(map.values()).sort((a,b) => b.date - a.date)
+})
 
 function formatDateTime(dateLike) {
   const d = new Date(dateLike)
@@ -177,6 +281,9 @@ function typeLabel(rec) {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
+.brand { display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { width: 32px; height: 32px; object-fit: contain; }
+.overlay .title { font-weight: 700; font-size: 22px; }
 .panel {
   margin: 0 16px 16px 16px;
   background: #2f8b60;
@@ -186,6 +293,28 @@ function typeLabel(rec) {
   flex: 1;
   overflow-y: auto;
 }
+.records-header { text-align: center; }
+.drag-indicator { width: 64px; height: 6px; margin: 4px auto 8px; background: rgba(255,255,255,0.6); border-radius: 999px; }
+.records-header h3 { margin: 0 0 8px 0; font-size: 18px; }
+.period-toggle { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
+.period-toggle button { background: rgba(255,255,255,0.3); color: #fff; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+.period-toggle button.active { background: #fff; color: #2f8b60; }
+.month-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+.month-track { position: relative; flex: 1; overflow-x: auto; overflow-y: hidden; display: flex; gap: 10px; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 2px 2px; scrollbar-width: none; }
+.month-track::-webkit-scrollbar { display: none; }
+.month-track::-webkit-scrollbar-thumb { background: transparent; }
+.month-bar .month-chip { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 8px 14px; border-radius: 12px; font-weight: 700; cursor: pointer; scroll-snap-align: center; white-space: nowrap; }
+.month-bar .month-chip.active { background: #fff; color: #2f8b60; }
+.month-bar .arrow { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 8px 10px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+.groups { display: flex; flex-direction: column; gap: 12px; }
+.group-title { color: #e5ffe5; font-weight: 700; margin: 8px 2px; }
+.records-card { background: #fff; color: #333; border-radius: 12px; padding: 8px; }
+.record-row { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+.record-row:last-child { border-bottom: 0; }
+.icon-box { width: 36px; height: 36px; border-radius: 8px; background: #e6eef2; display: flex; align-items: center; justify-content: center; }
+.icon-box img { width: 22px; height: 22px; object-fit: contain; filter: grayscale(30%); }
+.row-title { font-weight: 600; }
 .list {
   background: #fff;
   border-radius: 12px;

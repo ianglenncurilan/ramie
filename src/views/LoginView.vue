@@ -266,17 +266,7 @@ const togglePasswordVisibility = () => {
         <p>Don't have an account? <a href="#" @click.prevent="navigateToRegister">Sign up</a></p>
       </div>
 
-      <!-- Google Sign In Button -->
-      <div class="google-signin">
-        <button
-          @click="handleGoogleLogin"
-          class="google-btn"
-          :disabled="formAction.formProcess || !hasSupabaseConfig"
-        >
-          <img src="/google.png" alt="Google" class="google-icon" />
-          <span>{{ formAction.formProcess ? 'Signing in...' : 'Sign in with Google' }}</span>
-        </button>
-      </div>
+      
     </div>
 
     <!-- Alert Modal -->
@@ -402,12 +392,13 @@ h2 {
   position: relative;
   display: flex;
   align-items: center;
-  background: var(--pill-bg);
-  border: 2px solid #2c7a4b; /* Make border more visible */
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 9999px;
   height: 48px;
   padding: 0 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* Left icon (email, lock) */
@@ -415,7 +406,7 @@ h2 {
 .input-group2 i.mdi-lock-outline {
   position: absolute;
   left: 12px;
-  color: #2c7a4b;
+  color: #64748b;
   font-size: 18px;
   width: 20px;
   height: 20px;
@@ -432,7 +423,7 @@ h2 {
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
-  color: #2c7a4b;
+  color: #64748b;
   font-size: 18px;
   width: 20px;
   height: 20px;
@@ -457,9 +448,9 @@ h2 {
 /* Focus states */
 .input-group1:focus-within,
 .input-group2:focus-within {
-  box-shadow: 0 8px 20px rgba(44, 122, 75, 0.12);
-  background: rgba(44, 122, 75, 0.06);
-  border-color: #2c7a4b;
+  border-color: #2c7a4b; /* subtle brand accent on focus */
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 /* Error state */
@@ -479,7 +470,6 @@ h2 {
 
 /* Make primary and social buttons pill-shaped and consistent height */
 .btn-primary,
-.google-btn,
 .login-btn {
   border-radius: 9999px;
   height: 48px;
@@ -498,7 +488,6 @@ h2 {
     padding-left: 44px;
   }
   .btn-primary,
-  .google-btn,
   .login-btn {
     height: 44px;
   }
@@ -782,55 +771,7 @@ h2 {
   margin: 0 10px;
 }
 
-.google-signin {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-.google-btn {
-  width: 100%;
-  max-width: 280px;
-  height: 40px;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  font-weight: 500;
-  color: #3c4043;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  font-family: 'Google Sans', 'Roboto', sans-serif;
-}
-
-.google-btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-color: #c1c1c1;
-}
-
-.google-btn:active:not(:disabled) {
-  background: #f1f3f4;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  transform: none;
-}
-
-.google-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.google-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
+ 
 .err {
   color: #cc0000;
   font-size: 12px;
@@ -923,16 +864,7 @@ h2 {
     font-size: 14px;
   }
 
-  .google-btn {
-    height: 38px;
-    font-size: 13px;
-    gap: 6px;
-  }
-
-  .google-icon {
-    width: 16px;
-    height: 16px;
-  }
+  
 
   .social button {
     width: 35px;
@@ -1030,16 +962,7 @@ h2 {
     font-size: 13px;
   }
 
-  .google-btn {
-    height: 36px;
-    font-size: 12px;
-    gap: 5px;
-  }
-
-  .google-icon {
-    width: 14px;
-    height: 14px;
-  }
+  
 
   .divider {
     margin: 15px 0;

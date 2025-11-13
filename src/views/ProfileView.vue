@@ -2,6 +2,11 @@
   <div class="screen">
     <section class="hero">
       <img src="/pig.jpg" alt="hero" />
+      <div class="overlay">
+        <div class="brand">
+          <div class="title">RAMIE</div>
+        </div>
+      </div>
     </section>
     <div class="panel">
       <div class="avatar">
@@ -10,16 +15,12 @@
           :src="userProfile.profilePicture"
           alt="Profile Picture"
         />
-        <span v-else>👤</span>
+        <span v-else class="initials">{{ userInitials }}</span>
       </div>
       <div class="name">{{ userProfile.name || 'Loading...' }}</div>
       <div class="email">{{ userProfile.email }}</div>
 
       <div class="menu">
-        <button class="row" @click="openEditModal">
-          <span>Edit Profile</span>
-          <span>›</span>
-        </button>
         <button v-if="isAdminUser" class="row" @click="$router.push({ name: 'admin' })">
           <span>Admin</span>
           <span>›</span>
@@ -126,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import BottomBar from '@/components/BottomBar.vue'
 import { useRouter } from 'vue-router'
 import { supabase, hasSupabaseConfig } from '../services/supabase'
@@ -148,36 +149,6 @@ const successMessage = ref('')
 
 // Admin flag
 const isAdminUser = ref(false)
-onMounted(async () => {
-  try {
-    const { data, error } = await supabase.auth.getUser()
-    if (error) {
-      console.error('Error fetching user:', error)
-      return
-    }
-
-    const userId = data?.user?.id
-    if (!userId) {
-      console.error('User ID not found')
-      return
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('isAdmin')
-      .eq('id', userId)
-      .single()
-
-    if (profileError) {
-      console.error('Error fetching profile:', profileError)
-      return
-    }
-
-    isAdminUser.value = profile?.isAdmin || false
-  } catch (err) {
-    console.error('Unexpected error:', err)
-  }
-})
 
 // Edit profile form state
 const editForm = ref({
@@ -188,6 +159,25 @@ const editForm = ref({
 })
 const editErrors = ref({})
 const profilePicturePreview = ref(null)
+const userInitials = computed(() => {
+  const name = (userProfile.value.name || '').trim()
+  if (name) {
+    const parts = name.split(/\s+/).filter(Boolean)
+    const first = parts[0]?.[0] || ''
+    const second = parts.length > 1 ? parts[parts.length - 1][0] : ''
+    return (first + second).toUpperCase() || first.toUpperCase()
+  }
+  // fallback to email local part
+  const email = userProfile.value.email || ''
+  const local = email.split('@')[0] || ''
+  if (local) {
+    const segs = local.split(/[.-_]/).filter(Boolean)
+    const first = segs[0]?.[0] || ''
+    const second = segs.length > 1 ? segs[1][0] : ''
+    return (first + second).toUpperCase() || first.toUpperCase() || 'U'
+  }
+  return 'U'
+})
 
 // Fetch user data from Supabase
 async function fetchUserProfile() {
@@ -383,6 +373,7 @@ async function handleSignOut() {
 }
 .hero {
   margin: 16px;
+  position: relative;
 }
 .hero img {
   width: 100%;
@@ -390,6 +381,19 @@ async function handleSignOut() {
   object-fit: cover;
   border-radius: 14px;
 }
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
+  border-radius: 14px;
+}
+.brand { display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { width: 32px; height: 32px; object-fit: contain; }
+.overlay .title { font-weight: 700; font-size: 22px; }
 .panel {
   margin: 0 16px 16px 16px;
   background: #2f8b60;
@@ -424,6 +428,7 @@ async function handleSignOut() {
   object-fit: cover;
   border-radius: 50%;
 }
+.avatar .initials { font-size: 28px; font-weight: 700; }
 .name {
   font-weight: 700;
   margin-top: 10px;
@@ -437,6 +442,10 @@ async function handleSignOut() {
 }
 .menu {
   width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  justify-items: center; /* allow children to center */
 }
 .row {
   width: 100%;
@@ -450,12 +459,23 @@ async function handleSignOut() {
   margin: 8px 0;
 }
 .signout {
-  width: 100%;
-  background: #1f6b4a;
+  width: 70%; /* smaller than full width */
+  max-width: 360px;
+  justify-self: center; /* center within grid */
+  background: #e53935;
   color: #fff;
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 9999px; /* pill like login */
+  height: 48px; /* match login button height */
+  padding: 0 16px;
   margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.signout:hover {
+  background: #c62828;
 }
 button {
   cursor: pointer;

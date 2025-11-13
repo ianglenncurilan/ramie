@@ -232,28 +232,46 @@ function editIngredient(ingredient) {
 
 async function saveIngredient() {
   try {
-    const { data, error } = await inventory.addIngredient(form)
-    if (error) {
-      console.error('Error saving ingredient:', error)
+    // Normalize numeric fields
+    const payload = {
+      name: String(form.name).trim(),
+      quantity: Number(form.quantity) || 0,
+      cost: Number(form.cost) || 0,
+      unit: form.unit || 'kg',
+      type: form.type || 'carbs',
     }
-    if (data) closeModal()
 
-    console.log(form)
+    if (editingIngredient.value) {
+      // Update existing ingredient
+      const { error } = await inventory.updateIngredient(editingIngredient.value.id, payload)
+      if (error) {
+        console.error('Error updating ingredient:', error)
+        alert('Failed to update ingredient. Please try again.')
+        return
+      }
+      closeModal()
+    } else {
+      // Add new ingredient
+      const { data, error } = await inventory.addIngredient(payload)
+      if (error) {
+        console.error('Error saving ingredient:', error)
+        alert('Failed to add ingredient. Please try again.')
+        return
+      }
+      if (data) closeModal()
+    }
   } catch (error) {
     console.error('Error saving ingredient:', error)
+    alert('Unexpected error. Please try again.')
   }
 }
 
-function deleteIngredient(id) {
-  console.log('Delete function called with ID:', id)
-  console.log('Ingredients before delete:', inventory.ingredients.length)
-
-  if (confirm('Are you sure you want to delete this ingredient?')) {
-    console.log('User confirmed deletion')
-    inventory.deleteIngredient(id)
-    console.log('Ingredients after delete:', inventory.ingredients.length)
-  } else {
-    console.log('User cancelled deletion')
+async function deleteIngredient(id) {
+  if (!confirm('Are you sure you want to delete this ingredient?')) return
+  const { error } = await inventory.deleteIngredient(id)
+  if (error) {
+    console.error('Error deleting ingredient:', error)
+    alert('Failed to delete ingredient. Please try again.')
   }
 }
 

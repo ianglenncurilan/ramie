@@ -440,33 +440,52 @@ async function saveFormulation() {
     const totalAmount = items.reduce((sum, item) => sum + item.amountKg, 0)
     const totalCost = items.reduce((sum, item) => sum + item.amountKg * item.costPerKg, 0)
 
-    // Deduct ingredients from inventory
+    // Pre-check inventory sufficiency to avoid partial deductions
+    const insufficient = []
+    for (const item of items) {
+      if (item.amountKg > 0) {
+        const invItem = findInventoryItemByName(item.label)
+        const currentQty = Number(invItem?.quantity) || 0
+        if (!invItem || currentQty < Number(item.amountKg)) {
+          insufficient.push({ name: item.label, available: currentQty, needed: item.amountKg })
+        }
+      }
+    }
+
+    if (insufficient.length > 0) {
+      const msg = insufficient
+        .map((x) => `${x.name} (available: ${x.available}, needed: ${x.needed})`)
+        .join(', ')
+      alert(`Cannot save: insufficient quantity for ${msg}.`)
+      return
+    }
+
+    // All sufficient: perform actual deductions and await completion
     for (const item of items) {
       if (item.amountKg > 0) {
         try {
           const inventoryItem = findInventoryItemByName(item.label)
           if (inventoryItem) {
-            await inventoryStore.deductIngredientQuantity(inventoryItem.id, item.amountKg)
+            const res = await inventoryStore.deductIngredientQuantity(inventoryItem.id, item.amountKg)
+            if (!res.success) {
+              alert(`Failed to deduct ${item.label}: ${res.error || 'Unknown error'}`)
+              return
+            }
+            // Use updated remaining quantity from result when available
             deductionResults.push({
               success: true,
               ingredient: item.label,
               deducted: item.amountKg,
-              remaining: (inventoryItem.quantity_kg - item.amountKg).toFixed(2),
+              remaining: typeof res.remaining === 'number' ? res.remaining : Math.max(0, (Number(inventoryItem.quantity) || 0) - item.amountKg),
             })
           } else {
-            deductionResults.push({
-              success: false,
-              ingredient: item.label,
-              error: 'Item not found in inventory',
-            })
+            alert(`Failed to deduct ${item.label}: Item not found in inventory`)
+            return
           }
         } catch (error) {
           console.error(`Error deducting ${item.label}:`, error)
-          deductionResults.push({
-            success: false,
-            ingredient: item.label,
-            error: error.message,
-          })
+          alert(`Failed to deduct ${item.label}: ${error.message}`)
+          return
         }
       }
     }
@@ -497,7 +516,7 @@ async function saveFormulation() {
       inventoryDeductions: deductionResults,
     }
 
-    feedsStore.addRecord(record)
+    await feedsStore.addRecord(record)
 
     // Add expense for the total cost
     if (totalCost > 0) {

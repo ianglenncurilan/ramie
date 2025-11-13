@@ -1,8 +1,23 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase, hasSupabaseConfig } from '@/services/supabase'
 
 const router = useRouter()
+
+const userFirstName = ref('')
+
+onMounted(async () => {
+  try {
+    if (!hasSupabaseConfig) return
+    const { data: { user } } = await supabase.auth.getUser()
+    const fullName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email || ''
+    const first = fullName?.split(/[\s@]/)[0] || ''
+    userFirstName.value = first.charAt(0).toUpperCase() + first.slice(1)
+  } catch (e) {
+    // noop
+  }
+})
 
 const go = (name) => {
   if (router.hasRoute(name)) {
@@ -21,12 +36,11 @@ const go = (name) => {
       <section class="hero">
         <img src="/pig.jpg" alt="Hogs" />
         <div class="overlay">
-          <div class="title">Olivier Ecovillage</div>
-          <div class="stats">
-            <span>31 Production Logs</span>
-            <span>18 Staff</span>
-            <span>18 Hogs Tracked</span>
+          <div class="brand-right">
+            <img src="/leaf.png" alt="RAMIE" class="brand-logo" />
+            <div class="title">RAMIE</div>
           </div>
+          <div v-if="userFirstName" class="greet">Welcome {{ userFirstName }}!</div>
         </div>
       </section>
 
@@ -49,7 +63,6 @@ const go = (name) => {
         </button>
       </section>
     </main>
-    
   </div>
 </template>
 
@@ -98,22 +111,22 @@ const go = (name) => {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
+.hero .brand-right { position: absolute; top: 10px; right: 12px; display: inline-flex; align-items: center; gap: 8px; }
+.hero .brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
 .hero .title {
   font-weight: 700;
-  margin-bottom: 6px;
+  font-size: 22px;
 }
-.hero .stats {
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
-  opacity: 0.9;
-  flex-wrap: wrap;
-}
+.hero .greet { font-weight: 600; font-size: 16px; opacity: 0.95; margin-left: 6px; }
 .grid {
   margin: 0 16px;
   background: #2f8b60;
   border-radius: 32px;
-  padding: 32px;
+  padding: 40px; /* increase overall grid padding */
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -122,7 +135,7 @@ const go = (name) => {
   background: #fff;
   border: 0;
   border-radius: 32px;
-  padding: 32px;
+  padding: 40px; /* larger card padding */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -130,16 +143,17 @@ const go = (name) => {
   cursor: pointer;
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
+  min-height: 140px; /* ensure a larger visual footprint */
 }
 .card:hover {
   transform: scale(1.01);
 }
 .card img {
-  width: 48px;
-  height: 48px;
+  width: 56px; /* larger icon */
+  height: 56px;
 }
 .card div {
-  font-size: 16px;
+  font-size: 18px; /* larger label text */
   font-weight: 600;
   text-align: center;
 }
