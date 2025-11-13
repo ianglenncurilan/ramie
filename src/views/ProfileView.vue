@@ -341,19 +341,19 @@ async function handleSignOut() {
       // Clear local storage and redirect
       localStorage.clear()
       sessionStorage.clear()
-      await router.push('/login')
+      await router.replace('/login')
       window.location.reload() // Ensure a clean state
     } else {
       console.warn('Supabase config missing; performing local sign out only')
       localStorage.clear()
       sessionStorage.clear()
-      await router.push('/login')
+      await router.replace('/login')
       window.location.reload()
     }
   } catch (error) {
     console.error('Error signing out:', error)
     // Still redirect to login even if there was an error
-    await router.push('/login')
+    await router.replace('/login')
     window.location.reload()
   }
 }

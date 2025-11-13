@@ -420,7 +420,7 @@ async function saveFormulation() {
     `Grower feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg\nTotal Cost: ₱${totalCost.toFixed(2)}`,
   )
 
-  router.push({ name: 'records' })
+  router.replace({ name: 'records' })
 }
 </script>
 

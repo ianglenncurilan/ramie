@@ -49,7 +49,7 @@ const refVform = ref(null)
 
 // Navigation to login page
 const navigateToLogin = () => {
-  router.push({ name: 'login' })
+  router.replace({ name: 'login' })
 }
 
 // Toggle password visibility
@@ -197,7 +197,7 @@ const handleRegister = async () => {
 
       // Redirect to login after a short delay
       setTimeout(() => {
-        router.push({ name: 'login' })
+        router.replace({ name: 'login' })
       }, 3000)
     }
   } catch (error) {

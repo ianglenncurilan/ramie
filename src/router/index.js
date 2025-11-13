@@ -22,7 +22,7 @@ import ForbiddenView from '../views/ForbiddenView.vue'
 const requireAuth = async (to, from, next) => {
   const isAuth = await isAuthenticated()
   if (!isAuth) {
-    next({ name: 'login', query: { redirect: to.fullPath } })
+    next({ name: 'login', query: { redirect: to.fullPath }, replace: true })
   } else {
     next()
   }
@@ -32,7 +32,7 @@ const requireAuth = async (to, from, next) => {
 const requireAdmin = async (to, from, next) => {
   const admin = await isAdmin()
   if (!admin) {
-    next({ name: 'forbidden' })
+    next({ name: 'forbidden', replace: true })
   } else {
     next()
   }
@@ -150,7 +150,7 @@ router.beforeEach(async (to, from, next) => {
       const authed = await isAuthenticated()
       if (!authed) {
         console.warn('Router guard: User not authenticated, redirecting to login')
-        return next({ name: 'login' })
+        return next({ name: 'login', replace: true })
       }
 
       console.log('Router guard: User is authenticated, checking admin status...')
@@ -162,7 +162,7 @@ router.beforeEach(async (to, from, next) => {
         console.warn(
           'Router guard: If you are an admin, please check ADMIN_SETUP.md for setup instructions',
         )
-        return next({ name: 'forbidden' })
+        return next({ name: 'forbidden', replace: true })
       }
 
       console.log('Router guard: Admin access granted for route:', to.name)
@@ -185,7 +185,8 @@ router.beforeEach(async (to, from, next) => {
       // Redirect to login with the attempted URL
       next({
         name: 'login',
-        query: { redirect: to.fullPath }
+        query: { redirect: to.fullPath },
+        replace: true,
       })
       return
     }
@@ -194,7 +195,7 @@ router.beforeEach(async (to, from, next) => {
     if (to.matched.some(record => record.meta.requiresAdmin)) {
       const admin = await isAdmin()
       if (!admin) {
-        next({ name: 'forbidden' })
+        next({ name: 'forbidden', replace: true })
         return
       }
     }

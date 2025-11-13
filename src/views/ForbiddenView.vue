@@ -31,7 +31,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 function goToDashboard() {
-  router.push({ name: 'dashboard' })
+  router.replace({ name: 'dashboard' })
 }
 
 function goBack() {

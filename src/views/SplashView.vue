@@ -21,7 +21,7 @@ const router = useRouter()
 onMounted(() => {
   // Auto-navigate to first onboarding screen after 2 seconds
   setTimeout(() => {
-    router.push({ name: 'onboarding-1' })
+    router.replace({ name: 'onboarding-1' })
   }, 2000)
 })
 </script>

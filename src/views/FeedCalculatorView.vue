@@ -298,7 +298,7 @@ async function saveFormulation() {
   // Show success message
   alert(`Feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg`)
 
-  router.push({ name: 'records' })
+  router.replace({ name: 'records' })
 }
 </script>
 

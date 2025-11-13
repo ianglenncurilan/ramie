@@ -164,14 +164,14 @@ const handleLoginSuccess = (userRole = 'user') => {
   
   if (redirectPath) {
     // If there's a redirect URL, navigate to it
-    router.push(redirectPath).then(() => {
+    router.replace(redirectPath).then(() => {
       // Force reload to ensure all auth state is properly initialized
       window.location.reload()
     })
   } else {
     // Otherwise, navigate to appropriate dashboard based on user role
     const targetRoute = userRole === 'admin' ? 'manage-staff' : 'dashboard'
-    router.push({ name: targetRoute }).then(() => {
+    router.replace({ name: targetRoute }).then(() => {
       window.location.reload()
     })
   }

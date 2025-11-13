@@ -546,7 +546,7 @@ async function saveFormulation() {
     }
 
     alert(successMessage)
-    router.push({ name: 'records' })
+    router.replace({ name: 'records' })
   } catch (error) {
     console.error('Error saving feed formulation:', error)
     alert(`Error saving feed formulation: ${error.message}`)

@@ -48,7 +48,7 @@ const nextStep = () => {
 }
 
 const goToLogin = () => {
-  router.push({ name: 'login' })
+  router.replace({ name: 'login' })
 }
 </script>
 
