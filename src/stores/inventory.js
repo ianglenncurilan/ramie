@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/services/supabase'
+import { logActivity } from '@/services/activityService'
 
 export const useInventoryStore = defineStore('inventory', () => {
   const ingredients = ref([])
@@ -47,6 +48,20 @@ export const useInventoryStore = defineStore('inventory', () => {
         isAvailable: (data[0].quantity || 0) > 0,
       }
       ingredients.value = [...ingredients.value, item]
+
+      try {
+        await logActivity({
+          type: 'inventory_added',
+          details: {
+            name: item.name,
+            quantity: Number(item.quantity) || 0,
+            cost: Number(item.cost) || 0,
+            type: item.type || '',
+          },
+          referenceType: 'inventory',
+          referenceId: item.id,
+        })
+      } catch (_) {}
     }
     return { data, error }
   }
@@ -92,6 +107,21 @@ export const useInventoryStore = defineStore('inventory', () => {
       ingredients.value[index] = current
       return { error }
     }
+    try {
+      await logActivity({
+        type: 'inventory_updated',
+        details: {
+          name: nextName,
+          oldQuantity: Number(current.quantity) || 0,
+          newQuantity: Number(nextQuantity) || 0,
+          oldCost: Number(current.cost) || 0,
+          newCost: Number(nextCost) || 0,
+          type: nextType || '',
+        },
+        referenceType: 'inventory',
+        referenceId: id,
+      })
+    } catch (_) {}
     return { success: true }
   }
 
@@ -99,10 +129,24 @@ export const useInventoryStore = defineStore('inventory', () => {
     const index = ingredients.value.findIndex((ingredient) => ingredient.id === id)
     if (index === -1) return { error: 'Not found' }
 
+    const toDelete = ingredients.value[index]
     const { error } = await supabase.from('inventory').delete().eq('id', id)
     if (error) return { error }
 
     ingredients.value = ingredients.value.filter((ingredient) => ingredient.id !== id)
+    try {
+      await logActivity({
+        type: 'inventory_deleted',
+        details: {
+          name: toDelete?.name || '',
+          quantity: Number(toDelete?.quantity) || 0,
+          cost: Number(toDelete?.cost) || 0,
+          type: toDelete?.type || '',
+        },
+        referenceType: 'inventory',
+        referenceId: id,
+      })
+    } catch (_) {}
     return { success: true }
   }
 

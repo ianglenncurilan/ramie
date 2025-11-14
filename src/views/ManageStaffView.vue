@@ -206,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useActivityStore } from '@/stores/activityStore'
 import { supabase } from '@/supabase'
@@ -232,6 +232,7 @@ const staffToDeactivate = ref(null)
 
 // Activity Log State
 const activityStore = useActivityStore()
+const activityLoading = computed(() => activityStore.loading)
 const currentFilter = ref('all')
 const activityFilters = [
   { label: 'All', value: 'all' },
@@ -416,8 +417,11 @@ const getActivityMessage = (activity) => {
       return `Updated hog ${details.code || ''}`
     case 'hog_deleted':
       return `Deleted hog ${details.code || ''}`
-    case 'hog_weight_updated':
-      return `Updated weight for hog ${details.code || ''} from ${details.oldWeight}kg to ${details.newWeight}kg (${details.difference > 0 ? '+' : ''}${details.difference}kg)`
+    case 'hog_weight_updated': {
+      const hasDiff = typeof details.difference === 'number' && details.difference !== 0
+      const diffText = hasDiff ? ` (${details.difference > 0 ? '+' : ''}${details.difference}kg)` : ''
+      return `Updated weight for hog ${details.code || ''} from ${details.oldWeight}kg to ${details.newWeight}kg${diffText}`
+    }
     case 'feeding_completed':
       return `Marked feeding as complete for hog ${details.code || ''}`
     case 'feeding_incomplete':
@@ -430,14 +434,38 @@ const getActivityMessage = (activity) => {
         : 'Feed'
       return `Made ${stage} Feed`
     }
+    case 'inventory_added': {
+      const qty = typeof details.quantity === 'number' ? details.quantity : Number(details.quantity) || 0
+      const name = details.name || 'Ingredient'
+      const cost = typeof details.cost === 'number' ? details.cost : Number(details.cost) || 0
+      return `Added ${qty} of ${name} with a cost of ₱${cost.toFixed(2)}`
+    }
+    case 'inventory_updated': {
+      const name = details.name || 'Ingredient'
+      const oq = typeof details.oldQuantity === 'number' ? details.oldQuantity : Number(details.oldQuantity) || 0
+      const nq = typeof details.newQuantity === 'number' ? details.newQuantity : Number(details.newQuantity) || 0
+      const oc = typeof details.oldCost === 'number' ? details.oldCost : Number(details.oldCost) || 0
+      const nc = typeof details.newCost === 'number' ? details.newCost : Number(details.newCost) || 0
+      return `Edited ${name}: quantity ${oq} → ${nq}, cost ₱${oc.toFixed(2)} → ₱${nc.toFixed(2)}`
+    }
+    case 'inventory_deleted': {
+      const qty = typeof details.quantity === 'number' ? details.quantity : Number(details.quantity) || 0
+      const name = details.name || 'Ingredient'
+      const cost = typeof details.cost === 'number' ? details.cost : Number(details.cost) || 0
+      return `Deleted ${qty} of ${name} with a cost of ₱${cost.toFixed(2)}`
+    }
     case 'staff_deactivated':
       return `Deactivated staff: ${details.staff_name || 'User'}`
     case 'staff_added':
       return `Added new staff: ${details.staff_name || 'New User'}`
     case 'staff_updated':
       return `Updated staff: ${details.staff_name || 'User'}`
-    default:
-      return 'Performed an action'
+    default: {
+      const base = String(activity.activity_type || 'action')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (m) => m.toUpperCase())
+      return base
+    }
   }
 }
 

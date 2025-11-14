@@ -138,10 +138,12 @@ import { computed, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFeedsStore } from '../stores/feeds'
 import { useInventoryStore } from '../stores/inventory'
+import { useFeedFormulationsStore } from '../stores/feedFormulations'
 
 const router = useRouter()
 const feedsStore = useFeedsStore()
 const inventoryStore = useInventoryStore()
+const feedFormulationsStore = useFeedFormulationsStore()
 
 // Mapping between feed calculator ingredients and inventory items
 const INGREDIENT_MAPPING = {
@@ -397,6 +399,20 @@ async function saveFormulation() {
       return
     }
   }
+
+  // Also persist a formulation entry in feed_formulations
+  const formulation = {
+    feedType: 'grower',
+    name: `Grower Feed - ${new Date().toLocaleDateString()}`,
+    ingredients: items.map((it) => ({ id: it.id, label: it.label, amountKg: it.amountKg, costPerKg: it.costPerKg })),
+    totalKg: totalAmount,
+    totalCost: totalCost,
+    costPerKg: totalAmount > 0 ? totalCost / totalAmount : 0,
+    notes: 'Generated from Grower Feed Calculator',
+  }
+  try {
+    await feedFormulationsStore.saveFormulation(formulation)
+  } catch (_) {}
 
   // Add record with detailed information
   await feedsStore.addRecord({

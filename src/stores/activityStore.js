@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getActivities } from '@/services/activityService'
+import { supabase } from '@/services/supabase'
 
 export const useActivityStore = defineStore('activity', () => {
   const activities = ref([])

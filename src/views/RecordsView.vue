@@ -13,11 +13,19 @@
         <div class="drag-indicator"></div>
         <h3>Records</h3>
         <div class="period-toggle">
-          <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">Year</button>
-          <button :class="{ active: selectedPeriod === 'Month' }" @click="selectedPeriod = 'Month'">Month</button>
+          <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">
+            Year
+          </button>
+          <button :class="{ active: selectedPeriod === 'Month' }" @click="selectedPeriod = 'Month'">
+            Month
+          </button>
+        </div>
+        <div class="export-wrap">
+          <button class="export-btn" @click="exportMonth">
+            Export {{ selectedMonthLabel }} Records
+          </button>
         </div>
         <div class="month-bar" @wheel.prevent="onWheel">
-          <button class="arrow" @click="prevMonth">‹</button>
           <div class="month-track" ref="monthTrack">
             <button
               v-for="m in months"
@@ -26,9 +34,10 @@
               :data-month="m.value"
               :class="{ active: m.value === selectedMonth }"
               @click="selectMonth(m.value)"
-            >{{ m.label }}</button>
+            >
+              {{ m.label }}
+            </button>
           </div>
-          <button class="arrow" @click="nextMonth">›</button>
         </div>
       </div>
 
@@ -36,7 +45,12 @@
         <div v-for="group in groupedRecords" :key="group.key" class="group">
           <div class="group-title">{{ group.label }}</div>
           <div class="records-card">
-            <div v-for="rec in group.items" :key="rec.id || rec.date" class="record-row" @click="openRecordModal(rec)">
+            <div
+              v-for="rec in group.items"
+              :key="rec.id || rec.date"
+              class="record-row"
+              @click="openRecordModal(rec)"
+            >
               <div class="icon-box">
                 <img src="/doc.png" alt="record" />
               </div>
@@ -60,9 +74,13 @@
         <div class="modal-content" v-if="selectedRecord">
           <div class="record-info">
             <div class="record-header">
-              <h4>{{ getStage(selectedRecord) ? getStage(selectedRecord) + ' Feed' : 'Feed Formulation' }}</h4>
+              <h4>
+                {{
+                  getStage(selectedRecord) ? getStage(selectedRecord) + ' Feed' : 'Feed Formulation'
+                }}
+              </h4>
               <div class="record-meta">
-                <span class="record-date">{{ formatDateTime(selectedRecord.date) }}</span>
+                <span class="record-date">{{ formatDateTime(recordDate(selectedRecord)) }}</span>
               </div>
             </div>
 
@@ -77,11 +95,7 @@
               </div>
               <div class="summary-item">
                 <span class="label">Total Cost:</span>
-                <span class="value cost"
-                  >₱{{
-                    (selectedRecord.totalCost || 0).toFixed(2)
-                  }}</span
-                >
+                <span class="value cost">₱{{ (selectedRecord.totalCost || 0).toFixed(2) }}</span>
               </div>
               <div class="summary-item" v-if="typeLabel(selectedRecord)">
                 <span class="label">Feed Type:</span>
@@ -96,11 +110,19 @@
             <div class="ingredients-section">
               <h5>Ingredients ({{ (selectedRecord.items || []).length }})</h5>
               <div class="ingredients-list">
-                <div v-for="(item, idx) in (selectedRecord.items || [])" :key="idx" class="ingredient-item">
+                <div
+                  v-for="(item, idx) in selectedRecord.items || []"
+                  :key="idx"
+                  class="ingredient-item"
+                >
                   <div class="ingredient-name">{{ item.label }}</div>
                   <div class="ingredient-details">
                     <span class="amount">{{ item.amountKg }}kg</span>
-                    <span class="total">₱{{ ((Number(item.amountKg)||0) * (Number(item.costPerKg)||0)).toFixed(2) }}</span>
+                    <span class="total"
+                      >₱{{
+                        ((Number(item.amountKg) || 0) * (Number(item.costPerKg) || 0)).toFixed(2)
+                      }}</span
+                    >
                   </div>
                 </div>
               </div>
@@ -137,10 +159,21 @@ const months = [
 ]
 const selectedMonth = ref(now.getMonth())
 const monthTrack = ref(null)
+const wheelLock = ref(false)
 
-function selectMonth(m) { selectedMonth.value = m }
-function prevMonth() { selectedMonth.value = (selectedMonth.value + 11) % 12 }
-function nextMonth() { selectedMonth.value = (selectedMonth.value + 1) % 12 }
+const selectedMonthLabel = computed(
+  () => months.find((m) => m.value === selectedMonth.value)?.label || '',
+)
+
+function selectMonth(m) {
+  selectedMonth.value = m
+}
+function prevMonth() {
+  selectedMonth.value = (selectedMonth.value + 11) % 12
+}
+function nextMonth() {
+  selectedMonth.value = (selectedMonth.value + 1) % 12
+}
 
 function scrollSelectedIntoView() {
   try {
@@ -150,7 +183,16 @@ function scrollSelectedIntoView() {
 }
 
 function onWheel(e) {
-  if (monthTrack.value) monthTrack.value.scrollLeft += e.deltaY
+  if (wheelLock.value) return
+  wheelLock.value = true
+  if (e.deltaY > 0) {
+    nextMonth()
+  } else if (e.deltaY < 0) {
+    prevMonth()
+  }
+  setTimeout(() => {
+    wheelLock.value = false
+  }, 180)
 }
 
 onMounted(() => {
@@ -167,14 +209,26 @@ function toDate(dLike) {
   const d = new Date(dLike)
   return isNaN(d.getTime()) ? new Date() : d
 }
+function recordDate(rec) {
+  return rec?.created_at || rec?.date
+}
+function dateOf(rec) {
+  return toDate(recordDate(rec))
+}
 function isSameDay(a, b) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
 }
 function labelForDay(d) {
   const today = new Date()
-  const yesterday = new Date(); yesterday.setDate(today.getDate() - 1)
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
   if (isSameDay(d, today)) return 'Today'
-  if (isSameDay(d, yesterday)) return `Yesterday, ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+  if (isSameDay(d, yesterday))
+    return `Yesterday, ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
   return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
@@ -182,32 +236,38 @@ function labelForDay(d) {
 const filtered = computed(() => {
   const recs = Array.isArray(feeds.records) ? feeds.records : []
   if (selectedPeriod.value === 'Month') {
-    return recs.filter(r => {
-      const d = toDate(r.date)
+    return recs.filter((r) => {
+      const d = dateOf(r)
       return d.getMonth() === selectedMonth.value && d.getFullYear() === now.getFullYear()
     })
   }
   // Year
-  return recs.filter(r => toDate(r.date).getFullYear() === now.getFullYear())
+  return recs.filter((r) => dateOf(r).getFullYear() === now.getFullYear())
 })
 
 const groupedRecords = computed(() => {
   const map = new Map()
-  const sorted = [...filtered.value].sort((a,b) => new Date(b.date) - new Date(a.date))
+  const sorted = [...filtered.value].sort((a, b) => dateOf(b) - dateOf(a))
   for (const r of sorted) {
-    const d = toDate(r.date)
+    const d = dateOf(r)
     const key = d.toDateString()
     if (!map.has(key)) {
       map.set(key, { key, date: d, label: labelForDay(d), items: [] })
     }
     map.get(key).items.push(r)
   }
-  return Array.from(map.values()).sort((a,b) => b.date - a.date)
+  return Array.from(map.values()).sort((a, b) => b.date - a.date)
 })
 
 function formatDateTime(dateLike) {
+  if (!dateLike) return ''
+  const raw = String(dateLike)
   const d = new Date(dateLike)
   if (Number.isNaN(d.getTime())) return ''
+  const hasTime = raw.includes('T') || /\d{2}:\d{2}/.test(raw)
+  if (!hasTime) {
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: '2-digit' })
+  }
   return d.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
@@ -247,6 +307,36 @@ function typeLabel(rec) {
   if (stage) return `${stage} Feed`
   return typeof rec.type === 'string' ? rec.type : ''
 }
+
+async function exportMonth() {
+  try {
+    const year = now.getFullYear()
+    const monthIdx = selectedMonth.value
+    const monthName =
+      months.find((m) => m.value === monthIdx)?.label || String(monthIdx + 1).padStart(2, '0')
+    const data = filtered.value.map((r) => {
+      const d = r.created_at ? new Date(r.created_at) : new Date(r.date)
+      return {
+        Date: d.toLocaleDateString(),
+        Time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        Type: typeLabel(r) || 'Feed',
+        Stage: getStage(r) || '',
+        'Total Cost (PHP)': Number(r.totalCost || 0),
+        'Created By': r.creatorName || '',
+      }
+    })
+
+    const XLSX = await import('https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs')
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, `${monthName}-${year}`)
+    const fname = `RAMIE_Records_${year}-${String(monthIdx + 1).padStart(2, '0')}.xlsx`
+    XLSX.writeFileXLSX(wb, fname)
+  } catch (e) {
+    alert('Failed to export. Please try again.')
+    console.error(e)
+  }
+}
 </script>
 
 <style scoped>
@@ -281,9 +371,20 @@ function typeLabel(rec) {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
-.brand { display: inline-flex; align-items: center; gap: 8px; }
-.brand-logo { width: 32px; height: 32px; object-fit: contain; }
-.overlay .title { font-weight: 700; font-size: 22px; }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.overlay .title {
+  font-weight: 700;
+  font-size: 22px;
+}
 .panel {
   margin: 0 16px 16px 16px;
   background: #2f8b60;
@@ -293,28 +394,154 @@ function typeLabel(rec) {
   flex: 1;
   overflow-y: auto;
 }
-.records-header { text-align: center; }
-.drag-indicator { width: 64px; height: 6px; margin: 4px auto 8px; background: rgba(255,255,255,0.6); border-radius: 999px; }
-.records-header h3 { margin: 0 0 8px 0; font-size: 18px; }
-.period-toggle { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
-.period-toggle button { background: rgba(255,255,255,0.3); color: #fff; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
-.period-toggle button.active { background: #fff; color: #2f8b60; }
-.month-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
-.month-track { position: relative; flex: 1; overflow-x: auto; overflow-y: hidden; display: flex; gap: 10px; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 2px 2px; scrollbar-width: none; }
-.month-track::-webkit-scrollbar { display: none; }
-.month-track::-webkit-scrollbar-thumb { background: transparent; }
-.month-bar .month-chip { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 8px 14px; border-radius: 12px; font-weight: 700; cursor: pointer; scroll-snap-align: center; white-space: nowrap; }
-.month-bar .month-chip.active { background: #fff; color: #2f8b60; }
-.month-bar .arrow { background: rgba(255,255,255,0.2); color: #fff; border: none; padding: 8px 10px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+.records-header {
+  text-align: center;
+}
+.drag-indicator {
+  width: 64px;
+  height: 6px;
+  margin: 4px auto 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+}
+.records-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+.period-toggle {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.period-toggle button {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.period-toggle button.active {
+  background: #fff;
+  color: #2f8b60;
+}
+.export-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 12px;
+}
+.export-btn {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.export-btn:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+.month-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center; /* center the whole months row under export */
+  margin-bottom: 16px;
+}
+.month-track {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  gap: 10px;
+  justify-content: center; /* center chips when space allows */
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 2px 2px;
+  scrollbar-width: none;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.month-track::-webkit-scrollbar {
+  display: none;
+}
+.month-track::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+.month-bar .month-chip {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  scroll-snap-align: center;
+  white-space: nowrap;
+}
+.month-bar .month-chip.active {
+  background: #fff;
+  color: #2f8b60;
+}
+.month-bar .arrow {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
 
-.groups { display: flex; flex-direction: column; gap: 12px; }
-.group-title { color: #e5ffe5; font-weight: 700; margin: 8px 2px; }
-.records-card { background: #fff; color: #333; border-radius: 12px; padding: 8px; }
-.record-row { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
-.record-row:last-child { border-bottom: 0; }
-.icon-box { width: 36px; height: 36px; border-radius: 8px; background: #e6eef2; display: flex; align-items: center; justify-content: center; }
-.icon-box img { width: 22px; height: 22px; object-fit: contain; filter: grayscale(30%); }
-.row-title { font-weight: 600; }
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.group-title {
+  color: #e5ffe5;
+  font-weight: 700;
+  margin: 8px 2px;
+}
+.records-card {
+  background: #fff;
+  color: #333;
+  border-radius: 12px;
+  padding: 8px;
+}
+.record-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.record-row:last-child {
+  border-bottom: 0;
+}
+.icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e6eef2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-box img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: grayscale(30%);
+}
+.row-title {
+  font-weight: 600;
+}
 .list {
   background: #fff;
   border-radius: 12px;

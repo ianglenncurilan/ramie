@@ -340,10 +340,40 @@ export const useHogsStore = defineStore('hogs', () => {
   }
 
   // Reset all feeding statuses (call this daily to reset for new day)
-  function resetDailyFeedingStatus() {
-    hogs.value.forEach((hog) => {
-      hog.feedingCompleted = false
-    })
+  async function resetDailyFeedingStatus() {
+    const today = new Date().toDateString()
+    const toReset = hogs.value.filter((hog) => hog.feedingCompleted && (!hog.lastFeedingDate || new Date(hog.lastFeedingDate).toDateString() !== today))
+    if (toReset.length === 0) return
+    const ids = toReset.map((h) => h.id)
+    const { data, error: updateError } = await supabase
+      .from('hogs')
+      .update({ feeding_completed: false })
+      .in('id', ids)
+      .select('id')
+    if (!updateError) {
+      const resetSet = new Set((data || []).map((d) => d.id))
+      hogs.value = hogs.value.map((h) => (resetSet.has(h.id) ? { ...h, feedingCompleted: false } : h))
+    }
+  }
+
+  // Ensure daily reset (checks and applies once per load)
+  async function ensureDailyReset() {
+    await resetDailyFeedingStatus()
+  }
+
+  // Realtime subscription for hogs table
+  function subscribeToRealtime() {
+    const channel = supabase
+      .channel('hogs_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'hogs' },
+        () => {
+          fetchHogs()
+        },
+      )
+      .subscribe()
+    return () => supabase.removeChannel(channel)
   }
 
   // Get statistics
@@ -383,5 +413,8 @@ export const useHogsStore = defineStore('hogs', () => {
     resetDailyFeedingStatus,
     getStats,
     fetchHogs,
+    resetDailyFeedingStatus,
+    ensureDailyReset,
+    subscribeToRealtime,
   }
 })

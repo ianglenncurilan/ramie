@@ -37,6 +37,7 @@
             <input
               type="number"
               v-model.number="hog.weight"
+              @focus="capturePrevWeight(hog.id, hog.weight)"
               @blur="updateHogWeight(hog.id, hog.weight)"
               @keyup.enter="updateHogWeight(hog.id, hog.weight)"
               class="weight-input"
@@ -147,7 +148,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useActivityLogger } from '@/composables/useActivityLogger'
 import BottomBar from './parts/BottomBar.vue'
@@ -167,18 +168,30 @@ const newHog = ref({
   days: 0,
 })
 
+let cleanup = null
+onUnmounted(() => {
+  if (typeof cleanup === 'function') cleanup()
+})
+
 // Computed properties
 const hogs = computed(() => hogsStore.hogs)
 const stats = computed(() => hogsStore.getStats())
 const isLoading = computed(() => hogsStore.loading)
+
+const prevWeightById = ref({})
 
 // Fetch hogs when component mounts
 onMounted(async () => {
   try {
     loading.value = true
     await hogsStore.fetchHogs()
-    // Initialize daily tasks after loading hogs
     hogsStore.incrementDaysForAllHogs()
+    if (typeof hogsStore.ensureDailyReset === 'function') {
+      await hogsStore.ensureDailyReset()
+    } else if (typeof hogsStore.resetDailyFeedingStatus === 'function') {
+      await hogsStore.resetDailyFeedingStatus()
+    }
+    cleanup = hogsStore.subscribeToRealtime()
   } catch (err) {
     console.error('Failed to load hogs:', err)
     error.value = 'Failed to load hogs. Please try again.'
@@ -242,17 +255,25 @@ function closeAddHogModal() {
   newHog.value = { code: '', weight: 0, days: 0 }
 }
 
+function capturePrevWeight(hogId, weight) {
+  prevWeightById.value[hogId] = Number(weight)
+}
+
 async function updateHogWeight(hogId, weight) {
   try {
-    const oldHog = hogs.value.find(h => h.id === hogId)
-    await hogsStore.updateHogWeight(hogId, parseFloat(weight) || 0)
-    
-    // Log the activity
+    const hog = hogs.value.find(h => h.id === hogId)
+    const oldWeight = prevWeightById.value[hogId] ?? Number(hog?.weight)
+    const newWeight = Number(weight)
+    if (Number.isNaN(newWeight)) return
+    if (Number(oldWeight) === Number(newWeight)) return
+    await hogsStore.updateHogWeight(hogId, newWeight)
+
+    const diff = Number((newWeight - Number(oldWeight)).toFixed(2))
     await logHogActivity(ActivityType.HOG_WEIGHT_UPDATED, hogId, {
-      code: oldHog.code,
-      oldWeight: oldHog.weight,
-      newWeight: weight,
-      difference: (parseFloat(weight) - parseFloat(oldHog.weight)).toFixed(2)
+      code: hog?.code,
+      oldWeight,
+      newWeight,
+      difference: diff,
     })
   } catch (err) {
     console.error('Error updating hog weight:', err)

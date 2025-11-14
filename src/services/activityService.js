@@ -1,4 +1,4 @@
-import { supabase } from '@/supabase'
+import { supabase } from '@/services/supabase'
 
 export const ActivityType = {
   HOG_ADDED: 'hog_added',

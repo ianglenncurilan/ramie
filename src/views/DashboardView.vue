@@ -68,7 +68,7 @@ const go = (name) => {
 
 <style scoped>
 .dashboard {
-  padding-bottom: 80px; /* Add padding to prevent content from being hidden behind bottom bar */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom)); /* Prevent overlap with bottom bar and account for safe area */
 }
 
 .dashboard-content {
@@ -160,8 +160,8 @@ const go = (name) => {
 .bottombar {
   margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 24pxx; /* Increased from 16px */
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px; /* Increased from 16px */
   padding: 24px 32px; /* Increased from 20px 24px */
   background: #fff;
   border-top-left-radius: 18px;
@@ -200,5 +200,38 @@ const go = (name) => {
   height: 36px; /* Increased from 32px */
   object-fit: contain;
   transition: filter 0.2s ease-in-out;
+}
+
+/* Responsive tweaks for small phones */
+@media (max-width: 400px) {
+  .hero img {
+    height: 150px;
+  }
+  .grid {
+    padding: 16px;
+    gap: 10px;
+    border-radius: 24px;
+  }
+  .card {
+    padding: 16px;
+    min-height: 110px;
+    border-radius: 20px;
+    gap: 8px;
+  }
+  .card img {
+    width: 40px;
+    height: 40px;
+  }
+  .card div {
+    font-size: 14px;
+  }
+  .bottombar {
+    padding: 16px 20px;
+    gap: 12px;
+  }
+  .bottombar img {
+    width: 28px;
+    height: 28px;
+  }
 }
 </style>
