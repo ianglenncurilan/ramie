@@ -4,12 +4,14 @@
       <section class="hero">
         <img src="/pig.jpg" alt="hero" />
         <div class="overlay">
+          <img class="price-icon" src="/price.png" alt="Price" />
           <div class="brand">
             <div class="title">RAMIE</div>
           </div>
         </div>
       </section>
       <div class="panel">
+        <div class="summary-line">Financial Summary for {{ monthYearLabel }}</div>
         <div class="action-buttons">
           <button class="add-income-btn" @click="openIncomeModal">
             <span>+</span>
@@ -19,6 +21,10 @@
             <span>+</span>
             Add Expense
           </button>
+        </div>
+        <div class="cta-hints">
+          <div class="hint income-hint">Have you recorded all sales and grants for the period?</div>
+          <div class="hint expense-hint">Record every purchase to maintain accurate figures.</div>
         </div>
         <div class="cards">
           <div class="card success">
@@ -42,12 +48,11 @@
         >
           <div class="net-label">Net Profit/Loss</div>
           <div class="net-value">
-            <span v-if="feeds.netProfit > 0">+₱{{ feeds.netProfit.toFixed(2) }}</span>
-            <span v-else-if="feeds.netProfit < 0"
-              >-₱{{ Math.abs(feeds.netProfit).toFixed(2) }}</span
-            >
-            <span v-else>₱0.00</span>
+            <span v-if="feeds.netProfit > 0">+₱{{ feeds.netProfit.toFixed(2) }} 🟢</span>
+            <span v-else-if="feeds.netProfit < 0">-₱{{ Math.abs(feeds.netProfit).toFixed(2) }} 🔴</span>
+            <span v-else>₱0.00 🟡</span>
           </div>
+          <div class="net-message">{{ netStatusMessage }}</div>
         </div>
 
         
@@ -57,7 +62,8 @@
         <div class="table-section">
           <div class="table-header">
             <h3>Income</h3>
-            <span class="count">{{ feeds.income.length }} entries</span>
+            <span class="count" v-if="feeds.income.length === 0">Income: No entries yet!</span>
+            <span class="count" v-else>Income: {{ feeds.income.length }} Transactions</span>
           </div>
           <div class="view-btn-wrap">
             <button class="view-btn view-income-btn" @click="openIncomeList()">View Income</button>
@@ -68,7 +74,8 @@
         <div class="table-section">
           <div class="table-header">
             <h3>Expenses</h3>
-            <span class="count">{{ feeds.expenses.length }} entries</span>
+            <span class="count" v-if="feeds.expenses.length === 0">Expenses: No entries yet!</span>
+            <span class="count" v-else>Expenses: {{ feeds.expenses.length }} Transactions</span>
           </div>
           <div class="view-btn-wrap">
             <button class="view-btn view-expense-btn" @click="openExpenseList()">View Expense</button>
@@ -236,7 +243,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
 
 const feeds = useFeedsStore()
@@ -362,12 +369,23 @@ async function saveExpense() {
     loading.value = false
   }
 }
+
+const monthYearLabel = computed(() => {
+  const d = new Date()
+  return d.toLocaleString(undefined, { month: 'long', year: 'numeric' })
+})
+
+const netStatusMessage = computed(() => {
+  const v = Number(feeds.netProfit || 0)
+  if (v > 0) return 'Great Job! The farm is currently operating at a profit this month.'
+  if (v < 0) return "Review Expenses: Current costs outweigh income. Consider using 'View Expense' to analyze spending."
+  return 'Break Even: Income and Expenses are balanced.'
+})
 </script>
 
 <style scoped>
 /* Base Styles */
 .screen {
-  padding-bottom: 80px; /* Space for bottom bar */
   position: relative;
 }
 
@@ -540,6 +558,15 @@ async function saveExpense() {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
+.overlay .price-icon {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+}
 .brand { display: inline-flex; align-items: center; gap: 8px; }
 .brand-logo { width: 32px; height: 32px; object-fit: contain; }
 .overlay .title { font-weight: 700; font-size: 22px; }
@@ -601,6 +628,11 @@ async function saveExpense() {
   color: #fff;
   flex: 1;
   overflow-y: auto;
+}
+.summary-line {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
 }
 .cards {
   display: grid;
@@ -685,6 +717,11 @@ async function saveExpense() {
   font-weight: 700;
   font-size: 20px;
 }
+.net-message {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #333;
+}
 .net-profit-card.profit .net-value {
   color: #2f8b60;
 }
@@ -702,6 +739,18 @@ async function saveExpense() {
   gap: 12px;
   margin-top: 16px;
   margin-bottom: 24px;
+}
+.cta-hints {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: -12px 0 8px 0;
+}
+.cta-hints .hint {
+  background: rgba(255,255,255,0.2);
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
 }
 .add-income-btn,
 .add-expense-btn {

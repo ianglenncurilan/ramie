@@ -463,7 +463,7 @@ const handleRegister = async () => {
 
 .logo h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: #2c7a4b;
   letter-spacing: -0.4px;
@@ -490,7 +490,7 @@ h2 {
   text-align: center;
   color: #475569;
   margin-bottom: 1.25rem;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
 }
 
 /* Form layout */
@@ -512,7 +512,7 @@ h2 {
   margin-bottom: 0.5rem;
   color: var(--text); /* dark green */
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 /* Update the input group styles */
@@ -565,7 +565,7 @@ h2 {
   border: none;
   background: transparent;
   padding: 12px 40px; /* Add padding on both sides for icons */
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text);
   outline: none;
   width: 100%;
@@ -597,6 +597,7 @@ h2 {
   border-radius: 9999px;
   padding: 0.75rem;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
   border: none;
   background: #2c7a4b; /* dark green background */
@@ -661,7 +662,7 @@ h2 {
     height: 56px;
   }
   h2 {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     color: var(--text);
   }
   .input-group {
@@ -670,12 +671,12 @@ h2 {
   }
   .input-group input {
     padding: 10px 40px;
-    font-size: 13px;
+    font-size: 12px;
   }
   .btn-primary,
   .btn-google {
     height: 40px;
-    font-size: 14px;
+    font-size: 13px;
   }
   .register-form {
     gap: 6px;

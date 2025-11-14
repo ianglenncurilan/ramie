@@ -8,7 +8,6 @@
       :disabled="item.disabled"
     >
       <img :src="item.icon" :alt="item.label" />
-      <span class="label">{{ item.label }}</span>
     </button>
   </nav>
 </template>
@@ -64,7 +63,7 @@ const navigateTo = (routeName) => {
 .bottombar button {
   background: none;
   border: none;
-  padding: 10px 18px; /* bigger touch target */
+  padding: 12px 18px; /* comfy touch target */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -76,11 +75,13 @@ const navigateTo = (routeName) => {
   flex: 1;
   max-width: 25%;
   opacity: 0.9; /* more visible */
+  border-radius: 12px;
 }
 
 .bottombar button:hover {
   opacity: 1;
   transform: translateY(-2px) scale(1.06);
+  background: rgba(47, 139, 96, 0.12); /* subtle green hover */
 }
 
 .bottombar button:disabled {
@@ -89,17 +90,13 @@ const navigateTo = (routeName) => {
 }
 
 .bottombar button img {
-  width: 28px; /* larger icons */
+  width: 28px; /* icon-only */
   height: 28px;
-  margin-bottom: 6px;
+  margin-bottom: 0;
   transition: transform 0.18s ease, filter 0.18s ease;
 }
 
-.bottombar button .label {
-  font-size: 12px; /* clearer labels */
-  font-weight: 600;
-  margin-top: 2px;
-}
+/* labels removed */
 
 .bottombar button.active {
   color: #2f8b60;

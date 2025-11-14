@@ -19,13 +19,15 @@
       </div>
       <div class="name">{{ userProfile.name || 'Loading...' }}</div>
       <div class="email">{{ userProfile.email }}</div>
+      <div class="status-message">Your account is active and secure. We're always here to help you manage your farm efficiently.</div>
+      
 
       <div class="menu">
         <button v-if="isAdminUser" class="row" @click="$router.push({ name: 'admin' })">
           <span>Admin</span>
           <span>›</span>
         </button>
-        <button class="signout" @click="handleSignOut">Sign out</button>
+        <button class="signout" title="Securely end your session." @click="showSignOutConfirm = true">Sign out</button>
       </div>
     </div>
 
@@ -122,13 +124,23 @@
       </div>
     </div>
 
-    <BottomBar />
+    <!-- Sign Out Confirmation Modal -->
+    <div v-if="showSignOutConfirm" class="confirm-overlay" @click="cancelSignOut">
+      <div class="confirm-modal" @click.stop>
+        <h3 class="confirm-title">Sign out of {{ userProfile.name || 'your account' }}?</h3>
+        <p>This will securely end your session.</p>
+        <div class="confirm-actions">
+          <button class="btn btn-cancel" @click="cancelSignOut">Cancel</button>
+          <button class="btn btn-danger" @click="confirmSignOut">Sign Out</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import BottomBar from '@/components/BottomBar.vue'
 import { useRouter } from 'vue-router'
 import { supabase, hasSupabaseConfig } from '../services/supabase'
 
@@ -149,6 +161,7 @@ const successMessage = ref('')
 
 // Admin flag
 const isAdminUser = ref(false)
+const showSignOutConfirm = ref(false)
 
 // Edit profile form state
 const editForm = ref({
@@ -199,7 +212,8 @@ async function fetchUserProfile() {
         name: metadata.name || metadata.full_name || user.email?.split('@')[0] || 'User',
         email: user.email || '',
         phone: metadata.phone || '',
-        profilePicture: metadata.avatar_url || metadata.picture || null
+        profilePicture: metadata.avatar_url || metadata.picture || null,
+        createdAt: user.created_at
       }
       
       // Update the edit form with current values
@@ -357,6 +371,30 @@ async function handleSignOut() {
     window.location.reload()
   }
 }
+
+const accountAgeText = computed(() => {
+  const started = userProfile.value?.createdAt
+  if (!started) return 'Welcome to RAMIE'
+  const start = new Date(started)
+  const now = new Date()
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+  if (now.getDate() < start.getDate()) months = Math.max(0, months - 1)
+  const years = Math.floor(months / 12)
+  const rem = months % 12
+  const y = years > 0 ? `${years} year${years > 1 ? 's' : ''}` : ''
+  const m = rem > 0 ? `${rem} month${rem > 1 ? 's' : ''}` : ''
+  const parts = [y, m].filter(Boolean)
+  return parts.length ? `You've been using RAMIE for ${parts.join(' and ')}!` : 'New to RAMIE — let’s get started!'
+})
+
+async function confirmSignOut() {
+  showSignOutConfirm.value = false
+  await handleSignOut()
+}
+
+function cancelSignOut() {
+  showSignOutConfirm.value = false
+}
 </script>
 
 <style scoped>
@@ -405,7 +443,7 @@ async function handleSignOut() {
   align-items: center;
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 100px; /* space for fixed bottom bar */
+  padding-bottom: 16px;
 }
 .avatar {
   width: 90px;
@@ -421,7 +459,19 @@ async function handleSignOut() {
   border: 6px solid #2f8b60;
   overflow: hidden;
 }
-
+.avatar-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+.link-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+}
 .avatar img {
   width: 100%;
   height: 100%;
@@ -439,6 +489,16 @@ async function handleSignOut() {
   font-size: 14px;
   opacity: 0.8;
   margin-bottom: 14px;
+}
+.status-message {
+  font-size: 12px;
+  opacity: 0.95;
+  margin-bottom: 6px;
+}
+.usage-message {
+  font-size: 12px;
+  opacity: 0.95;
+  margin-bottom: 12px;
 }
 .menu {
   width: 100%;
@@ -890,4 +950,32 @@ button {
     font-size: 14px;
   }
 }
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.confirm-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 380px;
+  padding: 16px;
+}
+
+.confirm-title { font-weight: 700; margin: 0 0 8px 0; }
+
+.confirm-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+.confirm-actions .btn { flex: 1; padding: 10px 12px; border-radius: 8px; border: none; cursor: pointer; }
+
+.btn-cancel { background: #f5f5f5; color: #333; }
+
+.btn-danger { background: #e53935; color: #fff; }
 </style>

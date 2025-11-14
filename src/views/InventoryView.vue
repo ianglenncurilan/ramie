@@ -32,45 +32,47 @@
         </div>
 
         <div class="table">
-          <div class="thead">
-            <span>Ingredient</span>
-            <span>Qty</span>
-            <span>Cost</span>
-            <span>Status</span>
-            <span>Actions</span>
-          </div>
-          <div class="row" v-for="ingredient in inventory.ingredients" :key="ingredient.id">
-            <span class="ingredient-name">{{ ingredient.name }}</span>
-            <span class="quantity">
-              <input
-                v-model="ingredient.quantity"
-                @change="updateQuantity(ingredient.id, ingredient.quantity)"
-                type="number"
-                min="0"
-                step="0.1"
-                class="qty-input"
-              />
-              <span class="unit">{{ ingredient.unit }}</span>
-            </span>
-            <span class="cost">₱{{ ingredient.cost.toFixed(2) }}</span>
-            <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
-              {{ ingredient.isAvailable ? 'Available' : 'Not Available' }}
-            </span>
-            <div class="actions">
-              <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
-              <button
-                class="delete-btn"
-                @click="() => deleteIngredient(ingredient.id)"
-                @mousedown="console.log('Delete button mousedown')"
-                @mouseup="console.log('Delete button mouseup')"
-                @touchstart="console.log('Delete button touchstart')"
-                @touchend="console.log('Delete button touchend')"
-                @keydown="console.log('Delete button keydown')"
-                @keyup="console.log('Delete button keyup')"
-                type="button"
-              >
-                X
-              </button>
+          <div class="tbody">
+            <div class="thead">
+              <span>Ingredient</span>
+              <span>Qty</span>
+              <span>Cost</span>
+              <span>Status</span>
+              <span>Actions</span>
+            </div>
+            <div class="row" v-for="ingredient in inventory.ingredients" :key="ingredient.id">
+              <span class="ingredient-name">{{ ingredient.name }}</span>
+              <span class="quantity">
+                <input
+                  v-model="ingredient.quantity"
+                  @change="updateQuantity(ingredient.id, ingredient.quantity)"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  class="qty-input"
+                />
+                <span class="unit">{{ ingredient.unit }}</span>
+              </span>
+              <span class="cost">₱{{ ingredient.cost.toFixed(2) }}</span>
+              <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
+                {{ ingredient.isAvailable ? 'Available' : 'Not Available' }}
+              </span>
+              <div class="actions">
+                <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
+                <button
+                  class="delete-btn"
+                  @click="() => deleteIngredient(ingredient.id)"
+                  @mousedown="console.log('Delete button mousedown')"
+                  @mouseup="console.log('Delete button mouseup')"
+                  @touchstart="console.log('Delete button touchstart')"
+                  @touchend="console.log('Delete button touchend')"
+                  @keydown="console.log('Delete button keydown')"
+                  @keyup="console.log('Delete button keyup')"
+                  type="button"
+                >
+                  X
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -352,8 +354,9 @@ function onNameChange() {
   border-radius: 18px;
   padding: 16px;
   flex: 1;
-  overflow-y: auto;
-  max-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .panel-header {
   display: grid;
@@ -440,7 +443,11 @@ function onNameChange() {
   border: 1px solid #e8e8e8;
   border-radius: 14px;
   padding: 8px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  /* allow inner scroller to manage overflow */
 }
 .thead,
 .row {
@@ -449,10 +456,34 @@ function onNameChange() {
   gap: 12px;
   padding: 10px 12px;
   align-items: center;
+  /* ensure horizontal scrolling shows when viewport is narrow */
+  min-width: 760px;
 }
 .thead {
   font-weight: 600;
   border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+/* Column alignment: name left, qty center, cost right, status center, actions center */
+.thead span:nth-child(1),
+.row > :nth-child(1) { text-align: left; }
+.thead span:nth-child(2),
+.row > :nth-child(2) { text-align: center; }
+.thead span:nth-child(3),
+.row > :nth-child(3) { text-align: right; }
+.thead span:nth-child(4),
+.row > :nth-child(4) { text-align: center; }
+.thead span:nth-child(5),
+.row > :nth-child(5) { text-align: center; }
+.row > .actions { justify-content: center; }
+.tbody {
+  overflow: auto; /* vertical and horizontal scroll */
+  flex: 1;
+  min-height: 0;
 }
 .row {
   border-bottom: 1px solid #f0f0f0;
@@ -668,18 +699,21 @@ button {
 @media (max-width: 420px) {
   .panel {
     margin: 12px 12px 100px 12px;
-    max-height: calc(100vh - 140px);
+    padding: 18px; /* slightly larger padding for better spacing */
   }
   .stats {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 10px;
   }
+  .stat-card { padding: 14px; border-radius: 12px; }
+  .table { padding: 6px; border-radius: 12px; }
   .thead,
   .row {
-    grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr 100px;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 90px; /* tighter to fit mobile */
     gap: 8px;
     padding: 8px 6px;
     font-size: 12px;
+    min-width: 640px; /* allow side scroll on small phones */
   }
   .qty-input {
     width: 50px;

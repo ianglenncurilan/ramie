@@ -58,13 +58,16 @@ const goToLogin = () => {
 }
 
 .onboarding {
+  position: fixed;
+  inset: 0;
   height: 100vh;
+  height: 100dvh;
   background: white;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 16px 16px;
-  overflow: hidden;
+  overflow: hidden; /* prevent page scroll */
 }
 
 .content {
@@ -114,6 +117,7 @@ const goToLogin = () => {
   padding: 15px 20px;
   margin-top: 15px;
   flex-shrink: 0;
+  margin-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
 .skip {

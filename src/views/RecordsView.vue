@@ -3,6 +3,7 @@
     <section class="hero">
       <img src="/pig.jpg" alt="hero" />
       <div class="overlay">
+        <img class="receipt-icon" src="/receipt.png" alt="Receipt" />
         <div class="brand">
           <div class="title">RAMIE</div>
         </div>
@@ -12,6 +13,9 @@
       <div class="records-header">
         <div class="drag-indicator"></div>
         <h3>Records</h3>
+        <div class="summary-line">
+          Overall Record Status: {{ totalMonthsWithData }} months of records saved. Currently viewing: Records by {{ selectedPeriod }}
+        </div>
         <div class="period-toggle">
           <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">
             Year
@@ -21,8 +25,8 @@
           </button>
         </div>
         <div class="export-wrap">
-          <button class="export-btn" @click="exportMonth">
-            Export {{ selectedMonthLabel }} Records
+          <button class="export-btn" @click="exportMonth" :title="`Click to download ${selectedMonthLabel}'s data as an Excel file.`">
+            {{ exportStatus || `Export ${selectedMonthLabel} Records` }}
           </button>
         </div>
         <div class="month-bar" @wheel.prevent="onWheel">
@@ -32,7 +36,7 @@
               :key="m.value"
               class="month-chip"
               :data-month="m.value"
-              :class="{ active: m.value === selectedMonth }"
+              :class="{ active: m.value === selectedMonth, disabled: !monthsWithData.has(m.value) }"
               @click="selectMonth(m.value)"
             >
               {{ m.label }}
@@ -61,7 +65,9 @@
             <div v-if="group.items.length === 0" class="empty">No records</div>
           </div>
         </div>
-        <div v-if="groupedRecords.length === 0" class="empty">No records yet</div>
+        <div v-if="groupedRecords.length === 0" class="empty">
+          No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home and use the task menus (e.g., Make Feeds, Hogs Tracked).
+        </div>
       </div>
     </div>
     <!-- Record Detail Modal -->
@@ -142,6 +148,7 @@ const feeds = useFeedsStore()
 
 // Period toggle and month navigation
 const selectedPeriod = ref('Month')
+const exportStatus = ref('')
 const now = new Date()
 const months = [
   { value: 0, label: 'Jan' },
@@ -259,6 +266,19 @@ const groupedRecords = computed(() => {
   return Array.from(map.values()).sort((a, b) => b.date - a.date)
 })
 
+// Months that have any data at all (across the whole year in view)
+const monthsWithData = computed(() => {
+  const set = new Set()
+  const recs = Array.isArray(feeds.records) ? feeds.records : []
+  for (const r of recs) {
+    const m = dateOf(r).getMonth()
+    set.add(m)
+  }
+  return set
+})
+
+const totalMonthsWithData = computed(() => monthsWithData.value.size)
+
 function formatDateTime(dateLike) {
   if (!dateLike) return ''
   const raw = String(dateLike)
@@ -332,6 +352,10 @@ async function exportMonth() {
     XLSX.utils.book_append_sheet(wb, ws, `${monthName}-${year}`)
     const fname = `RAMIE_Records_${year}-${String(monthIdx + 1).padStart(2, '0')}.xlsx`
     XLSX.writeFileXLSX(wb, fname)
+    exportStatus.value = '✅ Export Successful!'
+    setTimeout(() => {
+      exportStatus.value = ''
+    }, 3000)
   } catch (e) {
     alert('Failed to export. Please try again.')
     console.error(e)
@@ -371,6 +395,15 @@ async function exportMonth() {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
+.overlay .receipt-icon {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+}
 .brand {
   display: inline-flex;
   align-items: center;
@@ -396,6 +429,11 @@ async function exportMonth() {
 }
 .records-header {
   text-align: center;
+}
+.summary-line {
+  margin: 6px 0 8px 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
 }
 .drag-indicator {
   width: 64px;
@@ -485,6 +523,13 @@ async function exportMonth() {
 .month-bar .month-chip.active {
   background: #fff;
   color: #2f8b60;
+  border: 2px solid #2f8b60;
+  box-shadow: 0 2px 8px rgba(47,139,96,0.25);
+}
+.month-bar .month-chip.disabled {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.6);
+  filter: grayscale(40%);
 }
 .month-bar .arrow {
   background: rgba(255, 255, 255, 0.2);

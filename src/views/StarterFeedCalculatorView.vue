@@ -58,7 +58,6 @@
                 <span class="num">{{ idx + 1 }}.</span>
                 <span class="label">{{ item.label }}</span>
                 <span class="ghost" v-if="item.note">({{ item.note }})</span>
-                <span class="right">{{ item.base }}</span>
               </div>
               <div class="cell amount">
                 <div

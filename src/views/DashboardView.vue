@@ -6,6 +6,19 @@ import { supabase, hasSupabaseConfig } from '@/services/supabase'
 const router = useRouter()
 
 const userFirstName = ref('')
+const rotatingMessage = ref('')
+const timeGreeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good Morning'
+  if (h < 18) return 'Good Afternoon'
+  return 'Good Evening'
+})
+const contextGreeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 12) return "Ready to start today's tasks?"
+  if (h < 18) return 'Ready to check on the farm?'
+  return "Let\'s review the day\'s records."
+})
 
 onMounted(async () => {
   try {
@@ -14,6 +27,16 @@ onMounted(async () => {
     const fullName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email || ''
     const first = fullName?.split(/[\s@]/)[0] || ''
     userFirstName.value = first.charAt(0).toUpperCase() + first.slice(1)
+    // Build rotating suggestions and pick one each refresh
+    const name = userFirstName.value || 'there'
+    const options = [
+      `Let's get organized, ${name}! Have you reviewed the current Inventory Ingredients?`,
+      "Don't let the team wait! Head to Manage Staff to check today's Activities.",
+      `Need to mix a new batch? Hi ${name}, let's go Make Feeds!`,
+      `Hey ${name}! Quick check: Are all the Hogs Feeded? Lets feed them now!`,
+    ]
+    const idx = Math.floor(Math.random() * options.length)
+    rotatingMessage.value = options[idx]
   } catch (e) {
     // noop
   }
@@ -40,7 +63,7 @@ const go = (name) => {
             <img src="/leaf.png" alt="RAMIE" class="brand-logo" />
             <div class="title">RAMIE</div>
           </div>
-          <div v-if="userFirstName" class="greet">Welcome {{ userFirstName }}!</div>
+          <div v-if="userFirstName" class="greet">{{ timeGreeting }}, {{ userFirstName }}! {{ rotatingMessage }}</div>
         </div>
       </section>
 
@@ -67,13 +90,13 @@ const go = (name) => {
 </template>
 
 <style scoped>
+/* App.vue already provides bottom padding for the global BottomBar */
 .dashboard {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom)); /* Prevent overlap with bottom bar and account for safe area */
+  padding-bottom: 0;
 }
 
 .dashboard-content {
-  min-height: calc(100vh - 60px); /* Adjust based on your header height */
-  padding-bottom: 20px;
+  min-height: calc(100vh - 60px);
 }
 * {
   font-family: 'Quicksand', sans-serif;
@@ -122,6 +145,8 @@ const go = (name) => {
   font-size: 22px;
 }
 .hero .greet { font-weight: 600; font-size: 16px; opacity: 0.95; margin-left: 6px; }
+.hero .subgreet { font-weight: 500; font-size: 13px; opacity: 0.9; margin-left: 6px; }
+.hero .rotating-hint { font-weight: 600; font-size: 13px; opacity: 0.95; margin-left: 6px; margin-top: 4px; }
 .grid {
   margin: 0 16px;
   background: #2f8b60;
@@ -205,25 +230,25 @@ const go = (name) => {
 /* Responsive tweaks for small phones */
 @media (max-width: 400px) {
   .hero img {
-    height: 150px;
+    height: 170px;
   }
   .grid {
-    padding: 16px;
-    gap: 10px;
-    border-radius: 24px;
+    padding: 24px; /* bigger green background */
+    gap: 14px;
+    border-radius: 28px;
   }
   .card {
-    padding: 16px;
-    min-height: 110px;
-    border-radius: 20px;
-    gap: 8px;
+    padding: 20px; /* bigger cards */
+    min-height: 130px;
+    border-radius: 24px;
+    gap: 10px;
   }
   .card img {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
   }
   .card div {
-    font-size: 14px;
+    font-size: 16px;
   }
   .bottombar {
     padding: 16px 20px;

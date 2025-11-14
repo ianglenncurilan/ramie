@@ -57,25 +57,12 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
 
       if (saveError) throw saveError
       
-      // Create expense record
+      // Create expense record; do not create a separate 'production' record here to avoid duplicates
       if (data && data[0]) {
         await feedsStore.addExpense({
           label: `Feed Formulation: ${formulation.name}`,
           amount: formulation.totalCost,
           date: new Date().toISOString(),
-          reference_id: data[0].id,
-          reference_type: 'feed_formulation'
-        })
-        
-        // Create production record
-        await feedsStore.addRecord({
-          date: new Date().toISOString(),
-          type: 'production',
-          description: `Produced ${formulation.totalKg}kg of ${formulation.name}`,
-          amount: formulation.totalKg,
-          unit: 'kg',
-          cost_per_unit: formulation.costPerKg,
-          total_cost: formulation.totalCost,
           reference_id: data[0].id,
           reference_type: 'feed_formulation'
         })

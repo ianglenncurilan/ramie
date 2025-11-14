@@ -321,12 +321,14 @@ body {
 }
 
 .login-page {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  overflow: hidden;
 }
 
 .card {
@@ -532,18 +534,18 @@ h2 {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile browsers */
   background: linear-gradient(135deg, #87ceeb 0%, #98fb98 50%, #90ee90 100%);
   background-image: url('/pig.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-attachment: scroll; /* avoid page scroll from fixed background */
   padding: 16px;
-  overflow-x: hidden;
-  position: relative;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  overflow: hidden; /* prevent page scroll */
+  position: fixed; /* pin to viewport */
+  inset: 0;
 }
 
 .login-page::before {
@@ -587,6 +589,8 @@ h2 {
   z-index: 2;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  max-height: calc(100dvh - 32px);
+  overflow: auto; /* internal scroll if content taller than viewport */
 }
 
 .logo {

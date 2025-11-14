@@ -32,13 +32,17 @@ onMounted(() => {
 }
 
 .splash {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100dvh;
   background: #2f8b60;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   padding: 20px;
+  overflow: hidden;
 }
 
 .content {
