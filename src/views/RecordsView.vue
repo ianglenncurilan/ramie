@@ -14,7 +14,8 @@
         <div class="drag-indicator"></div>
         <h3>Records</h3>
         <div class="summary-line">
-          Overall Record Status: {{ totalMonthsWithData }} months of records saved. Currently viewing: Records by {{ selectedPeriod }}
+          Overall Record Status: {{ totalMonthsWithData }} months of records saved. Currently
+          viewing: Records by {{ selectedPeriod }}
         </div>
         <div class="period-toggle">
           <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">
@@ -25,7 +26,11 @@
           </button>
         </div>
         <div class="export-wrap">
-          <button class="export-btn" @click="exportMonth" :title="`Click to download ${selectedMonthLabel}'s data as an Excel file.`">
+          <button
+            class="export-btn"
+            @click="exportMonth"
+            :title="`Click to download ${selectedMonthLabel}'s data as an Excel file.`"
+          >
             {{ exportStatus || `Export ${selectedMonthLabel} Records` }}
           </button>
         </div>
@@ -66,7 +71,8 @@
           </div>
         </div>
         <div v-if="groupedRecords.length === 0" class="empty">
-          No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home and use the task menus (e.g., Make Feeds, Hogs Tracked).
+          No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home and use
+          the task menus (e.g., Make Feeds, Hogs Tracked).
         </div>
       </div>
     </div>
@@ -402,7 +408,7 @@ async function exportMonth() {
   width: 100px;
   height: 100px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
 .brand {
   display: inline-flex;
@@ -433,7 +439,7 @@ async function exportMonth() {
 .summary-line {
   margin: 6px 0 8px 0;
   font-size: 12px;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 .drag-indicator {
   width: 64px;
@@ -524,11 +530,11 @@ async function exportMonth() {
   background: #fff;
   color: #2f8b60;
   border: 2px solid #2f8b60;
-  box-shadow: 0 2px 8px rgba(47,139,96,0.25);
+  box-shadow: 0 2px 8px rgba(47, 139, 96, 0.25);
 }
 .month-bar .month-chip.disabled {
-  background: rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.6);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
   filter: grayscale(40%);
 }
 .month-bar .arrow {
@@ -670,7 +676,7 @@ async function exportMonth() {
 .empty {
   padding: 12px;
   text-align: center;
-  color: #789;
+  color: rgb(255, 255, 255);
 }
 .bottombar {
   position: fixed;

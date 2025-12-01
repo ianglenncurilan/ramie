@@ -23,75 +23,79 @@
         </button>
       </div>
 
-      <div class="table" v-if="hogs.length > 0">
-        <div class="thead">
-          <span>Hog Code</span>
-          <span>Weight (kg)</span>
-          <span>Days</span>
-          <span>Feeding</span>
-          <span>Actions</span>
+      <template v-if="hogs.length > 0">
+        <div class="table-container">
+          <div class="table">
+            <div class="thead">
+              <span class="hog-code">Hog Code</span>
+              <span class="weight-cell">Weight (kg)</span>
+              <span class="days">Days</span>
+              <span class="feeding-status">Feeding</span>
+              <span class="actions">Actions</span>
+            </div>
+            <div class="row" v-for="hog in hogs" :key="hog.id">
+              <span class="hog-code">{{ hog.code }}</span>
+              <div class="weight-cell">
+                <input
+                  type="number"
+                  v-model.number="hog.weight"
+                  @focus="capturePrevWeight(hog.id, hog.weight)"
+                  @blur="updateHogWeight(hog.id, hog.weight)"
+                  @keyup.enter="updateHogWeight(hog.id, hog.weight)"
+                  class="weight-input"
+                  min="0"
+                  step="0.1"
+                />
+                <span class="unit">kg</span>
+              </div>
+              <span class="days">{{ hog.days }}</span>
+              <div class="feeding-status">
+                <span
+                  :class="{
+                    'status-completed': hog.feedingCompleted,
+                    'status-pending': !hog.feedingCompleted,
+                  }"
+                >
+                  {{ hog.feedingCompleted ? 'Completed' : 'Pending' }}
+                </span>
+              </div>
+              <div class="actions">
+                <button
+                  class="action-btn complete-btn"
+                  @click="markFeedingComplete(hog.id)"
+                  :disabled="hog.feedingCompleted"
+                  :class="{ disabled: hog.feedingCompleted }"
+                  title="Mark feeding as completed"
+                >
+                  ✓
+                </button>
+                <button
+                  class="action-btn incomplete-btn"
+                  @click="markFeedingIncomplete(hog.id)"
+                  :disabled="!hog.feedingCompleted"
+                  :class="{ disabled: !hog.feedingCompleted }"
+                  title="Mark feeding as not completed"
+                >
+                  ✗
+                </button>
+                <button class="action-btn delete-btn" @click="deleteHog(hog.id)" title="Delete hog">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="row" v-for="hog in hogs" :key="hog.id">
-          <span class="hog-code">{{ hog.code }}</span>
-          <div class="weight-cell">
-            <input
-              type="number"
-              v-model.number="hog.weight"
-              @focus="capturePrevWeight(hog.id, hog.weight)"
-              @blur="updateHogWeight(hog.id, hog.weight)"
-              @keyup.enter="updateHogWeight(hog.id, hog.weight)"
-              class="weight-input"
-              min="0"
-              step="0.1"
-            />
-            <span class="unit">kg</span>
-          </div>
-          <span class="days">{{ hog.days }}</span>
-          <div class="feeding-status">
-            <span
-              :class="{
-                'status-completed': hog.feedingCompleted,
-                'status-pending': !hog.feedingCompleted,
-              }"
-            >
-              {{ hog.feedingCompleted ? 'Completed' : 'Pending' }}
-            </span>
-          </div>
-          <div class="actions">
-            <button
-              class="action-btn complete-btn"
-              @click="markFeedingComplete(hog.id)"
-              :disabled="hog.feedingCompleted"
-              :class="{ disabled: hog.feedingCompleted }"
-              title="Mark feeding as completed"
-            >
-              ✓
-            </button>
-            <button
-              class="action-btn incomplete-btn"
-              @click="markFeedingIncomplete(hog.id)"
-              :disabled="!hog.feedingCompleted"
-              :class="{ disabled: !hog.feedingCompleted }"
-              title="Mark feeding as not completed"
-            >
-              ✗
-            </button>
-            <button class="action-btn delete-btn" @click="deleteHog(hog.id)" title="Delete hog">
-              🗑️
-            </button>
-          </div>
+      </template>
+      <template v-else>
+        <div class="empty-state">
+          <img src="/pig2.png" alt="No hogs" class="empty-icon" />
+          <h3>No Hogs Tracked</h3>
+          <p>Add your first hog to start tracking</p>
+          <button class="add-first-hog-btn" @click="showAddHogModal = true">
+            Add Your First Hog
+          </button>
         </div>
-      </div>
-
-      <!-- Empty State -->
-      <div v-else class="empty-state">
-        <img src="/pig2.png" alt="No hogs" class="empty-icon" />
-        <h3>No Hogs Tracked</h3>
-        <p>Add your first hog to start tracking</p>
-        <button class="add-first-hog-btn" @click="showAddHogModal = true">
-          Add Your First Hog
-        </button>
-      </div>
+      </template>
     </section>
 
     <!-- Add Hog Modal -->
@@ -226,12 +230,12 @@ async function addNewHog() {
       weight: newHog.value.weight,
       days: newHog.value.days,
     })
-    
+
     // Log the activity
     await logHogActivity(ActivityType.HOG_ADDED, hog.id, {
       code: hog.code,
       weight: hog.weight,
-      days: hog.days
+      days: hog.days,
     })
 
     // Reset form and close modal
@@ -261,7 +265,7 @@ function capturePrevWeight(hogId, weight) {
 
 async function updateHogWeight(hogId, weight) {
   try {
-    const hog = hogs.value.find(h => h.id === hogId)
+    const hog = hogs.value.find((h) => h.id === hogId)
     const oldWeight = prevWeightById.value[hogId] ?? Number(hog?.weight)
     const newWeight = Number(weight)
     if (Number.isNaN(newWeight)) return
@@ -284,14 +288,14 @@ async function updateHogWeight(hogId, weight) {
 
 async function markFeedingComplete(hogId) {
   try {
-    const hog = hogs.value.find(h => h.id === hogId)
+    const hog = hogs.value.find((h) => h.id === hogId)
     await hogsStore.markFeedingComplete(hogId)
-    
+
     // Log the activity
     await logHogActivity(ActivityType.FEEDING_COMPLETED, hogId, {
       code: hog.code,
       weight: hog.weight,
-      days: hog.days
+      days: hog.days,
     })
   } catch (err) {
     console.error('Error marking feeding as complete:', err)
@@ -302,14 +306,14 @@ async function markFeedingComplete(hogId) {
 
 async function markFeedingIncomplete(hogId) {
   try {
-    const hog = hogs.value.find(h => h.id === hogId)
+    const hog = hogs.value.find((h) => h.id === hogId)
     await hogsStore.markFeedingIncomplete(hogId)
-    
+
     // Log the activity
     await logHogActivity(ActivityType.FEEDING_INCOMPLETE, hogId, {
       code: hog.code,
       weight: hog.weight,
-      days: hog.days
+      days: hog.days,
     })
   } catch (err) {
     console.error('Error marking feeding as incomplete:', err)
@@ -321,15 +325,15 @@ async function markFeedingIncomplete(hogId) {
 async function deleteHog(hogId) {
   if (confirm('Are you sure you want to delete this hog? This action cannot be undone.')) {
     try {
-      const hog = hogs.value.find(h => h.id === hogId)
-      
+      const hog = hogs.value.find((h) => h.id === hogId)
+
       // Log the activity before deletion
       await logHogActivity(ActivityType.HOG_DELETED, hogId, {
         code: hog.code,
         weight: hog.weight,
-        days: hog.days
+        days: hog.days,
       })
-      
+
       // Then delete the hog
       await hogsStore.deleteHog(hogId)
     } catch (err) {
@@ -443,8 +447,21 @@ async function deleteHog(hogId) {
   font-weight: bold;
 }
 
-/* Table */
+/* Table container */
+.table-container {
+  width: 100%;
+  margin-top: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  border: 1px solid #f1f3f5;
+}
+
+/* Table styles */
 .table {
+  min-width: 600px; /* Minimum width to ensure all columns are visible */
+  width: 100%;
+  font-size: 14px;
   background: #fff;
   margin-top: 12px;
   border: 1px solid #e8e8e8;

@@ -22,10 +22,7 @@
             Add Expense
           </button>
         </div>
-        <div class="cta-hints">
-          <div class="hint income-hint">Have you recorded all sales and grants for the period?</div>
-          <div class="hint expense-hint">Record every purchase to maintain accurate figures.</div>
-        </div>
+     
         <div class="cards">
           <div class="card success">
             <div class="label">Income</div>
@@ -740,18 +737,7 @@ const netStatusMessage = computed(() => {
   margin-top: 16px;
   margin-bottom: 24px;
 }
-.cta-hints {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: -12px 0 8px 0;
-}
-.cta-hints .hint {
-  background: rgba(255,255,255,0.2);
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 12px;
-}
+
 .add-income-btn,
 .add-expense-btn {
   display: flex;
