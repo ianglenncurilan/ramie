@@ -5,7 +5,7 @@
       <div class="overlay">
         <img class="receipt-icon" src="/receipt.png" alt="Receipt" />
         <div class="brand">
-          <div class="title">RAMIE</div>
+          <div class="title"></div>
         </div>
       </div>
     </section>

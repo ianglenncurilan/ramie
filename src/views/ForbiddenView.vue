@@ -16,10 +16,7 @@
           <i class="mdi mdi-home"></i>
           Go to Dashboard
         </button>
-        <button @click="goBack" class="btn-secondary">
-          <i class="mdi mdi-arrow-left"></i>
-          Go Back
-        </button>
+        
       </div>
     </div>
   </div>

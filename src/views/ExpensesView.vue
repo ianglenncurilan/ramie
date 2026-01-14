@@ -6,7 +6,7 @@
         <div class="overlay">
           <img class="price-icon" src="/price.png" alt="Price" />
           <div class="brand">
-            <div class="title">RAMIE</div>
+            <div class="title"> </div>
           </div>
         </div>
       </section>
@@ -22,7 +22,7 @@
             Add Expense
           </button>
         </div>
-     
+
         <div class="cards">
           <div class="card success">
             <div class="label">Income</div>
@@ -46,38 +46,44 @@
           <div class="net-label">Net Profit/Loss</div>
           <div class="net-value">
             <span v-if="feeds.netProfit > 0">+₱{{ feeds.netProfit.toFixed(2) }} 🟢</span>
-            <span v-else-if="feeds.netProfit < 0">-₱{{ Math.abs(feeds.netProfit).toFixed(2) }} 🔴</span>
+            <span v-else-if="feeds.netProfit < 0"
+              >-₱{{ Math.abs(feeds.netProfit).toFixed(2) }} 🔴</span
+            >
             <span v-else>₱0.00 🟡</span>
           </div>
           <div class="net-message">{{ netStatusMessage }}</div>
         </div>
 
-        
-
         <div class="view-sections-grid">
-        <!-- Income -->
-        <div class="table-section">
-          <div class="table-header">
-            <h3>Income</h3>
-            <span class="count" v-if="feeds.income.length === 0">Income: No entries yet!</span>
-            <span class="count" v-else>Income: {{ feeds.income.length }} Transactions</span>
+          <!-- Income -->
+          <div class="table-section">
+            <div class="table-header">
+              <h3>Income</h3>
+              <span class="count" v-if="feeds.income.length === 0">Income: No entries yet!</span>
+              <span class="count" v-else>Income: {{ feeds.income.length }} Transactions</span>
+            </div>
+            <div class="view-btn-wrap">
+              <button class="view-btn view-income-btn" @click="openIncomeList()">
+                View Income
+              </button>
+            </div>
           </div>
-          <div class="view-btn-wrap">
-            <button class="view-btn view-income-btn" @click="openIncomeList()">View Income</button>
-          </div>
-        </div>
 
-        <!-- Expenses -->
-        <div class="table-section">
-          <div class="table-header">
-            <h3>Expenses</h3>
-            <span class="count" v-if="feeds.expenses.length === 0">Expenses: No entries yet!</span>
-            <span class="count" v-else>Expenses: {{ feeds.expenses.length }} Transactions</span>
+          <!-- Expenses -->
+          <div class="table-section">
+            <div class="table-header">
+              <h3>Expenses</h3>
+              <span class="count" v-if="feeds.expenses.length === 0"
+                >Expenses: No entries yet!</span
+              >
+              <span class="count" v-else>Expenses: {{ feeds.expenses.length }} Transactions</span>
+            </div>
+            <div class="view-btn-wrap">
+              <button class="view-btn view-expense-btn" @click="openExpenseList()">
+                View Expense
+              </button>
+            </div>
           </div>
-          <div class="view-btn-wrap">
-            <button class="view-btn view-expense-btn" @click="openExpenseList()">View Expense</button>
-          </div>
-        </div>
         </div>
       </div>
 
@@ -194,42 +200,65 @@
           </form>
         </div>
       </div>
-      <!-- View Income Modal -->
+
+      <!-- View Income List Modal -->
       <div v-if="showIncomeListModal" class="modal-overlay" @click="closeIncomeList">
         <div class="modal" @click.stop>
           <div class="modal-header">
-            <h3>Income</h3>
+            <h3>Income Records</h3>
             <button class="close-btn" @click="closeIncomeList">×</button>
           </div>
           <div class="modal-form">
             <div class="table">
-              <div class="row" v-for="i in feeds.income" :key="i.id">
-                <span>{{ i.label }}</span>
-                <span class="amt income">+₱{{ Number(i.amount).toFixed(2) }}</span>
+              <div class="row header">
+                <span>Description</span>
+                <span>Date</span>
+                <span class="amt">Amount</span>
+              </div>
+              <div class="row" v-for="income in feeds.income" :key="income.id">
+                <span>{{ income.label }}</span>
+                <span>{{ formatDate(income.date) }}</span>
+                <span class="amt">+₱{{ Number(income.amount).toFixed(2) }}</span>
               </div>
               <div v-if="!feeds.income.length" class="row">
-                <span>No income yet</span><span class="amt">₱0.00</span>
+                <span>No income records yet</span>
+              </div>
+              <div class="row total" v-if="feeds.income.length">
+                <span>Total Income:</span>
+                <span></span>
+                <span class="amt">+₱{{ feeds.totalIncome.toFixed(2) }}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- View Expense Modal -->
+      <!-- View Expense List Modal -->
       <div v-if="showExpenseListModal" class="modal-overlay" @click="closeExpenseList">
         <div class="modal" @click.stop>
           <div class="modal-header">
-            <h3>Expenses</h3>
+            <h3>Expense Records</h3>
             <button class="close-btn" @click="closeExpenseList">×</button>
           </div>
           <div class="modal-form">
             <div class="table">
-              <div class="row" v-for="e in feeds.expenses" :key="e.id">
-                <span>{{ e.label }}</span>
-                <span class="amt expense">-₱{{ Number(e.amount).toFixed(2) }}</span>
+              <div class="row header">
+                <span>Description</span>
+                <span>Date</span>
+                <span class="amt">Amount</span>
+              </div>
+              <div class="row" v-for="expense in feeds.expenses" :key="expense.id">
+                <span>{{ expense.label }}</span>
+                <span>{{ formatDate(expense.date) }}</span>
+                <span class="amt expense">-₱{{ Number(expense.amount).toFixed(2) }}</span>
               </div>
               <div v-if="!feeds.expenses.length" class="row">
-                <span>No expenses yet</span><span class="amt">₱0.00</span>
+                <span>No expense records yet</span>
+              </div>
+              <div class="row total" v-if="feeds.expenses.length">
+                <span>Total Expenses:</span>
+                <span></span>
+                <span class="amt expense">-₱{{ feeds.totalExpense.toFixed(2) }}</span>
               </div>
             </div>
           </div>
@@ -240,270 +269,133 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
 
 const feeds = useFeedsStore()
 const loading = ref(false)
 const error = ref(null)
-
-// Modal state
 const showIncomeModal = ref(false)
 const showExpenseModal = ref(false)
-
-
-// View list modals
 const showIncomeListModal = ref(false)
 const showExpenseListModal = ref(false)
 
-// Hero header state
-const farmName = ref('Olivier Ecovillage')
-
-
 // Form data
-const incomeForm = reactive({
+const incomeForm = ref({
   label: '',
   amount: '',
-  date: new Date().toISOString().split('T')[0], // Default to today's date
+  date: new Date().toISOString().split('T')[0],
 })
 
-const expenseForm = reactive({
+const expenseForm = ref({
   label: '',
   amount: '',
-  date: new Date().toISOString().split('T')[0], // Default to today's date
+  date: new Date().toISOString().split('T')[0],
 })
 
-// Fetch expenses when component mounts
-onMounted(async () => {
-  try {
-    loading.value = true
-    await feeds.fetchExpenses()
-  } catch (err) {
-    error.value = 'Failed to load expenses. Please try again.'
-    console.error('Error loading expenses:', err)
-  } finally {
-    loading.value = false
-  }
-})
-
-// Modal functions
-function openIncomeModal() {
-  showIncomeModal.value = true
-  resetIncomeForm()
-}
-
-function closeIncomeModal() {
-  showIncomeModal.value = false
-  resetIncomeForm()
-}
-
-function openExpenseModal() {
-  showExpenseModal.value = true
-  resetExpenseForm()
-}
-
-function closeExpenseModal() {
-  showExpenseModal.value = false
-  resetExpenseForm()
-}
-
-// View list modal handlers
-function openIncomeList() {
-  showIncomeListModal.value = true
-}
-function closeIncomeList() {
-  showIncomeListModal.value = false
-}
-function openExpenseList() {
-  showExpenseListModal.value = true
-}
-function closeExpenseList() {
-  showExpenseListModal.value = false
-}
-
-function resetIncomeForm() {
-  incomeForm.label = ''
-  incomeForm.amount = ''
-  incomeForm.date = new Date().toISOString().split('T')[0]
-}
-
-function resetExpenseForm() {
-  expenseForm.label = ''
-  expenseForm.amount = ''
-  expenseForm.date = new Date().toISOString().split('T')[0]
-}
-
-async function saveIncome() {
-  try {
-    loading.value = true
-    await feeds.addIncome({
-      label: incomeForm.label,
-      amount: Number(incomeForm.amount),
-      date: incomeForm.date,
-    })
-    closeIncomeModal()
-  } catch (err) {
-    error.value = 'Failed to save income. Please try again.'
-    console.error('Error saving income:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-async function saveExpense() {
-  try {
-    loading.value = true
-    await feeds.addExpense({
-      label: expenseForm.label,
-      amount: Number(expenseForm.amount),
-      date: expenseForm.date,
-    })
-    closeExpenseModal()
-  } catch (err) {
-    error.value = 'Failed to save expense. Please try again.'
-    console.error('Error saving expense:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
+// Computed
 const monthYearLabel = computed(() => {
-  const d = new Date()
-  return d.toLocaleString(undefined, { month: 'long', year: 'numeric' })
+  const date = new Date()
+  return date.toLocaleString('default', { month: 'long', year: 'numeric' })
 })
 
 const netStatusMessage = computed(() => {
-  const v = Number(feeds.netProfit || 0)
-  if (v > 0) return 'Great Job! The farm is currently operating at a profit this month.'
-  if (v < 0) return "Review Expenses: Current costs outweigh income. Consider using 'View Expense' to analyze spending."
-  return 'Break Even: Income and Expenses are balanced.'
+  if (feeds.netProfit > 0) return 'Your farm is profitable! 🎉'
+  if (feeds.netProfit < 0) return 'Your expenses exceed your income 💸'
+  return 'Your income and expenses are balanced ⚖️'
 })
+
+// Methods
+const openIncomeModal = () => {
+  incomeForm.value = {
+    label: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+  }
+  showIncomeModal.value = true
+}
+
+const closeIncomeModal = () => {
+  showIncomeModal.value = false
+}
+
+const openExpenseModal = () => {
+  expenseForm.value = {
+    label: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+  }
+  showExpenseModal.value = true
+}
+
+const closeExpenseModal = () => {
+  showExpenseModal.value = false
+}
+
+const openIncomeList = async () => {
+  try {
+    loading.value = true
+    await feeds.fetchExpenses() // This will load both expenses and income data
+    showIncomeListModal.value = true
+  } catch (err) {
+    error.value = 'Failed to load income records: ' + (err.message || 'Unknown error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const closeIncomeList = () => {
+  showIncomeListModal.value = false
+}
+
+const openExpenseList = async () => {
+  try {
+    loading.value = true
+    await feeds.fetchExpenses() // This will load both expenses and income data
+    showExpenseListModal.value = true
+  } catch (err) {
+    error.value = 'Failed to load expense records: ' + (err.message || 'Unknown error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const closeExpenseList = () => {
+  showExpenseListModal.value = false
+}
+
+const saveIncome = async () => {
+  try {
+    loading.value = true
+    await feeds.addIncome(incomeForm.value)
+    closeIncomeModal()
+  } catch (err) {
+    error.value = 'Failed to save income: ' + (err.message || 'Unknown error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const saveExpense = async () => {
+  try {
+    loading.value = true
+    await feeds.addExpense(expenseForm.value)
+    closeExpenseModal()
+  } catch (err) {
+    error.value = 'Failed to save expense: ' + (err.message || 'Unknown error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const formatDate = (dateString) => {
+  const options = { year: 'numeric', month: 'short', day: 'numeric' }
+  return new Date(dateString).toLocaleDateString(undefined, options)
+}
 </script>
 
 <style scoped>
-/* Base Styles */
-.screen {
-  position: relative;
-}
-
-/* Loading Overlay */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #4caf50;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* Error Message */
-.error-message {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 1rem;
-  margin: 1rem;
-  border-radius: 4px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  animation: slideIn 0.3s ease-out;
-}
-
-.close-error {
-  background: none;
-  border: none;
-  color: #c62828;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0 0.5rem;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* Form Styles */
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-group input[type='date'],
-.form-group input[type='number'],
-.form-group input[type='text'] {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.form-group input[type='date'] {
-  padding: 0.4rem 0.5rem;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.cancel-btn,
-.save-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.cancel-btn {
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-.cancel-btn:hover:not(:disabled) {
-  background-color: #e0e0e0;
-}
+/* ... */
 
 .save-btn {
   background-color: #4caf50;
@@ -562,11 +454,22 @@ const netStatusMessage = computed(() => {
   width: 100px;
   height: 100px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
-.brand { display: inline-flex; align-items: center; gap: 8px; }
-.brand-logo { width: 32px; height: 32px; object-fit: contain; }
-.overlay .title { font-weight: 700; font-size: 22px; }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.overlay .title {
+  font-weight: 700;
+  font-size: 22px;
+}
 .hero-header {
   width: 100%;
   display: flex;
@@ -580,13 +483,18 @@ const netStatusMessage = computed(() => {
   gap: 6px;
   font-weight: 700;
   font-size: 18px;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 .pin {
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
-.pin.on { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
-.location-actions { display: flex; align-items: center; }
+.pin.on {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+.location-actions {
+  display: flex;
+  align-items: center;
+}
 .loc-btn {
   background: #0bac61;
   color: #fff;
@@ -596,7 +504,10 @@ const netStatusMessage = computed(() => {
   font-weight: 600;
   cursor: pointer;
 }
-.loc-text { font-size: 12px; opacity: 0.9; }
+.loc-text {
+  font-size: 12px;
+  opacity: 0.9;
+}
 .hero-stats {
   width: 100%;
   display: flex;
@@ -609,14 +520,17 @@ const netStatusMessage = computed(() => {
   align-items: center;
 }
 .hero-stats .bubble {
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   color: #333;
   border-radius: 999px;
   padding: 2px 10px;
   font-weight: 700;
   margin-bottom: 4px;
 }
-.hero-stats .label { font-size: 12px; opacity: 0.95; }
+.hero-stats .label {
+  font-size: 12px;
+  opacity: 0.95;
+}
 .panel {
   margin: 0 16px 16px 16px;
   background: #2f8b60;
@@ -629,7 +543,7 @@ const netStatusMessage = computed(() => {
 .summary-line {
   margin: 0 0 8px 0;
   font-size: 12px;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 .cards {
   display: grid;
@@ -679,7 +593,7 @@ const netStatusMessage = computed(() => {
   font-weight: 600;
 }
 .amt.expense {
-  color: #c94d4d;
+  color: #4dc96a;
   font-weight: 600;
 }
 
@@ -769,12 +683,11 @@ const netStatusMessage = computed(() => {
   box-shadow: 0 2px 8px rgba(47, 139, 96, 0.3);
 }
 .add-expense-btn {
-  background: #c94d4d;
+  background: #009532;
   color: white;
 }
 .add-expense-btn:hover {
-  background: #b03d3d;
-  transform: translateY(-1px);
+  filter: brightness(0.95);
 }
 .add-income-btn span {
   font-size: 20px;
@@ -835,7 +748,7 @@ const netStatusMessage = computed(() => {
   color: #fff;
 }
 .view-expense-btn {
-  background: #c94d4d;
+  background: #009532;
   color: #fff;
 }
 .view-btn:hover {
@@ -858,12 +771,67 @@ const netStatusMessage = computed(() => {
 }
 .modal {
   background: white;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 90vh;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
   overflow-y: auto;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
+
+.modal .table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.modal .row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+}
+
+.modal .row.header {
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.modal .row.total {
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-top: 2px solid #dee2e6;
+}
+
+.modal .amt {
+  text-align: right;
+  font-weight: 500;
+}
+
+.modal .amt.expense {
+  color: #009532;
+}
+
+.modal .close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0 10px;
+  line-height: 1;
+}
+
+.modal .close-btn:hover {
+  color: #333;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -872,11 +840,13 @@ const netStatusMessage = computed(() => {
   border-bottom: 1px solid #eee;
   margin-bottom: 20px;
 }
+
 .modal-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
 }
+
 .close-btn {
   width: 32px;
   height: 32px;

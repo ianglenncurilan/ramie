@@ -4,7 +4,7 @@
       <img src="/pig.jpg" alt="hero" />
       <div class="overlay">
         <div class="brand">
-          <div class="title">RAMIE</div>
+          <div class="title"></div>
         </div>
       </div>
     </section>
@@ -522,7 +522,7 @@ function cancelSignOut() {
   width: 70%; /* smaller than full width */
   max-width: 360px;
   justify-self: center; /* center within grid */
-  background: #e53935;
+  background: #428542;
   color: #fff;
   border-radius: 9999px; /* pill like login */
   height: 48px; /* match login button height */
@@ -535,7 +535,7 @@ function cancelSignOut() {
   justify-content: center;
 }
 .signout:hover {
-  background: #c62828;
+  background: #003a05;
 }
 button {
   cursor: pointer;

@@ -103,7 +103,7 @@ const router = createRouter({
       path: '/inventory',
       name: 'inventory',
       component: InventoryView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/hogs-tracked',
@@ -179,7 +179,7 @@ router.beforeEach(async (to, from, next) => {
 // Navigation guard
 router.beforeEach(async (to, from, next) => {
   // Check if route requires authentication
-  if (to.matched.some(record => record.meta.requiresAuth)) {
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
     const isAuth = await isAuthenticated()
     if (!isAuth) {
       // Redirect to login with the attempted URL
@@ -192,7 +192,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     // Check if route requires admin access
-    if (to.matched.some(record => record.meta.requiresAdmin)) {
+    if (to.matched.some((record) => record.meta.requiresAdmin)) {
       const admin = await isAdmin()
       if (!admin) {
         next({ name: 'forbidden', replace: true })

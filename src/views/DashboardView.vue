@@ -30,10 +30,10 @@ onMounted(async () => {
     // Build rotating suggestions and pick one each refresh
     const name = userFirstName.value || 'there'
     const options = [
-      `Let's get organized, ${name}! Have you reviewed the current Inventory Ingredients?`,
+      `Let's get organized, Have you reviewed the current Inventory Ingredients?`,
       "Don't let the team wait! Head to Manage Staff to check today's Activities.",
-      `Need to mix a new batch? Hi ${name}, let's go Make Feeds!`,
-      `Hey ${name}! Quick check: Are all the Hogs Feeded? Lets feed them now!`,
+      `Need to mix a new batch? Let's go Make Feeds!`,
+      `Quick check: Are all the Hogs Feeded? Lets feed them now!`,
     ]
     const idx = Math.floor(Math.random() * options.length)
     rotatingMessage.value = options[idx]

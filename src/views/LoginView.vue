@@ -101,7 +101,7 @@ const handleLogin = async () => {
       } else if (error.message.includes('Email not confirmed')) {
         showError(
           'Please verify your email address before logging in. Check your inbox for a verification link.',
-          'Email Not Verified'
+          'Email Not Verified',
         )
       } else if (error.message.includes('Too many requests')) {
         showWarning('Too many login attempts. Please wait a moment and try again.', 'Rate Limited')
@@ -112,7 +112,7 @@ const handleLogin = async () => {
       formAction.value.formStatus = error.status || 400
     } else if (data && data.user) {
       console.log('Login successful:', data)
-      
+
       // Fetch additional user data from the users table
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -127,15 +127,18 @@ const handleLogin = async () => {
 
       // Store user data in session storage
       if (userData) {
-        sessionStorage.setItem('user', JSON.stringify({
-          id: userData.id,
-          email: userData.email,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          full_name: userData.full_name,
-          is_admin: userData.is_admin,
-          role: userData.role
-        }))
+        sessionStorage.setItem(
+          'user',
+          JSON.stringify({
+            id: userData.id,
+            email: userData.email,
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            full_name: userData.full_name,
+            is_admin: userData.is_admin,
+            role: userData.role,
+          }),
+        )
       }
 
       showSuccess('Welcome back! You have been logged in successfully.', 'Login Successful', {
@@ -161,7 +164,7 @@ const handleLogin = async () => {
 const handleLoginSuccess = (userRole = 'user') => {
   // Check for redirect URL in query params
   const redirectPath = router.currentRoute.value.query.redirect
-  
+
   if (redirectPath) {
     // If there's a redirect URL, navigate to it
     router.replace(redirectPath).then(() => {
@@ -236,7 +239,7 @@ const togglePasswordVisibility = () => {
             @input="clearErrors('password')"
           />
           <i
-            class="mdi"
+            class="mdi password-toggle"
             :class="passwordVisible ? 'mdi-eye-off' : 'mdi-eye'"
             @click="togglePasswordVisibility"
           ></i>
@@ -265,8 +268,6 @@ const togglePasswordVisibility = () => {
       <div class="register-prompt">
         <p>Don't have an account? <a href="#" @click.prevent="navigateToRegister">Sign up</a></p>
       </div>
-
-      
     </div>
 
     <!-- Alert Modal -->
@@ -417,9 +418,8 @@ h2 {
   justify-content: center;
 }
 
-/* Right icon (eye) */
-.input-group2 i.mdi-eye,
-.input-group2 i.mdi-eye-off {
+/* Password toggle icon */
+.input-group2 .password-toggle {
   position: absolute;
   right: 12px;
   top: 50%;
@@ -432,6 +432,13 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2;
+}
+
+/* Remove any conflicting styles */
+.input-group2 i.mdi-lock-outline {
+  left: 12px;
+  right: auto;
 }
 
 /* Adjust input padding to accommodate both icons */
@@ -677,11 +684,15 @@ h2 {
   margin-bottom: 20px;
 }
 
-.input-group2 i {
+/* General input group icon styles */
+.input-group1 i,
+.input-group2 i.mdi-lock-outline {
   position: absolute;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #777;
+  color: #64748b;
+  font-size: 18px;
   cursor: pointer;
   z-index: 1;
   font-size: 20px;
@@ -775,7 +786,6 @@ h2 {
   margin: 0 10px;
 }
 
- 
 .err {
   color: #cc0000;
   font-size: 12px;
@@ -867,8 +877,6 @@ h2 {
     padding: 10px;
     font-size: 14px;
   }
-
-  
 
   .social button {
     width: 35px;
@@ -965,8 +973,6 @@ h2 {
     padding: 8px;
     font-size: 13px;
   }
-
-  
 
   .divider {
     margin: 15px 0;
