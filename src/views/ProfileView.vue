@@ -19,15 +19,23 @@
       </div>
       <div class="name">{{ userProfile.name || 'Loading...' }}</div>
       <div class="email">{{ userProfile.email }}</div>
-      <div class="status-message">Your account is active and secure. We're always here to help you manage your farm efficiently.</div>
-      
+      <div class="status-message">
+        Your account is active and secure. We're always here to help you manage your farm
+        efficiently.
+      </div>
 
       <div class="menu">
         <button v-if="isAdminUser" class="row" @click="$router.push({ name: 'admin' })">
           <span>Admin</span>
           <span>›</span>
         </button>
-        <button class="signout" title="Securely end your session." @click="showSignOutConfirm = true">Sign out</button>
+        <button
+          class="signout"
+          title="Securely end your session."
+          @click="showSignOutConfirm = true"
+        >
+          Sign out
+        </button>
       </div>
     </div>
 
@@ -135,7 +143,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -195,7 +202,10 @@ const userInitials = computed(() => {
 // Fetch user data from Supabase
 async function fetchUserProfile() {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
     if (error) {
       console.error('Error fetching user:', error.message)
@@ -206,16 +216,16 @@ async function fetchUserProfile() {
       // Get user metadata from both possible locations
       const metadata = user.user_metadata || {}
       const appMetadata = user.app_metadata || {}
-      
+
       userProfile.value = {
         id: user.id,
         name: metadata.name || metadata.full_name || user.email?.split('@')[0] || 'User',
         email: user.email || '',
         phone: metadata.phone || '',
         profilePicture: metadata.avatar_url || metadata.picture || null,
-        createdAt: user.created_at
+        createdAt: user.created_at,
       }
-      
+
       // Update the edit form with current values
       editForm.value.name = userProfile.value.name
       editForm.value.email = userProfile.value.email
@@ -351,7 +361,7 @@ async function handleSignOut() {
     if (hasSupabaseConfig) {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-      
+
       // Clear local storage and redirect
       localStorage.clear()
       sessionStorage.clear()
@@ -384,7 +394,9 @@ const accountAgeText = computed(() => {
   const y = years > 0 ? `${years} year${years > 1 ? 's' : ''}` : ''
   const m = rem > 0 ? `${rem} month${rem > 1 ? 's' : ''}` : ''
   const parts = [y, m].filter(Boolean)
-  return parts.length ? `You've been using RAMIE for ${parts.join(' and ')}!` : 'New to RAMIE — let’s get started!'
+  return parts.length
+    ? `You've been using RAMIE for ${parts.join(' and ')}!`
+    : 'New to RAMIE — let’s get started!'
 })
 
 async function confirmSignOut() {
@@ -429,9 +441,20 @@ function cancelSignOut() {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
-.brand { display: inline-flex; align-items: center; gap: 8px; }
-.brand-logo { width: 32px; height: 32px; object-fit: contain; }
-.overlay .title { font-weight: 700; font-size: 22px; }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.overlay .title {
+  font-weight: 700;
+  font-size: 22px;
+}
 .panel {
   margin: 0 16px 16px 16px;
   background: #2f8b60;
@@ -478,7 +501,10 @@ function cancelSignOut() {
   object-fit: cover;
   border-radius: 50%;
 }
-.avatar .initials { font-size: 28px; font-weight: 700; }
+.avatar .initials {
+  font-size: 28px;
+  font-weight: 700;
+}
 .name {
   font-weight: 700;
   margin-top: 10px;
@@ -954,7 +980,7 @@ button {
 .confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -969,13 +995,32 @@ button {
   padding: 16px;
 }
 
-.confirm-title { font-weight: 700; margin: 0 0 8px 0; }
+.confirm-title {
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
 
-.confirm-actions { display: flex; gap: 8px; margin-top: 12px; }
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
 
-.confirm-actions .btn { flex: 1; padding: 10px 12px; border-radius: 8px; border: none; cursor: pointer; }
+.confirm-actions .btn {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
 
-.btn-cancel { background: #f5f5f5; color: #333; }
+.btn-cancel {
+  background: #f5f5f5;
+  color: #333;
+}
 
-.btn-danger { background: #e53935; color: #fff; }
+.btn-danger {
+  background: #428542;
+  color: #fff;
+}
 </style>
