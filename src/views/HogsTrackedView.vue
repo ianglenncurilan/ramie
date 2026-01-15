@@ -155,7 +155,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useActivityLogger } from '@/composables/useActivityLogger'
-import BottomBar from './parts/BottomBar.vue'
+
 import { useHogsStore } from '../stores/hogs'
 
 const router = useRouter()

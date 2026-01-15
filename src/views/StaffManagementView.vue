@@ -40,7 +40,7 @@
 
     <div v-if="loading" class="loading">Loading staff members...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    
+
     <div v-else class="staff-list">
       <div v-if="filteredStaff.length === 0" class="no-results">
         No staff members found matching your criteria.
@@ -51,10 +51,12 @@
           <div v-for="staff in paginatedStaff" :key="staff.id" class="staff-card">
             <div class="staff-avatar">
               {{ getInitials(staff.first_name, staff.last_name) }}
-              <span 
-                class="status-badge" 
-                :class="{ 'online': staff.is_online, 'offline': !staff.is_online }"
-                :title="staff.is_online ? 'Online' : 'Last seen: ' + formatLastSeen(staff.last_seen)"
+              <span
+                class="status-badge"
+                :class="{ online: staff.is_online, offline: !staff.is_online }"
+                :title="
+                  staff.is_online ? 'Online' : 'Last seen: ' + formatLastSeen(staff.last_seen)
+                "
               ></span>
             </div>
             <div class="staff-info">
@@ -65,88 +67,13 @@
                 Last active: {{ formatDate(staff.last_login) }}
               </p>
             </div>
-            <div class="staff-actions">
-              <button 
-                class="btn-icon" 
-                @click="editStaff(staff.id)"
-                title="Edit"
-              >
-                ✏️
-              </button>
-              <button 
-                v-if="staff.is_active"
-                class="btn-icon danger"
-                @click="confirmDeactivate(staff)"
-                title="Deactivate"
-              >
-                🚫
-              </button>
-              <button 
-                v-else
-                class="btn-icon success"
-                @click="activateStaff(staff.id)"
-                title="Activate"
-              >
-                ✅
-              </button>
-            </div>
           </div>
         </div>
 
         <div v-if="totalPages > 1" class="pagination">
-          <button 
-            :disabled="currentPage === 1"
-            @click="currentPage--"
-          >
-            Previous
-          </button>
+          <button :disabled="currentPage === 1" @click="currentPage--">Previous</button>
           <span>Page {{ currentPage }} of {{ totalPages }}</span>
-          <button 
-            :disabled="currentPage >= totalPages"
-            @click="currentPage++"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Add/Edit Staff Modal -->
-    <div v-if="showStaffForm" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>{{ editingStaff ? 'Edit Staff' : 'Add New Staff' }}</h2>
-          <button class="close-btn" @click="closeModal">×</button>
-        </div>
-        <div class="modal-body">
-          <StaffForm
-            v-if="showStaffForm"
-            :staff-id="editingStaff"
-            @saved="handleStaffSaved"
-            @cancel="closeModal"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Confirmation Dialog -->
-    <div v-if="showConfirmDialog" class="modal">
-      <div class="modal-content confirm-dialog">
-        <h3>Confirm Action</h3>
-        <p>
-          Are you sure you want to {{ staffToDeactivate.is_active ? 'deactivate' : 'activate' }}
-          {{ staffToDeactivate.first_name }} {{ staffToDeactivate.last_name }}?
-        </p>
-        <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showConfirmDialog = false">
-            Cancel
-          </button>
-          <button 
-            class="btn btn-danger" 
-            @click="staffToDeactivate.is_active ? deactivateStaff() : activateStaff()"
-          >
-            {{ staffToDeactivate.is_active ? 'Deactivate' : 'Activate' }}
-          </button>
+          <button :disabled="currentPage >= totalPages" @click="currentPage++">Next</button>
         </div>
       </div>
     </div>
@@ -177,22 +104,20 @@ const staffToDeactivate = ref(null)
 
 // Computed
 const filteredStaff = computed(() => {
-  return staffStore.staffMembers.filter(staff => {
-    const matchesSearch = 
+  return staffStore.staffMembers.filter((staff) => {
+    const matchesSearch =
       !searchQuery.value ||
       staff.first_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       staff.last_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       staff.email.toLowerCase().includes(searchQuery.value.toLowerCase())
-    
-    const matchesStatus = 
+
+    const matchesStatus =
       statusFilter.value === 'all' ||
       (statusFilter.value === 'active' && staff.is_active) ||
       (statusFilter.value === 'inactive' && !staff.is_active)
-    
-    const matchesRole = 
-      roleFilter.value === 'all' || 
-      staff.role === roleFilter.value
-    
+
+    const matchesRole = roleFilter.value === 'all' || staff.role === roleFilter.value
+
     return matchesSearch && matchesStatus && matchesRole
   })
 })
@@ -238,7 +163,7 @@ const confirmDeactivate = (staff) => {
 
 const deactivateStaff = async () => {
   if (!staffToDeactivate.value) return
-  
+
   try {
     await staffStore.deactivateStaff(staffToDeactivate.value.id)
     toast.success(`Successfully deactivated ${staffToDeactivate.value.first_name}`)
@@ -254,7 +179,7 @@ const deactivateStaff = async () => {
 const activateStaff = async (id) => {
   const staffId = id || staffToDeactivate.value?.id
   if (!staffId) return
-  
+
   try {
     await staffStore.updateStaff(staffId, { is_active: true })
     toast.success('Staff member activated successfully')
@@ -397,7 +322,9 @@ h1 {
   padding: 1.5rem;
   display: flex;
   gap: 1rem;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .staff-card:hover {
@@ -454,7 +381,8 @@ h1 {
   font-weight: 500;
 }
 
-.email, .last-login {
+.email,
+.last-login {
   margin: 0.25rem 0;
   font-size: 0.8rem;
   color: #7f8c8d;
@@ -615,11 +543,11 @@ h1 {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .search-box {
     max-width: 100%;
   }
-  
+
   .staff-grid {
     grid-template-columns: 1fr;
   }

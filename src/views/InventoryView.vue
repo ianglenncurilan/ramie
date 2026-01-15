@@ -116,6 +116,8 @@
                 <select v-model="form.unit">
                   <option value="kg">kg</option>
                   <option value="g">g</option>
+                  <option value="oz">oz</option>
+                  <option value="liters">liters</option>
                   <option value="lbs">lbs</option>
                   <option value="tons">tons</option>
                 </select>
@@ -447,7 +449,8 @@ function onNameChange() {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  /* allow inner scroller to manage overflow */
+  max-height: 60vh; /* Limit the maximum height */
+  overflow: hidden; /* Hide the scrollbar for the container */
 }
 .thead,
 .row {
@@ -470,16 +473,28 @@ function onNameChange() {
 
 /* Column alignment: name left, qty center, cost right, status center, actions center */
 .thead span:nth-child(1),
-.row > :nth-child(1) { text-align: left; }
+.row > :nth-child(1) {
+  text-align: left;
+}
 .thead span:nth-child(2),
-.row > :nth-child(2) { text-align: center; }
+.row > :nth-child(2) {
+  text-align: center;
+}
 .thead span:nth-child(3),
-.row > :nth-child(3) { text-align: right; }
+.row > :nth-child(3) {
+  text-align: right;
+}
 .thead span:nth-child(4),
-.row > :nth-child(4) { text-align: center; }
+.row > :nth-child(4) {
+  text-align: center;
+}
 .thead span:nth-child(5),
-.row > :nth-child(5) { text-align: center; }
-.row > .actions { justify-content: center; }
+.row > :nth-child(5) {
+  text-align: center;
+}
+.row > .actions {
+  justify-content: center;
+}
 .tbody {
   overflow: auto; /* vertical and horizontal scroll */
   flex: 1;
@@ -705,8 +720,14 @@ button {
     grid-template-columns: 1fr;
     gap: 10px;
   }
-  .stat-card { padding: 14px; border-radius: 12px; }
-  .table { padding: 6px; border-radius: 12px; }
+  .stat-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .table {
+    padding: 6px;
+    border-radius: 12px;
+  }
   .thead,
   .row {
     grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 90px; /* tighter to fit mobile */

@@ -154,7 +154,7 @@ const INGREDIENT_MAPPING = {
   copra: ['copra', 'copra meal'],
   molasses: ['molasses'],
   herbal: ['herbal', 'herbal concoctions'],
-  premix: ['premix', 'animal vita', 'vitamins'],
+  premix: ['premix', 'animal vita', '0/3'],
   cececal: ['cececal'],
   salt: ['salt'],
   ricehull: ['rice hull', 'ricehull', 'carbonised rice hull'],

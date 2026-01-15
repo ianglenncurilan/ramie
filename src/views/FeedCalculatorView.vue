@@ -48,6 +48,7 @@
             <div class="thead">
               <span></span>
               <span class="th">Amount</span>
+              <span class="th">Cost per kg</span>
             </div>
 
             <div v-for="(item, idx) in category.items" :key="item.id" class="row">
@@ -59,8 +60,11 @@
               <div class="cell amount">
                 <div class="pill" :class="{ active: amounts[item.id] }">
                   <input type="number" min="0" step="0.01" v-model.number="amounts[item.id]" />
-                  <span class="unit">KG</span>
+                  <span class="unit">{{ getUnitForItem(category, item) }}</span>
                 </div>
+              </div>
+              <div class="cell cost">
+                {{ getItemCost(item) }}
               </div>
             </div>
           </div>
@@ -71,33 +75,6 @@
         </div>
       </div>
     </section>
-
-    <nav class="bottombar">
-      <button
-        @click="$router.push({ name: 'dashboard' })"
-        :class="{ active: $route.name === 'dashboard' }"
-      >
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button
-        @click="$router.push({ name: 'records' })"
-        :class="{ active: $route.name === 'records' }"
-      >
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button
-        @click="$router.push({ name: 'expenses' })"
-        :class="{ active: $route.name === 'expenses' }"
-      >
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button
-        @click="$router.push({ name: 'profile' })"
-        :class="{ active: $route.name === 'profile' }"
-      >
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
   </div>
 </template>
 
@@ -192,6 +169,58 @@ const uiCategories = computed(() => BASE_CATEGORIES[stage.value])
 
 const amounts = reactive({})
 
+// Get unit for an item, first checking inventory, then falling back to defaults
+function getUnitForItem(category, item) {
+  // First try to get the unit from inventory
+  const inventoryItem = findInventoryItem(item.id) || findInventoryItemByName(item.label)
+  if (inventoryItem?.unit) {
+    return inventoryItem.unit
+  }
+
+  // Fall back to default units based on category
+  if (
+    category.key === 'vitamins' ||
+    item.id === 'molasses' ||
+    item.id === 'premix' ||
+    item.id === 'cececal' ||
+    item.id === 'herbal'
+  ) {
+    return 'oz'
+  }
+  if (item.id === 'water') {
+    return 'liters'
+  }
+  return 'kg' // Default to kg for everything else
+}
+
+// Convert quantity to kg for calculations
+function convertToKg(quantity, unit) {
+  if (!quantity) return 0
+
+  const qty = parseFloat(quantity)
+  switch (unit) {
+    case 'g':
+      return qty / 1000
+    case 'oz':
+      return qty * 0.0283495 // 1 oz = 0.0283495 kg
+    case 'lbs':
+      return qty * 0.453592 // 1 lb = 0.453592 kg
+    case 'tons':
+      return qty * 1000 // 1 ton = 1000 kg
+    case 'liters':
+      return qty // Assuming 1 liter of water = 1 kg for simplicity
+    default:
+      return qty // Already in kg
+  }
+}
+
+// Get cost per kg for an item
+function getItemCost(item) {
+  const inventoryItem = findInventoryItem(item.id) || findInventoryItemByName(item.label)
+  if (!inventoryItem || !inventoryItem.cost) return '₱0.00'
+  return `₱${parseFloat(inventoryItem.cost).toFixed(2)}`
+}
+
 // Function to find matching inventory item for a feed ingredient
 function findInventoryItem(ingredientId) {
   const possibleNames = INGREDIENT_MAPPING[ingredientId] || [ingredientId]
@@ -235,6 +264,15 @@ async function saveFormulation() {
       validationErrors.push(`${category.title} has no ingredients added`)
     } else if (categoryTotal > category.total) {
       validationErrors.push(`${category.title} exceeds limit (${categoryTotal}/${category.total})`)
+    }
+
+    // Add specific validation for protein category
+    if (category.key === 'protein') {
+      if (categoryTotal < 30) {
+        validationErrors.push(`Protein must be at least 30 (current: ${categoryTotal}/50)`)
+      } else if (categoryTotal > 50) {
+        validationErrors.push(`Protein cannot exceed 50 (current: ${categoryTotal}/50)`)
+      }
     }
   })
 
@@ -427,17 +465,26 @@ async function saveFormulation() {
 }
 .thead {
   display: grid;
-  grid-template-columns: 2fr 80px 90px;
+  grid-template-columns: 2fr 100px 100px;
   padding: 6px 4px;
   color: #7a8b99;
   font-size: 12px;
+  gap: 8px;
 }
 .row {
   display: grid;
-  grid-template-columns: 2fr 80px 90px;
-  gap: 6px;
+  grid-template-columns: 2fr 100px 100px;
+  gap: 8px;
   align-items: center;
   padding: 8px 4px;
+}
+
+.cell.cost {
+  text-align: right;
+  padding-right: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2f8b60;
 }
 .row + .row {
   border-top: 1px solid #f2f2f2;

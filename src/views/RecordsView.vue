@@ -13,10 +13,7 @@
       <div class="records-header">
         <div class="drag-indicator"></div>
         <h3>Records</h3>
-        <div class="summary-line">
-          Overall Record Status: {{ totalMonthsWithData }} months of records saved. Currently
-          viewing: Records by {{ selectedPeriod }}
-        </div>
+        
         <div class="period-toggle">
           <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">
             Year

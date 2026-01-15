@@ -41,32 +41,7 @@
       </div>
     </section>
 
-    <nav class="bottombar">
-      <button
-        @click="$router.push({ name: 'dashboard' })"
-        :class="{ active: $route.name === 'dashboard' }"
-      >
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button
-        @click="$router.push({ name: 'records' })"
-        :class="{ active: $route.name === 'records' }"
-      >
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button
-        @click="$router.push({ name: 'expenses' })"
-        :class="{ active: $route.name === 'expenses' }"
-      >
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button
-        @click="$router.push({ name: 'profile' })"
-        :class="{ active: $route.name === 'profile' }"
-      >
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
+    
   </div>
 </template>
 

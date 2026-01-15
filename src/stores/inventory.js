@@ -41,7 +41,13 @@ export const useInventoryStore = defineStore('inventory', () => {
   }
 
   async function addIngredient(formData) {
-    const { data, error } = await supabase.from('inventory').insert(formData).select()
+    // Set default unit to 'kg' if not provided
+    const dataWithUnit = {
+      ...formData,
+      unit: formData.unit || 'kg', // Default to 'kg' if unit not specified
+    }
+
+    const { data, error } = await supabase.from('inventory').insert(dataWithUnit).select()
     if (!error && Array.isArray(data) && data.length > 0) {
       const item = {
         ...data[0],
@@ -71,10 +77,12 @@ export const useInventoryStore = defineStore('inventory', () => {
     if (index === -1) return { error: 'Not found' }
 
     const current = ingredients.value[index]
-    const nextQuantity = updates.quantity !== undefined ? Number(updates.quantity) : current.quantity
+    const nextQuantity =
+      updates.quantity !== undefined ? Number(updates.quantity) : current.quantity
     const nextCost = updates.cost !== undefined ? Number(updates.cost) : current.cost
     const nextName = updates.name !== undefined ? updates.name : current.name
     const nextType = updates.type !== undefined ? updates.type : current.type
+    const nextUnit = updates.unit !== undefined ? updates.unit : current.unit || 'kg' // Default to 'kg' if unit not set
     const nextAvailable = nextQuantity > 0
     const updated_at = new Date().toISOString()
 
@@ -98,6 +106,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         cost: nextCost,
         available: nextAvailable,
         type: nextType,
+        unit: nextUnit,
         updated_at,
       })
       .eq('id', id)
