@@ -222,36 +222,127 @@ onMounted(() => {
   })
 })
 
+// Function to calculate similarity between two strings (0-1)
+function stringSimilarity(s1, s2) {
+  // Remove all non-alphanumeric characters and convert to lowercase
+  const cleanStr = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+  // If either string is empty after cleaning, return 0
+  if (!s1 || !s2) return 0
+
+  const str1 = cleanStr(s1)
+  const str2 = cleanStr(s2)
+
+  // If strings are identical after cleaning, return 1
+  if (str1 === str2) return 1
+
+  // If one string is empty after cleaning, return 0
+  if (str1.length === 0 || str2.length === 0) return 0
+
+  // Calculate Levenshtein distance
+  const track = Array(str2.length + 1)
+    .fill(null)
+    .map(() => Array(str1.length + 1).fill(null))
+  for (let i = 0; i <= str1.length; i++) track[0][i] = i
+  for (let j = 0; j <= str2.length; j++) track[j][0] = j
+
+  for (let j = 1; j <= str2.length; j++) {
+    for (let i = 1; i <= str1.length; i++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
+      track[j][i] = Math.min(
+        track[j][i - 1] + 1, // deletion
+        track[j - 1][i] + 1, // insertion
+        track[j - 1][i - 1] + cost, // substitution
+      )
+    }
+  }
+
+  // Calculate similarity ratio (0-1)
+  const maxLen = Math.max(str1.length, str2.length)
+  return 1 - track[str2.length][str1.length] / maxLen
+}
+
 // Function to find matching inventory item for a feed ingredient
 function findInventoryItem(ingredientId) {
   // Map of feed ingredient IDs to possible inventory item names
   const ingredientMap = {
-    'finisher-protein-1': ['rice_bran', 'ricebran', 'rice bran'],
-    'finisher-protein-2': ['copra_meal', 'coprameal', 'copra meal'],
-    'finisher-protein-3': ['herbal_leaf_meal', 'herballeafmeal', 'herbal leaf meal'],
-    'finisher-carbs-1': ['molasses'],
-    'finisher-carbs-2': ['rice_hull', 'ricehull', 'rice hull'],
-    'water-1': ['water'], // Water in its own category
-    // Add mappings for other feed types if needed
+    // Carbohydrates
+    'finisher-carbs-1': ['rice bran d1', 'ricebran d1', 'rbd1', 'rice bran', 'ricebran'],
+    'finisher-carbs-2': ['rice bran d2', 'ricebran d2', 'rbd2'],
+    'finisher-carbs-3': ['rice hull', 'ricehull', 'ricehulls', 'rice hulls'],
+
+    // Protein
+    'finisher-protein-1': ['camote tops', 'sweet potato leaves', 'camote', 'sweet potato'],
+    'finisher-protein-2': ['moringa', 'malunggay', 'moringa leaves'],
+    'finisher-protein-3': ['ramie'],
+    'finisher-protein-4': ['azolla'],
+    'finisher-protein-5': ['madre de agua', 'madre de agua leaves', 'madre agua'],
+    'finisher-protein-6': ['water hyacinth', 'waterhyacinth', 'hyacinth'],
+    'finisher-protein-7': ['cadamba'],
+    'finisher-protein-8': ['banana leaves', 'bananaleaves', 'banana'],
+    'finisher-protein-9': ['fish meal', 'fishmeal', 'fish'],
+    'finisher-protein-10': ['soya meal', 'soybean meal', 'soy meal', 'soybean', 'soya'],
+    'finisher-protein-11': ['palm kernel meal', 'palm kernel', 'palm meal'],
+
+    // Minerals
+    'finisher-minerals-1': ['salt', 'iodized salt', 'rock salt'],
+    'finisher-minerals-2': [
+      'carbonized rice hulls',
+      'crushed rice hull',
+      'carbonized rice',
+      'cr rice hulls',
+    ],
+
+    // Vitamins
+    'finisher-vitamins-1': ['molasses', 'blackstrap molasses', 'sugar cane molasses'],
+
+    // Water
+    'water-1': ['water', 'clean water', 'drinking water'],
   }
 
   const possibleNames = ingredientMap[ingredientId] || []
   if (possibleNames.length === 0) return null
 
-  // Find first matching inventory item
-  return inventoryStore.ingredients.find((item) =>
-    possibleNames.some((name) => item.name.toLowerCase().trim() === name.toLowerCase().trim()),
-  )
+  // Find the best matching inventory item using similarity score
+  let bestMatch = null
+  let highestScore = 0.7 // Minimum similarity threshold (0-1)
+
+  for (const item of inventoryStore.ingredients) {
+    for (const name of possibleNames) {
+      const score = stringSimilarity(item.name, name)
+      if (score > highestScore) {
+        highestScore = score
+        bestMatch = item
+      }
+    }
+  }
+
+  return bestMatch
 }
 
-// Function to find inventory item by exact name match (for dynamic ingredients)
+// Function to find inventory item by name with fuzzy matching
 function findInventoryItemByName(ingredientName) {
-  return inventoryStore.ingredients.find(
-    (item) =>
-      item.name.toLowerCase() === ingredientName.toLowerCase() ||
-      item.name.toLowerCase().includes(ingredientName.toLowerCase()) ||
-      ingredientName.toLowerCase().includes(item.name.toLowerCase()),
+  if (!ingredientName) return null
+
+  // First try exact match
+  const exactMatch = inventoryStore.ingredients.find(
+    (item) => item.name.toLowerCase().trim() === ingredientName.toLowerCase().trim(),
   )
+  if (exactMatch) return exactMatch
+
+  // If no exact match, find the most similar item
+  let bestMatch = null
+  let highestScore = 0.7 // Minimum similarity threshold (0-1)
+
+  for (const item of inventoryStore.ingredients) {
+    const score = stringSimilarity(item.name, ingredientName)
+    if (score > highestScore) {
+      highestScore = score
+      bestMatch = item
+    }
+  }
+
+  return bestMatch
 }
 
 // Function to get the unit for an ingredient from inventory

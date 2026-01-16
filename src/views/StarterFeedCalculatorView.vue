@@ -215,49 +215,87 @@ const uiCategories = computed(() => {
 const amounts = reactive({})
 const costs = reactive({})
 
-// Function to find inventory item by name with fuzzy matching
-const findInventoryItemByName = (ingredientName) => {
-  if (!ingredientName) return null
-
-  const cleanName = ingredientName
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-    .replace(/\s+/g, ' ') // Normalize spaces
-
-  // Try to find exact match first
-  const exactMatch = inventoryStore.ingredients.find(
-    (item) => item.name.toLowerCase().trim() === cleanName,
-  )
-  if (exactMatch) return exactMatch
-
-  // Then try fuzzy matching
-  return inventoryStore.ingredients.find((item) => {
-    const itemName = item.name.toLowerCase().trim()
-    return itemName.includes(cleanName) || cleanName.includes(itemName)
-  })
-}
-
 // Function to find matching inventory item for a feed ingredient
 const findInventoryItem = (ingredientId) => {
   // Map of feed ingredient IDs to possible inventory item names
   const ingredientMap = {
-    'starter-protein-1': ['rice_bran', 'ricebran', 'rice bran'],
-    'starter-protein-2': ['copra_meal', 'coprameal', 'copra meal'],
-    'starter-protein-3': ['herbal_leaf_meal', 'herballeafmeal', 'herbal leaf meal'],
-    'starter-carbs-1': ['molasses'],
-    'starter-carbs-2': ['rice_hull', 'ricehull', 'rice hull'],
-    'water-1': ['water'], // Moved water to its own category
-    // Add mappings for other feed types if needed
+    // Carbohydrates
+    'starter-carbs-1': ['rice bran d1', 'ricebran d1', 'rbd1', 'rice bran', 'ricebran'],
+    'starter-carbs-2': ['rice bran d2', 'ricebran d2', 'rbd2'],
+    'starter-carbs-3': ['rice hull', 'ricehull', 'ricehulls', 'rice hulls'],
+
+    // Protein
+    'starter-protein-1': ['camote tops', 'sweet potato leaves', 'camote', 'sweet potato'],
+    'starter-protein-2': ['moringa', 'malunggay', 'moringa leaves'],
+    'starter-protein-3': ['ramie'],
+    'starter-protein-4': ['azolla'],
+    'starter-protein-5': ['madre de agua', 'madre de agua leaves', 'madre agua'],
+    'starter-protein-6': ['water hyacinth', 'waterhyacinth', 'hyacinth'],
+    'starter-protein-7': ['cadamba'],
+    'starter-protein-8': ['banana leaves', 'bananaleaves', 'banana'],
+    'starter-protein-9': ['fish meal', 'fishmeal', 'fish'],
+    'starter-protein-10': ['soya meal', 'soybean meal', 'soy meal', 'soybean', 'soya'],
+    'starter-protein-11': ['palm kernel meal', 'palm kernel', 'palm meal'],
+
+    // Minerals
+    'starter-minerals-1': ['salt', 'iodized salt', 'rock salt'],
+    'starter-minerals-2': [
+      'carbonized rice hulls',
+      'crushed rice hull',
+      'carbonized rice',
+      'cr rice hulls',
+    ],
+
+    // Vitamins
+    'starter-vitamins-1': ['molasses', 'blackstrap molasses', 'sugar cane molasses'],
+
+    // Water
+    'water-1': ['water', 'clean water', 'drinking water'],
   }
 
   const possibleNames = ingredientMap[ingredientId] || []
   if (possibleNames.length === 0) return null
 
-  // Find first matching inventory item
-  return inventoryStore.ingredients.find((item) =>
-    possibleNames.some((name) => item.name.toLowerCase().trim() === name.toLowerCase().trim()),
+  // Find the best matching inventory item using similarity score
+  let bestMatch = null
+  let highestScore = 0.7 // Minimum similarity threshold (0-1)
+
+  for (const item of inventoryStore.ingredients) {
+    for (const name of possibleNames) {
+      const score = stringSimilarity(item.name, name)
+      if (score > highestScore) {
+        highestScore = score
+        bestMatch = item
+      }
+    }
+  }
+
+  return bestMatch
+}
+
+// Function to find inventory item by name with fuzzy matching
+const findInventoryItemByName = (ingredientName) => {
+  if (!ingredientName) return null
+
+  // First try exact match
+  const exactMatch = inventoryStore.ingredients.find(
+    (item) => item.name.toLowerCase().trim() === ingredientName.toLowerCase().trim(),
   )
+  if (exactMatch) return exactMatch
+
+  // If no exact match, find the most similar item
+  let bestMatch = null
+  let highestScore = 0.7 // Minimum similarity threshold (0-1)
+
+  for (const item of inventoryStore.ingredients) {
+    const score = stringSimilarity(item.name, ingredientName)
+    if (score > highestScore) {
+      highestScore = score
+      bestMatch = item
+    }
+  }
+
+  return bestMatch
 }
 
 // Function to get the unit for an ingredient from inventory
