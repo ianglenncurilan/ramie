@@ -1,10 +1,7 @@
 <template>
   <div class="staff-management">
     <div class="header">
-      <h1>Staff Management</h1>
-      <button class="btn btn-primary" @click="showAddStaffForm = true">
-        <span>+</span> Add Staff
-      </button>
+      <h1>Staff List</h1>
     </div>
 
     <div class="filters">
@@ -12,29 +9,10 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Search staff..."
+          placeholder="Search by name..."
           @input="handleSearch"
         />
         <span class="search-icon">🔍</span>
-      </div>
-
-      <div class="filter-group">
-        <label>Status:</label>
-        <select v-model="statusFilter" @change="fetchStaff">
-          <option value="all">All</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label>Role:</label>
-        <select v-model="roleFilter" @change="fetchStaff">
-          <option value="all">All Roles</option>
-          <option value="staff">Staff</option>
-          <option value="manager">Manager</option>
-          <option value="admin">Administrator</option>
-        </select>
       </div>
     </div>
 
@@ -42,27 +20,16 @@
     <div v-else-if="error" class="error">{{ error }}</div>
 
     <div v-else class="staff-list">
-      <div v-if="filteredStaff.length === 0" class="no-results">
-        No staff members found matching your criteria.
-      </div>
+      <div v-if="filteredStaff.length === 0" class="no-results">No staff members found.</div>
 
       <div v-else>
         <div class="staff-grid">
           <div v-for="staff in paginatedStaff" :key="staff.id" class="staff-card">
             <div class="staff-avatar">
               {{ getInitials(staff.first_name, staff.last_name) }}
-              <span
-                class="status-badge"
-                :class="{ online: staff.is_online, offline: !staff.is_online }"
-                :title="
-                  staff.is_online ? 'Online' : 'Last seen: ' + formatLastSeen(staff.last_seen)
-                "
-              ></span>
             </div>
             <div class="staff-info">
               <h3>{{ staff.first_name }} {{ staff.last_name }}</h3>
-              <p class="role">{{ formatRole(staff.role) }}</p>
-              <p class="email">{{ staff.email }}</p>
               <p class="last-login" v-if="staff.last_login">
                 Last active: {{ formatDate(staff.last_login) }}
               </p>
@@ -81,9 +48,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useStaffStore } from '@/stores/staff'
-import StaffForm from '@/components/StaffForm.vue'
 import { useToast } from 'vue-toastification'
 
 const toast = useToast()
@@ -93,33 +59,19 @@ const staffStore = useStaffStore()
 const loading = ref(false)
 const error = ref(null)
 const searchQuery = ref('')
-const statusFilter = ref('active')
-const roleFilter = ref('all')
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
-const showStaffForm = ref(false)
-const editingStaff = ref(null)
-const showConfirmDialog = ref(false)
-const staffToDeactivate = ref(null)
 
 // Computed
 const filteredStaff = computed(() => {
-  return staffStore.staffMembers.filter((staff) => {
-    const matchesSearch =
-      !searchQuery.value ||
-      staff.first_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      staff.last_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      staff.email.toLowerCase().includes(searchQuery.value.toLowerCase())
+  if (!searchQuery.value) return staffStore.staffMembers
 
-    const matchesStatus =
-      statusFilter.value === 'all' ||
-      (statusFilter.value === 'active' && staff.is_active) ||
-      (statusFilter.value === 'inactive' && !staff.is_active)
-
-    const matchesRole = roleFilter.value === 'all' || staff.role === roleFilter.value
-
-    return matchesSearch && matchesStatus && matchesRole
-  })
+  const query = searchQuery.value.toLowerCase()
+  return staffStore.staffMembers.filter(
+    (staff) =>
+      staff.first_name.toLowerCase().includes(query) ||
+      staff.last_name.toLowerCase().includes(query),
+  )
 })
 
 const totalPages = computed(() => {
@@ -140,7 +92,7 @@ const fetchStaff = async () => {
     await staffStore.fetchStaff()
   } catch (err) {
     console.error('Error fetching staff:', err)
-    error.value = 'Failed to load staff members. Please try again.'
+    error.value = 'Failed to load staff members.'
     toast.error('Failed to load staff members')
   } finally {
     loading.value = false
@@ -151,217 +103,127 @@ const handleSearch = () => {
   currentPage.value = 1 // Reset to first page when searching
 }
 
-const editStaff = (id) => {
-  editingStaff.value = id
-  showStaffForm.value = true
-}
-
-const confirmDeactivate = (staff) => {
-  staffToDeactivate.value = { ...staff }
-  showConfirmDialog.value = true
-}
-
-const deactivateStaff = async () => {
-  if (!staffToDeactivate.value) return
-
-  try {
-    await staffStore.deactivateStaff(staffToDeactivate.value.id)
-    toast.success(`Successfully deactivated ${staffToDeactivate.value.first_name}`)
-  } catch (err) {
-    console.error('Error deactivating staff:', err)
-    toast.error(`Failed to deactivate staff: ${err.message}`)
-  } finally {
-    showConfirmDialog.value = false
-    staffToDeactivate.value = null
-  }
-}
-
-const activateStaff = async (id) => {
-  const staffId = id || staffToDeactivate.value?.id
-  if (!staffId) return
-
-  try {
-    await staffStore.updateStaff(staffId, { is_active: true })
-    toast.success('Staff member activated successfully')
-  } catch (err) {
-    console.error('Error activating staff:', err)
-    toast.error(`Failed to activate staff: ${err.message}`)
-  } finally {
-    if (staffToDeactivate.value) {
-      showConfirmDialog.value = false
-      staffToDeactivate.value = null
-    }
-  }
-}
-
-const handleStaffSaved = () => {
-  showStaffForm.value = false
-  editingStaff.value = null
-  fetchStaff()
-  toast.success(`Staff member ${editingStaff.value ? 'updated' : 'added'} successfully`)
-}
-
-const closeModal = () => {
-  showStaffForm.value = false
-  editingStaff.value = null
-  showConfirmDialog.value = false
-  staffToDeactivate.value = null
-}
-
 const getInitials = (firstName, lastName) => {
   return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase()
 }
 
-const formatRole = (role) => {
-  return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Staff'
-}
-
 const formatDate = (dateString) => {
   if (!dateString) return 'Never'
-  return new Date(dateString).toLocaleString()
-}
-
-const formatLastSeen = (dateString) => {
-  if (!dateString) return 'Never'
-  return new Date(dateString).toLocaleString()
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }
+  return new Date(dateString).toLocaleString(undefined, options)
 }
 
 // Lifecycle hooks
 onMounted(() => {
   fetchStaff()
-  // Set up real-time updates
-  staffStore.setupRealtimeUpdates()
 })
 
 // Watch for changes to filters
-watch([statusFilter, roleFilter], () => {
-  currentPage.value = 1
-  fetchStaff()
-})
+// watch([statusFilter, roleFilter], () => {
+//   currentPage.value = 1
+//   fetchStaff()
+// })
 </script>
 
 <style scoped>
 .staff-management {
   padding: 1.5rem;
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
 
-h1 {
+.header h1 {
   margin: 0;
-  color: #2c3e50;
+  font-size: 1.8rem;
+  color: #333;
+  font-weight: 600;
 }
 
 .filters {
+  margin-bottom: 1.5rem;
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  align-items: center;
+  justify-content: center;
 }
 
 .search-box {
   position: relative;
-  flex: 1;
-  max-width: 300px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .search-box input {
   width: 100%;
-  padding: 0.5rem 2rem 0.5rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: 0.7rem 2.5rem 0.7rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
 .search-icon {
   position: absolute;
-  right: 0.75rem;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #666;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-group label {
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.filter-group select {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 0.9rem;
+  color: #718096;
+  pointer-events: none;
 }
 
 .staff-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
 }
 
 .staff-card {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  display: flex;
-  gap: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
   transition:
     transform 0.2s,
     box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #edf2f7;
 }
 
 .staff-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .staff-avatar {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  background-color: #4a90e2;
-  color: white;
+  background-color: #f7fafc;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
-  position: relative;
-}
-
-.status-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid white;
-}
-
-.status-badge.online {
-  background-color: #2ecc71;
-}
-
-.status-badge.offline {
-  background-color: #95a5a6;
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 1.1rem;
+  border: 1px solid #e2e8f0;
 }
 
 .staff-info {
@@ -369,51 +231,16 @@ h1 {
 }
 
 .staff-info h3 {
-  margin: 0 0 0.25rem;
-  color: #2c3e50;
+  margin: 0 0 0.25rem 0;
   font-size: 1.1rem;
+  color: #2d3748;
+  font-weight: 600;
 }
 
-.role {
-  margin: 0 0 0.5rem;
+.staff-info .last-login {
+  margin: 0;
   font-size: 0.85rem;
-  color: #7f8c8d;
-  font-weight: 500;
-}
-
-.email,
-.last-login {
-  margin: 0.25rem 0;
-  font-size: 0.8rem;
-  color: #7f8c8d;
-}
-
-.staff-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.btn-icon:hover {
-  background-color: #f5f5f5;
-}
-
-.btn-icon.danger {
-  color: #e74c3c;
-}
-
-.btn-icon.success {
-  color: #2ecc71;
+  color: #718096;
 }
 
 .pagination {
@@ -421,23 +248,25 @@ h1 {
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #eee;
+  margin-top: 2.5rem;
+  padding: 1rem 0;
 }
 
 .pagination button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 4px;
+  padding: 0.6rem 1.2rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
+  font-size: 0.9rem;
+  color: #4a5568;
 }
 
 .pagination button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  background-color: #f1f5f9;
 }
 
 .pagination button:not(:disabled):hover {

@@ -68,7 +68,7 @@
                   }"
                 >
                   <input type="number" min="0" step="0.01" v-model.number="amounts[item.id]" />
-                  <span class="unit">KG</span>
+                  <span class="unit">{{ getIngredientUnit(item) }}</span>
                 </div>
               </div>
               <div class="cell cost">
@@ -103,33 +103,6 @@
         </div>
       </div>
     </section>
-
-    <nav class="bottombar">
-      <button
-        @click="$router.push({ name: 'dashboard' })"
-        :class="{ active: $route.name === 'dashboard' }"
-      >
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button
-        @click="$router.push({ name: 'records' })"
-        :class="{ active: $route.name === 'records' }"
-      >
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button
-        @click="$router.push({ name: 'expenses' })"
-        :class="{ active: $route.name === 'expenses' }"
-      >
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button
-        @click="$router.push({ name: 'profile' })"
-        :class="{ active: $route.name === 'profile' }"
-      >
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
   </div>
 </template>
 
@@ -251,8 +224,24 @@ onMounted(() => {
 
 // Function to find matching inventory item for a feed ingredient
 function findInventoryItem(ingredientId) {
-  // In Grower view, items come directly from inventory so we can match by numeric ID
-  return inventoryStore.ingredients.find((item) => item.id === ingredientId) || null
+  // Map of feed ingredient IDs to possible inventory item names
+  const ingredientMap = {
+    'grower-protein-1': ['rice_bran', 'ricebran', 'rice bran'],
+    'grower-protein-2': ['copra_meal', 'coprameal', 'copra meal'],
+    'grower-protein-3': ['herbal_leaf_meal', 'herballeafmeal', 'herbal leaf meal'],
+    'grower-carbs-1': ['molasses'],
+    'grower-carbs-2': ['rice_hull', 'ricehull', 'rice hull'],
+    'water-1': ['water'], // Water in its own category
+    // Add mappings for other feed types if needed
+  }
+
+  const possibleNames = ingredientMap[ingredientId] || []
+  if (possibleNames.length === 0) return null
+
+  // Find first matching inventory item
+  return inventoryStore.ingredients.find((item) =>
+    possibleNames.some((name) => item.name.toLowerCase().trim() === name.toLowerCase().trim()),
+  )
 }
 
 // Function to find inventory item by exact name match (for dynamic ingredients)
@@ -263,6 +252,26 @@ function findInventoryItemByName(ingredientName) {
       item.name.toLowerCase().includes(ingredientName.toLowerCase()) ||
       ingredientName.toLowerCase().includes(item.name.toLowerCase()),
   )
+}
+
+// Function to get the unit for an ingredient from inventory
+const getIngredientUnit = (ingredient) => {
+  if (!ingredient) return 'KG'
+
+  // First try to find by ID if id exists
+  if (ingredient.id) {
+    const byId = findInventoryItem(ingredient.id)
+    if (byId?.unit) return byId.unit.toUpperCase()
+  }
+
+  // Then try to find by name if label exists
+  if (ingredient.label) {
+    const byName = findInventoryItemByName(ingredient.label)
+    if (byName?.unit) return byName.unit.toUpperCase()
+  }
+
+  // Default to KG if no unit found
+  return 'KG'
 }
 
 // Function to auto-populate costs from inventory
@@ -371,11 +380,13 @@ async function saveFormulation() {
   // Pre-check inventory sufficiency to avoid partial deductions
   const insufficient = []
   for (const item of items) {
-    const invItem = inventoryStore.ingredients.find((ing) => ing.id === item.id) ||
+    const invItem =
+      inventoryStore.ingredients.find((ing) => ing.id === item.id) ||
       inventoryStore.ingredients.find(
-        (ing) => ing.name.toLowerCase() === item.label.toLowerCase() ||
+        (ing) =>
+          ing.name.toLowerCase() === item.label.toLowerCase() ||
           ing.name.toLowerCase().includes(item.label.toLowerCase()) ||
-          item.label.toLowerCase().includes(ing.name.toLowerCase())
+          item.label.toLowerCase().includes(ing.name.toLowerCase()),
       )
     const currentQty = Number(invItem?.quantity) || 0
     if (!invItem || currentQty < Number(item.amountKg)) {
@@ -404,7 +415,12 @@ async function saveFormulation() {
   const formulation = {
     feedType: 'grower',
     name: `Grower Feed - ${new Date().toLocaleDateString()}`,
-    ingredients: items.map((it) => ({ id: it.id, label: it.label, amountKg: it.amountKg, costPerKg: it.costPerKg })),
+    ingredients: items.map((it) => ({
+      id: it.id,
+      label: it.label,
+      amountKg: it.amountKg,
+      costPerKg: it.costPerKg,
+    })),
     totalKg: totalAmount,
     totalCost: totalCost,
     costPerKg: totalAmount > 0 ? totalCost / totalAmount : 0,

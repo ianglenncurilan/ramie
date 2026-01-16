@@ -73,31 +73,67 @@ const validate = () => {
   errors.value = { firstname: '', lastname: '', email: '', password: '', password_confirmation: '' }
 
   // Validate first name
-  const firstNameError =
-    requiredValidator(formData.value.firstname) || alphaValidator(formData.value.firstname)
-  if (firstNameError !== true) {
-    errors.value.firstname = firstNameError
+  if (!formData.value.firstname) {
+    errors.value.firstname = 'First name is required'
+    valid = false
+  } else if (!/^[A-Za-z\s-]+$/.test(formData.value.firstname)) {
+    errors.value.firstname = 'First name can only contain letters, spaces, and hyphens'
+    valid = false
+  } else if (formData.value.firstname.length < 2) {
+    errors.value.firstname = 'First name is too short (minimum 2 characters)'
+    valid = false
+  } else if (formData.value.firstname.length > 50) {
+    errors.value.firstname = 'First name is too long (maximum 50 characters)'
     valid = false
   }
 
   // Validate last name
-  const lastNameError =
-    requiredValidator(formData.value.lastname) || alphaValidator(formData.value.lastname)
-  if (lastNameError !== true) {
-    errors.value.lastname = lastNameError
+  if (!formData.value.lastname) {
+    errors.value.lastname = 'Last name is required'
+    valid = false
+  } else if (!/^[A-Za-z\s-]+$/.test(formData.value.lastname)) {
+    errors.value.lastname = 'Last name can only contain letters, spaces, and hyphens'
+    valid = false
+  } else if (formData.value.lastname.length < 2) {
+    errors.value.lastname = 'Last name is too short (minimum 2 characters)'
+    valid = false
+  } else if (formData.value.lastname.length > 50) {
+    errors.value.lastname = 'Last name is too long (maximum 50 characters)'
     valid = false
   }
 
   // Validate email
-  const emailError = requiredValidator(formData.value.email) || emailValidator(formData.value.email)
-  if (emailError !== true) {
-    errors.value.email = emailError
+  if (!formData.value.email) {
+    errors.value.email = 'Email is required'
+    valid = false
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.value.email)) {
+    errors.value.email = 'Please enter a valid email address'
+    valid = false
+  } else if (formData.value.email.length > 100) {
+    errors.value.email = 'Email is too long (maximum 100 characters)'
     valid = false
   }
 
   // Validate password
-  const passwordError =
-    requiredValidator(formData.value.password) || passwordValidator(formData.value.password)
+  if (!formData.value.password) {
+    errors.value.password = 'Password is required'
+    valid = false
+  } else if (formData.value.password.length < 8) {
+    errors.value.password = 'Password must be at least 8 characters long'
+    valid = false
+  } else if (!/(?=.*[a-z])/.test(formData.value.password)) {
+    errors.value.password = 'Password must contain at least one lowercase letter'
+    valid = false
+  } else if (!/(?=.*[A-Z])/.test(formData.value.password)) {
+    errors.value.password = 'Password must contain at least one uppercase letter'
+    valid = false
+  } else if (!/(?=.*\d)/.test(formData.value.password)) {
+    errors.value.password = 'Password must contain at least one number'
+    valid = false
+  } else if (formData.value.password.length > 100) {
+    errors.value.password = 'Password is too long (maximum 100 characters)'
+    valid = false
+  }
   if (passwordError !== true) {
     errors.value.password = passwordError
     valid = false

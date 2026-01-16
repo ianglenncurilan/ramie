@@ -68,7 +68,7 @@
                   }"
                 >
                   <input type="number" min="0" step="0.01" v-model.number="amounts[item.id]" />
-                  <span class="unit">KG</span>
+                  <span class="unit">{{ getIngredientUnit(item) }}</span>
                 </div>
               </div>
               <div class="cell cost">
@@ -103,33 +103,6 @@
         </div>
       </div>
     </section>
-
-    <nav class="bottombar">
-      <button
-        @click="$router.push({ name: 'dashboard' })"
-        :class="{ active: $route.name === 'dashboard' }"
-      >
-        <img src="/home.png" alt="Dashboard" />
-      </button>
-      <button
-        @click="$router.push({ name: 'records' })"
-        :class="{ active: $route.name === 'records' }"
-      >
-        <img src="/record.png" alt="Records" />
-      </button>
-      <button
-        @click="$router.push({ name: 'expenses' })"
-        :class="{ active: $route.name === 'expenses' }"
-      >
-        <img src="/expensesicon.png" alt="Expenses" />
-      </button>
-      <button
-        @click="$router.push({ name: 'profile' })"
-        :class="{ active: $route.name === 'profile' }"
-      >
-        <img src="/profile.png" alt="Profile" />
-      </button>
-    </nav>
   </div>
 </template>
 
@@ -242,14 +215,28 @@ const uiCategories = computed(() => {
 const amounts = reactive({})
 const costs = reactive({})
 
-// Initialize all amounts to 0 to ensure reactivity
-onMounted(() => {
-  uiCategories.value.forEach((category) => {
-    category.items.forEach((item) => {
-      amounts[item.id] = 0
-    })
+// Function to find inventory item by name with fuzzy matching
+const findInventoryItemByName = (ingredientName) => {
+  if (!ingredientName) return null
+
+  const cleanName = ingredientName
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+    .replace(/\s+/g, ' ') // Normalize spaces
+
+  // Try to find exact match first
+  const exactMatch = inventoryStore.ingredients.find(
+    (item) => item.name.toLowerCase().trim() === cleanName,
+  )
+  if (exactMatch) return exactMatch
+
+  // Then try fuzzy matching
+  return inventoryStore.ingredients.find((item) => {
+    const itemName = item.name.toLowerCase().trim()
+    return itemName.includes(cleanName) || cleanName.includes(itemName)
   })
-})
+}
 
 // Function to find matching inventory item for a feed ingredient
 const findInventoryItem = (ingredientId) => {
@@ -260,7 +247,7 @@ const findInventoryItem = (ingredientId) => {
     'starter-protein-3': ['herbal_leaf_meal', 'herballeafmeal', 'herbal leaf meal'],
     'starter-carbs-1': ['molasses'],
     'starter-carbs-2': ['rice_hull', 'ricehull', 'rice hull'],
-    'starter-carbs-3': ['water'],
+    'water-1': ['water'], // Moved water to its own category
     // Add mappings for other feed types if needed
   }
 
@@ -273,26 +260,34 @@ const findInventoryItem = (ingredientId) => {
   )
 }
 
-// Function to find inventory item by name with fuzzy matching
-const findInventoryItemByName = (ingredientName) => {
-  if (!ingredientName) return null
+// Function to get the unit for an ingredient from inventory
+const getIngredientUnit = (ingredient) => {
+  if (!ingredient) return 'KG'
 
-  const cleanName = ingredientName
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
-    .replace(/\s+/g, ' ') // Normalize spaces
+  // First try to find by ID if id exists
+  if (ingredient.id) {
+    const byId = findInventoryItem(ingredient.id)
+    if (byId?.unit) return byId.unit.toUpperCase()
+  }
 
-  return inventoryStore.ingredients.find((item) => {
-    const itemName = item.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, ' ')
+  // Then try to find by name if label exists
+  if (ingredient.label) {
+    const byName = findInventoryItemByName(ingredient.label)
+    if (byName?.unit) return byName.unit.toUpperCase()
+  }
 
-    return itemName.includes(cleanName) || cleanName.includes(itemName)
-  })
+  // Default to KG if no unit found
+  return 'KG'
 }
+
+// Initialize all amounts to 0 to ensure reactivity
+onMounted(() => {
+  uiCategories.value.forEach((category) => {
+    category.items.forEach((item) => {
+      amounts[item.id] = 0
+    })
+  })
+})
 
 // Function to auto-populate costs from inventory
 function autoPopulateCosts() {
@@ -465,7 +460,10 @@ async function saveFormulation() {
         try {
           const inventoryItem = findInventoryItemByName(item.label)
           if (inventoryItem) {
-            const res = await inventoryStore.deductIngredientQuantity(inventoryItem.id, item.amountKg)
+            const res = await inventoryStore.deductIngredientQuantity(
+              inventoryItem.id,
+              item.amountKg,
+            )
             if (!res.success) {
               alert(`Failed to deduct ${item.label}: ${res.error || 'Unknown error'}`)
               return
@@ -475,7 +473,10 @@ async function saveFormulation() {
               success: true,
               ingredient: item.label,
               deducted: item.amountKg,
-              remaining: typeof res.remaining === 'number' ? res.remaining : Math.max(0, (Number(inventoryItem.quantity) || 0) - item.amountKg),
+              remaining:
+                typeof res.remaining === 'number'
+                  ? res.remaining
+                  : Math.max(0, (Number(inventoryItem.quantity) || 0) - item.amountKg),
             })
           } else {
             alert(`Failed to deduct ${item.label}: Item not found in inventory`)

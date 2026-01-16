@@ -37,23 +37,7 @@
         </div>
 
         <div class="filters">
-          <div class="filter-group">
-            <label>Status:</label>
-            <select v-model="statusFilter" @change="fetchStaff">
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label>Role:</label>
-            <select v-model="roleFilter" @change="fetchStaff">
-              <option value="all">All Roles</option>
-              <option value="user">User</option>
-              <option value="manager">Admin</option>
-            </select>
-          </div>
+          <div class="filter-group"></div>
         </div>
 
         <div v-if="loading" class="loading">Loading staff members...</div>
@@ -79,30 +63,11 @@
                 </div>
                 <div class="staff-info">
                   <h3>{{ staff.first_name }} {{ staff.last_name }}</h3>
-                  <p class="role">{{ formatRole(staff.role) }}</p>
+                  <p class="role"></p>
                   <p class="email">{{ staff.email }}</p>
                   <p class="last-login" v-if="staff.last_login">
                     Last active: {{ formatDate(staff.last_login) }}
                   </p>
-                </div>
-                <div class="staff-actions">
-                  <button class="btn-icon" @click="editStaff(staff.id)" title="Edit">✏️</button>
-                  <button
-                    v-if="staff.is_active"
-                    class="btn-icon danger"
-                    @click="confirmDeactivate(staff)"
-                    title="Deactivate"
-                  >
-                    🚫
-                  </button>
-                  <button
-                    v-else
-                    class="btn-icon success"
-                    @click="activateStaff(staff.id)"
-                    title="Activate"
-                  >
-                    ✅
-                  </button>
                 </div>
               </div>
             </div>
@@ -180,7 +145,6 @@
       </div>
     </section>
 
-
     <!-- Confirmation Dialog -->
     <div v-if="showConfirmDialog" class="modal">
       <div class="modal-content confirm-dialog">
@@ -200,8 +164,6 @@
         </div>
       </div>
     </div>
-
-    
   </div>
 </template>
 
@@ -241,7 +203,7 @@ const activityFilters = [
   { label: 'Hog Deleted', value: 'hog_deleted' },
   { label: 'Feeding Completed', value: 'feeding_completed' },
   { label: 'Feeding Incomplete', value: 'feeding_incomplete' },
-  { label: 'Weight Updated', value: 'hog_weight_updated' }
+  { label: 'Weight Updated', value: 'hog_weight_updated' },
 ]
 
 // Computed Properties
@@ -278,7 +240,9 @@ const filteredActivities = computed(() => {
   if (currentFilter.value === 'all') {
     return activityStore.activities
   }
-  return activityStore.activities.filter(activity => activity.activity_type === currentFilter.value)
+  return activityStore.activities.filter(
+    (activity) => activity.activity_type === currentFilter.value,
+  )
 })
 
 // Methods
@@ -294,18 +258,27 @@ async function fetchStaff() {
 
     if (error) throw error
 
-    // Map the data to match our expected format
-    staffStore.staffMembers = data.map((user) => ({
-      id: user.id,
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      email: user.email || '',
-      role: user.role || 'staff',
-      is_active: user.is_active !== false, // Default to true if not set
-      is_online: user.last_seen_at ? new Date() - new Date(user.last_seen_at) < 300000 : false, // 5 minutes threshold
-      last_seen: user.last_seen_at || null,
-      last_login: user.last_sign_in_at || null,
-    }))
+    // Get current timestamp for online status comparison
+    const now = new Date()
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
+
+    // Map the data with online status
+    staffStore.staffMembers = data.map((user) => {
+      const lastSeen = user.last_seen_at ? new Date(user.last_seen_at) : null
+      const isOnline = lastSeen ? lastSeen > fiveMinutesAgo : false
+
+      return {
+        id: user.id,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        email: user.email || '',
+        role: user.role || 'staff',
+        is_active: user.is_active !== false, // Default to true if not set
+        is_online: isOnline,
+        last_seen: user.last_seen_at || null,
+        last_login: user.last_sign_in_at || null,
+      }
+    })
 
     staffError.value = null
   } catch (err) {
@@ -365,12 +338,12 @@ const closeModal = () => {
 // Activity Log Methods
 const fetchActivities = async () => {
   try {
-    console.log('Fetching activities...');
-    await activityStore.fetchActivities();
+    console.log('Fetching activities...')
+    await activityStore.fetchActivities()
     // Debug log the activities from the store
-    console.log('Activities from store:', activityStore.activities);
+    console.log('Activities from store:', activityStore.activities)
   } catch (err) {
-    console.error('Error fetching activities:', err);
+    console.error('Error fetching activities:', err)
   }
 }
 
@@ -403,8 +376,21 @@ const getInitials = (firstName, lastName) => {
   return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase()
 }
 
-const formatRole = (role) => {
-  return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Staff'
+const formatRole = (user) => {
+  if (!user) return 'Staff'
+
+  // Check if role is directly on the user object
+  if (user.role) {
+    return user.role === 'manager' ? 'Admin' : 'Staff'
+  }
+
+  // Check in raw_app_meta_data
+  if (user.raw_app_meta_data?.role) {
+    return user.raw_app_meta_data.role === 'admin' ? 'Admin' : 'Staff'
+  }
+
+  // Default to Staff if no role is found
+  return 'Staff'
 }
 
 const getActivityMessage = (activity) => {
@@ -419,7 +405,9 @@ const getActivityMessage = (activity) => {
       return `Deleted hog ${details.code || ''}`
     case 'hog_weight_updated': {
       const hasDiff = typeof details.difference === 'number' && details.difference !== 0
-      const diffText = hasDiff ? ` (${details.difference > 0 ? '+' : ''}${details.difference}kg)` : ''
+      const diffText = hasDiff
+        ? ` (${details.difference > 0 ? '+' : ''}${details.difference}kg)`
+        : ''
       return `Updated weight for hog ${details.code || ''} from ${details.oldWeight}kg to ${details.newWeight}kg${diffText}`
     }
     case 'feeding_completed':
@@ -429,27 +417,35 @@ const getActivityMessage = (activity) => {
     case 'feed_formulated': {
       // Show: Made Starter Feed / Made Grower Feed / Made Finisher Feed
       const stageRaw = details.stage || ''
-      const stage = stageRaw
-        ? stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1)
-        : 'Feed'
+      const stage = stageRaw ? stageRaw.charAt(0).toUpperCase() + stageRaw.slice(1) : 'Feed'
       return `Made ${stage} Feed`
     }
     case 'inventory_added': {
-      const qty = typeof details.quantity === 'number' ? details.quantity : Number(details.quantity) || 0
+      const qty =
+        typeof details.quantity === 'number' ? details.quantity : Number(details.quantity) || 0
       const name = details.name || 'Ingredient'
       const cost = typeof details.cost === 'number' ? details.cost : Number(details.cost) || 0
       return `Added ${qty} of ${name} with a cost of ₱${cost.toFixed(2)}`
     }
     case 'inventory_updated': {
       const name = details.name || 'Ingredient'
-      const oq = typeof details.oldQuantity === 'number' ? details.oldQuantity : Number(details.oldQuantity) || 0
-      const nq = typeof details.newQuantity === 'number' ? details.newQuantity : Number(details.newQuantity) || 0
-      const oc = typeof details.oldCost === 'number' ? details.oldCost : Number(details.oldCost) || 0
-      const nc = typeof details.newCost === 'number' ? details.newCost : Number(details.newCost) || 0
+      const oq =
+        typeof details.oldQuantity === 'number'
+          ? details.oldQuantity
+          : Number(details.oldQuantity) || 0
+      const nq =
+        typeof details.newQuantity === 'number'
+          ? details.newQuantity
+          : Number(details.newQuantity) || 0
+      const oc =
+        typeof details.oldCost === 'number' ? details.oldCost : Number(details.oldCost) || 0
+      const nc =
+        typeof details.newCost === 'number' ? details.newCost : Number(details.newCost) || 0
       return `Edited ${name}: quantity ${oq} → ${nq}, cost ₱${oc.toFixed(2)} → ₱${nc.toFixed(2)}`
     }
     case 'inventory_deleted': {
-      const qty = typeof details.quantity === 'number' ? details.quantity : Number(details.quantity) || 0
+      const qty =
+        typeof details.quantity === 'number' ? details.quantity : Number(details.quantity) || 0
       const name = details.name || 'Ingredient'
       const cost = typeof details.cost === 'number' ? details.cost : Number(details.cost) || 0
       return `Deleted ${qty} of ${name} with a cost of ₱${cost.toFixed(2)}`
@@ -489,10 +485,21 @@ const getActivityClass = (type) => ({
 
 // Lifecycle Hooks
 onMounted(async () => {
+  // Initial fetch
   await Promise.all([fetchStaff(), fetchActivities()])
+
   // Set up realtime subscription
   const unsubscribe = activityStore.subscribeToActivities()
-  
+
+  // Update online status every minute
+  const interval = setInterval(fetchStaff, 60000) // 60 seconds
+
+  // Clean up on unmount
+  onUnmounted(() => {
+    clearInterval(interval)
+    if (unsubscribe) unsubscribe()
+  })
+
   // Clean up subscription on unmount
   onUnmounted(() => {
     if (unsubscribe) unsubscribe()
@@ -726,6 +733,72 @@ watch([statusFilter, roleFilter], () => {
   flex-direction: column;
   gap: 0.5rem;
   margin-left: auto;
+}
+
+/* Status badge styles */
+.status-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-sizing: content-box;
+}
+
+.status-badge.online {
+  background-color: #4caf50; /* Green for online */
+}
+
+.status-badge.offline {
+  background-color: #9e9e9e; /* Grey for offline */
+}
+
+/* Add a pulse animation for online status */
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+}
+
+.status-badge.online::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid #4caf50;
+  animation: pulse 2s infinite;
+  z-index: -1;
+}
+
+/* Staff avatar styles */
+.staff-avatar {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #555;
+  margin-right: 15px;
+  flex-shrink: 0;
 }
 
 .btn-icon {

@@ -61,52 +61,66 @@ const validateLogin = () => {
 const handleLogin = async () => {
   if (!hasSupabaseConfig) {
     showError(
-      'Authentication is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in a .env file and restart the app.',
-      'Configuration Missing',
+      'Authentication is not configured. Please contact support for assistance.',
+      'Configuration Error',
     )
     return
   }
-  if (!validateLogin()) return
 
-  // Clear previous messages
+  // Clear previous errors
+  errors.value = { email: '', password: '' }
+
+  // Basic validation
+  if (!formData.value.email) {
+    errors.value.email = 'Email is required'
+    return
+  }
+
+  if (!formData.value.password) {
+    errors.value.password = 'Password is required'
+    return
+  }
+
+  // Clear previous messages and start loading
   formAction.value = {
     ...formActionDefault,
+    formProcess: true,
   }
-  formAction.value.formProcess = true
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: formData.value.email,
+      email: formData.value.email.trim(),
       password: formData.value.password,
     })
 
     if (error) {
       console.error('Login error:', error)
 
-      // Handle specific error cases with modal alerts
+      // Handle specific error cases with user-friendly messages
       if (
         error.message.includes('Invalid login credentials') ||
-        error.message.includes('Invalid email or password') ||
-        error.message.includes('Email not confirmed')
+        error.message.includes('Invalid email or password')
       ) {
-        showError(
-          'Invalid email or password. Please check your credentials and try again.',
-          'Login Failed',
-        )
-      } else if (error.message.includes('User not found')) {
-        showError(
-          'No account found with this email address. Please register first.',
-          'Account Not Found',
-        )
+        errors.value.password = 'Incorrect password. Please try again.'
       } else if (error.message.includes('Email not confirmed')) {
         showError(
-          'Please verify your email address before logging in. Check your inbox for a verification link.',
+          'Please verify your email before logging in. Check your inbox for a verification link.',
           'Email Not Verified',
         )
-      } else if (error.message.includes('Too many requests')) {
-        showWarning('Too many login attempts. Please wait a moment and try again.', 'Rate Limited')
+      } else if (error.message.includes('User not found')) {
+        errors.value.email = 'No account found with this email address.'
+      } else if (error.message.includes('rate limit')) {
+        showError(
+          'Too many login attempts. Please wait a few minutes and try again.',
+          'Too Many Attempts',
+        )
+      } else if (error.message.includes('network')) {
+        showError(
+          'Network error. Please check your internet connection and try again.',
+          'Connection Error',
+        )
       } else {
-        showError(error.message || 'Login failed. Please try again.', 'Login Error')
+        showError('An unexpected error occurred. Please try again later.', 'Login Failed')
       }
 
       formAction.value.formStatus = error.status || 400

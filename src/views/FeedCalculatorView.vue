@@ -81,7 +81,6 @@
 <script setup>
 import { computed, reactive, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-// Removed BottomBar import - using inline navigation
 import { useFeedsStore } from '../stores/feeds'
 import { useInventoryStore } from '../stores/inventory'
 
