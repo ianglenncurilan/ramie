@@ -133,9 +133,8 @@ const validate = () => {
   } else if (formData.value.password.length > 100) {
     errors.value.password = 'Password is too long (maximum 100 characters)'
     valid = false
-  }
-  if (passwordError !== true) {
-    errors.value.password = passwordError
+  } else if (formData.value.password.includes(' ')) {
+    errors.value.password = 'Password cannot contain spaces'
     valid = false
   }
 
@@ -336,7 +335,10 @@ const handleRegister = async () => {
               v-model="formData.password"
               placeholder="Create a password"
               @input="clearErrors('password')"
-              :class="{ error: errors.password }"
+              :class="{
+                'error-input': errors.password,
+                'success-input': formData.password && !errors.password,
+              }"
             />
             <i
               class="mdi"
@@ -344,7 +346,10 @@ const handleRegister = async () => {
               @click="togglePasswordVisibility('password')"
             ></i>
           </div>
-          <span v-if="errors.password" class="error-message">{{ errors.password }}</span>
+          <div v-if="errors.password" class="error-container">
+            <i class="mdi mdi-alert-circle error-icon"></i>
+            <span class="error-message">{{ errors.password }}</span>
+          </div>
         </div>
 
         <div class="form-group">
@@ -617,7 +622,7 @@ h2 {
 /* error messages */
 .error-message,
 .err {
-  color: var(--error);
+  color: red  ;
   font-size: 12px;
   margin-top: 6px;
   padding-left: 12px;

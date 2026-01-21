@@ -14,18 +14,8 @@
         </div>
 
         <div class="intro">
-          Input the exact amount of KG of each ingredients shown in the table.
+          Input the exact amount of each ingredients shown in the table.
           <div class="intro-actions">
-            <button
-              class="refresh-costs-btn"
-              @click="autoPopulateCosts"
-              title="Refresh costs from inventory"
-            >
-              🔄 Update Costs from Inventory
-            </button>
-            <div class="inventory-status">
-              📦 {{ inventoryStore.availableIngredients.length }} ingredients available
-            </div>
             <div class="auto-populate-info">
               💡 Costs are automatically populated from your inventory when available
             </div>
@@ -37,11 +27,11 @@
             <div class="cat-head">
               <div class="cat-title">{{ category.title }}</div>
               <div
+                v-if="['carbs', 'protein'].includes(category.key)"
                 class="cat-total"
                 :class="{
                   exceeded: getCategoryTotal(category) > category.total,
-                  valid:
-                    getCategoryTotal(category) <= category.total && getCategoryTotal(category) > 0,
+                  valid: getCategoryTotal(category) === category.total,
                 }"
               >
                 {{ getCategoryTotal(category) }}/{{ category.total }}
@@ -81,17 +71,19 @@
                         findInventoryItemByName(item.label).isAvailable),
                   }"
                 >
-                  <input type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
-                  <span
+                  <template
                     v-if="
                       (findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable) ||
                       (findInventoryItemByName(item.label) &&
                         findInventoryItemByName(item.label).isAvailable)
                     "
-                    class="auto-indicator"
-                    title="Auto-populated from inventory"
-                    >📦</span
                   >
+                    <span class="cost-display"
+                      >₱ {{ costs[item.id] ? Number(costs[item.id]).toFixed(2) : '0.00' }}</span
+                    >
+                    <span class="auto-indicator" title="Auto-populated from inventory">📦</span>
+                  </template>
+                  <input v-else type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
                 </div>
               </div>
             </div>
@@ -131,7 +123,7 @@ const INGREDIENT_MAPPING = {
   cececal: ['cececal'],
   salt: ['salt'],
   ricehull: ['rice hull', 'ricehull', 'carbonised rice hull'],
-  water: ['water'],
+  // Water is handled separately and should not be in the main ingredient mapping
 }
 
 // Finisher feed categories with 40% Protein / 60% Carbs ratio
@@ -145,10 +137,6 @@ const uiCategories = computed(() => {
     protein: availableIngredients.filter((ingredient) => ingredient.type === 'protein'),
     vitamins: availableIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
     minerals: availableIngredients.filter((ingredient) => ingredient.type === 'minerals'),
-    water: availableIngredients.filter(
-      (ingredient) =>
-        ingredient.type === 'water' || ingredient.name.toLowerCase().includes('water'),
-    ),
   }
 
   return [
@@ -177,7 +165,7 @@ const uiCategories = computed(() => {
     {
       key: 'vitamins',
       title: 'Vitamins',
-      total: 3,
+      total: 0, // No total validation for vitamins
       items: categorizedIngredients.vitamins.map((ingredient) => ({
         id: ingredient.id,
         label: ingredient.name,
@@ -188,19 +176,8 @@ const uiCategories = computed(() => {
     {
       key: 'minerals',
       title: 'Minerals',
-      total: 5,
+      total: 0, // No total validation for minerals
       items: categorizedIngredients.minerals.map((ingredient) => ({
-        id: ingredient.id,
-        label: ingredient.name,
-        base: Math.round(ingredient.quantity * 0.1) || 1,
-        cost: ingredient.cost,
-      })),
-    },
-    {
-      key: 'water',
-      title: 'Water (% to dry ingredients)',
-      total: 30,
-      items: categorizedIngredients.water.map((ingredient) => ({
         id: ingredient.id,
         label: ingredient.name,
         base: Math.round(ingredient.quantity * 0.1) || 1,
@@ -431,123 +408,199 @@ watch(
 )
 
 async function saveFormulation() {
-  // Validate that all categories meet their requirements
-  const validationErrors = []
+  try {
+    // Initialize array to track inventory deduction results
+    const deductionResults = []
 
-  uiCategories.value.forEach((category) => {
-    const categoryTotal = getCategoryTotal(category)
-    if (categoryTotal === 0) {
-      validationErrors.push(`${category.title} has no ingredients added`)
-    } else if (categoryTotal > category.total) {
-      validationErrors.push(`${category.title} exceeds limit (${categoryTotal}/${category.total})`)
+    // Only validate Carbs and Protein totals
+    const validationErrors = []
+
+    // Check Carbs total (should be exactly 60 for Finisher)
+    const carbsTotal =
+      uiCategories.value
+        .find((cat) => cat.key === 'carbs')
+        ?.items.reduce((sum, item) => sum + (parseFloat(amounts[item.id]) || 0), 0) || 0
+
+    if (carbsTotal !== 60) {
+      validationErrors.push(`Total carbohydrates must be exactly 60% (current: ${carbsTotal}%)`)
     }
-  })
 
-  if (validationErrors.length > 0) {
-    alert('Cannot save: ' + validationErrors.join(', '))
-    return
-  }
+    // Check Protein total (should be exactly 40 for Finisher)
+    const proteinTotal =
+      uiCategories.value
+        .find((cat) => cat.key === 'protein')
+        ?.items.reduce((sum, item) => sum + (parseFloat(amounts[item.id]) || 0), 0) || 0
 
-  const items = []
-  uiCategories.value.forEach((cat) => {
-    cat.items.forEach((it) => {
-      const amountKg = Number(amounts[it.id]) || 0
-      const costPerKg = Number(costs[it.id]) || 0
-      if (amountKg > 0) {
-        items.push({
-          id: it.id,
-          label: `${it.label}${it.note ? ' (' + it.note + ')' : ''}`,
-          amountKg,
-          costPerKg,
-        })
-      }
-    })
-  })
-
-  // Totals
-  const totalAmount = items.reduce((sum, item) => sum + item.amountKg, 0)
-  const totalCost = items.reduce((sum, item) => sum + item.amountKg * item.costPerKg, 0)
-
-  // Pre-check inventory sufficiency to avoid partial deductions
-  const insufficient = []
-  for (const item of items) {
-    // Try to match by ID first (items are generated from inventory), then by name
-    const invItem =
-      inventoryStore.ingredients.find((ing) => ing.id === item.id) ||
-      inventoryStore.ingredients.find(
-        (ing) =>
-          ing.name.toLowerCase() === item.label.toLowerCase() ||
-          ing.name.toLowerCase().includes(item.label.toLowerCase()) ||
-          item.label.toLowerCase().includes(ing.name.toLowerCase()),
-      )
-    const currentQty = Number(invItem?.quantity) || 0
-    if (!invItem || currentQty < Number(item.amountKg)) {
-      insufficient.push({ name: item.label, available: currentQty, needed: item.amountKg })
+    if (proteinTotal !== 40) {
+      validationErrors.push(`Total protein must be exactly 40% (current: ${proteinTotal}%)`)
     }
-  }
 
-  if (insufficient.length > 0) {
-    const msg = insufficient
-      .map((x) => `${x.name} (available: ${x.available}, needed: ${x.needed})`)
-      .join(', ')
-    alert(`Cannot save: insufficient quantity for ${msg}.`)
-    return
-  }
-
-  // All sufficient: perform actual deductions and await completion
-  const deductionResults = []
-  for (const item of items) {
-    const res = await inventoryStore.deductIngredientQuantity(item.id, item.amountKg)
-    deductionResults.push(res)
-    if (!res.success) {
-      // In case of a runtime failure (e.g., DB update), abort before saving
-      alert(`Failed to deduct ${item.label}: ${res.error || 'Unknown error'}`)
+    if (validationErrors.length > 0) {
+      alert('Cannot save: ' + validationErrors.join(', '))
       return
     }
-  }
 
-  // Also persist a formulation entry in feed_formulations
-  const formulation = {
-    feedType: 'finisher',
-    name: `Finisher Feed - ${new Date().toLocaleDateString()}`,
-    ingredients: items.map((it) => ({
-      id: it.id,
-      label: it.label,
-      amountKg: it.amountKg,
-      costPerKg: it.costPerKg,
-    })),
-    totalKg: totalAmount,
-    totalCost: totalCost,
-    costPerKg: totalAmount > 0 ? totalCost / totalAmount : 0,
-    notes: 'Generated from Finisher Feed Calculator',
-  }
-  try {
-    await feedFormulationsStore.saveFormulation(formulation)
-  } catch (_) {}
-
-  // Add record with detailed information
-  await feedsStore.addRecord({
-    stage: 'Finisher',
-    items,
-    totalAmount: totalAmount,
-    totalCost: totalCost,
-    date: new Date().toISOString(),
-  })
-
-  // Add expense for the total cost
-  if (totalCost > 0) {
-    feedsStore.addExpense({
-      label: `Feed Formulation (Finisher) - ${totalAmount.toFixed(1)}kg`,
-      amount: totalCost,
+    const items = []
+    uiCategories.value.forEach((cat) => {
+      cat.items.forEach((it) => {
+        const amountKg = parseFloat(amounts[it.id]) || 0
+        const costPerKg = parseFloat(costs[it.id]) || 0
+        if (amountKg > 0) {
+          items.push({
+            id: it.id,
+            label: `${it.label}${it.note ? ' (' + it.note + ')' : ''}`,
+            amountKg,
+            costPerKg,
+          })
+        }
+      })
     })
+
+    // Calculate totals directly from amounts and costs objects
+    let totalAmount = 0
+    let totalCost = 0
+
+    // Calculate total amount and cost from the actual form inputs
+    for (const [ingredientId, amount] of Object.entries(amounts)) {
+      const amountValue = parseFloat(amount) || 0
+      const costValue = parseFloat(costs[ingredientId]) || 0
+      totalAmount += amountValue
+      totalCost += amountValue * costValue
+    }
+
+    console.log('Calculated totals:', { totalAmount, totalCost, amounts, costs })
+
+    // Pre-check inventory sufficiency to avoid partial deductions
+    const insufficient = []
+    for (const item of items) {
+      if (item.amountKg > 0) {
+        const invItem = findInventoryItemByName(item.label)
+        const currentQty = Number(invItem?.quantity) || 0
+        if (!invItem || currentQty < Number(item.amountKg)) {
+          insufficient.push({ name: item.label, available: currentQty, needed: item.amountKg })
+        }
+      }
+    }
+
+    if (insufficient.length > 0) {
+      const msg = insufficient
+        .map((x) => `${x.name} (available: ${x.available}, needed: ${x.needed})`)
+        .join(', ')
+      alert(`Cannot save: insufficient quantity for ${msg}.`)
+      return
+    }
+
+    // All sufficient: perform actual deductions and await completion
+    for (const item of items) {
+      if (item.amountKg > 0) {
+        try {
+          const inventoryItem = findInventoryItemByName(item.label)
+          if (inventoryItem) {
+            const res = await inventoryStore.deductIngredientQuantity(
+              inventoryItem.id,
+              item.amountKg,
+            )
+            if (!res.success) {
+              alert(`Failed to deduct ${item.label}: ${res.error || 'Unknown error'}`)
+              return
+            }
+            // Use updated remaining quantity from result when available
+            deductionResults.push({
+              success: true,
+              ingredient: item.label,
+              deducted: item.amountKg,
+              remaining:
+                typeof res.remaining === 'number'
+                  ? res.remaining
+                  : Math.max(0, (Number(inventoryItem.quantity) || 0) - item.amountKg),
+            })
+          } else {
+            alert(`Failed to deduct ${item.label}: Item not found in inventory`)
+            return
+          }
+        } catch (error) {
+          console.error(`Error deducting ${item.label}:`, error)
+          alert(`Failed to deduct ${item.label}: ${error.message}`)
+          return
+        }
+      }
+    }
+
+    // Also persist a formulation entry in feed_formulations
+    const record = {
+      stage: 'Finisher',
+      items: items.map((item) => ({
+        id: item.id,
+        label: item.label,
+        amountKg: item.amountKg,
+        costPerKg: item.costPerKg,
+      })),
+      totalAmount,
+      totalCost,
+      date: new Date().toISOString(),
+      inventoryDeductions: deductionResults,
+    }
+
+    // Save to database
+    try {
+      const result = await feedFormulationsStore.saveFormulation(record)
+      console.log('Save result:', result)
+    } catch (error) {
+      console.error('Error saving feed formulation:', error)
+      alert(`Error saving feed formulation: ${error.message}`)
+      return
+    }
+
+    // Add record with detailed information
+    await feedsStore.addRecord(record)
+
+    // Add expense for the total cost
+    if (totalCost > 0) {
+      feedsStore.addExpense({
+        label: `Feed Formulation (Finisher) - ${totalAmount.toFixed(1)}kg`,
+        amount: totalCost,
+      })
+    }
+
+    // Filter successful and failed deductions
+    const successfulDeductions = deductionResults.filter((r) => r.success)
+    const failedDeductions = deductionResults.filter((r) => !r.success)
+
+    // Prepare success message
+    let successMessage = `Finisher feed formulation saved successfully!\n\n`
+    successMessage += `Total: ${totalAmount.toFixed(1)}kg\n`
+    successMessage += `Total Cost: ₱${totalCost.toFixed(2)}`
+
+    if (successfulDeductions.length > 0) {
+      successMessage += '\n\nInventory updated:'
+      successfulDeductions.forEach((d) => {
+        successMessage += `\n- ${d.deducted}kg of ${d.ingredient} (${d.remaining}kg remaining)`
+      })
+    }
+
+    if (failedDeductions.length > 0) {
+      successMessage += '\n\nWarning: Could not update inventory for:'
+      failedDeductions.forEach((d) => {
+        successMessage += `\n- ${d.ingredient}: ${d.error || 'Unknown error'}`
+      })
+    }
+
+    alert(successMessage)
+
+    // Reset form
+    Object.keys(amounts).forEach((key) => {
+      amounts[key] = 0
+    })
+    Object.keys(costs).forEach((key) => {
+      costs[key] = 0
+    })
+
+    // Navigate to records
+    router.replace({ name: 'records' })
+  } catch (error) {
+    console.error('Error in saveFormulation:', error)
+    alert(`Error: ${error.message}`)
   }
-
-  // Show success message
-  alert(
-    `Finisher feed formulation saved successfully!\nTotal: ${totalAmount.toFixed(1)}kg\nTotal Cost: ₱${totalCost.toFixed(2)}`,
-  )
-
-  router.replace({ name: 'records' })
 }
 </script>
 
@@ -555,7 +608,6 @@ async function saveFormulation() {
 * {
   font-family: 'Quicksand', sans-serif;
 }
-
 .screen {
   height: 100vh;
   background: #2f8b60;
@@ -724,17 +776,27 @@ async function saveFormulation() {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  border: 1px solid #e6e6e6;
+  border: 1px solid #007500;
   border-radius: 6px;
-  padding: 1px 3px;
+  padding: 0.3rem;
   min-width: 0;
+  border-color: rgb(19, 183, 1);
 }
 .pill.exceeded {
   background-color: #fdf2f2;
 }
 .pill.auto-populated {
-  border-color: #2f8b60;
-  background-color: #f0f8f4;
+  background-color: #f0f9ff;
+  border-color: grey;
+}
+
+.cost-display {
+  padding: 0.1rem;
+  color: rgb(0, 15, 0);
+  font-weight: 500;
+  min-width: 60px;
+  display: inline-block;
+  text-align: right;
 }
 .pill input {
   border: none;

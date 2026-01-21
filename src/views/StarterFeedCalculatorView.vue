@@ -14,18 +14,8 @@
         </div>
 
         <div class="intro">
-          Input the exact amount of KG of each ingredients shown in the table.
+          Input the exact amount of each ingredients shown in the table.
           <div class="intro-actions">
-            <button
-              class="refresh-costs-btn"
-              @click="autoPopulateCosts"
-              title="Refresh costs from inventory"
-            >
-              🔄 Update Costs from Inventory
-            </button>
-            <div class="inventory-status">
-              📦 {{ inventoryStore.availableIngredients.length }} ingredients available
-            </div>
             <div class="auto-populate-info">
               💡 Costs are automatically populated from your inventory when available
             </div>
@@ -37,11 +27,11 @@
             <div class="cat-head">
               <div class="cat-title">{{ category.title }}</div>
               <div
+                v-if="['carbs', 'protein'].includes(category.key)"
                 class="cat-total"
                 :class="{
                   exceeded: getCategoryTotal(category) > category.total,
-                  valid:
-                    getCategoryTotal(category) <= category.total && getCategoryTotal(category) > 0,
+                  valid: getCategoryTotal(category) === category.total,
                 }"
               >
                 {{ getCategoryTotal(category) }}/{{ category.total }}
@@ -81,17 +71,19 @@
                         findInventoryItemByName(item.label).isAvailable),
                   }"
                 >
-                  <input type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
-                  <span
+                  <template
                     v-if="
                       (findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable) ||
                       (findInventoryItemByName(item.label) &&
                         findInventoryItemByName(item.label).isAvailable)
                     "
-                    class="auto-indicator"
-                    title="Auto-populated from inventory"
-                    >📦</span
                   >
+                    <span class="cost-display"
+                      >₱ {{ costs[item.id] ? Number(costs[item.id]).toFixed(2) : '0.00' }}</span
+                    >
+                    <span class="auto-indicator" title="Auto-populated from inventory">📦</span>
+                  </template>
+                  <input v-else type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
                 </div>
               </div>
             </div>
@@ -132,8 +124,8 @@ const INGREDIENT_MAPPING = {
   premix: ['premix', 'animal vita', 'vitamins'],
   cececal: ['cececal'],
   salt: ['salt'],
-  ricehull: ['rice hull', 'ricehull', 'carbonised rice hull'],
-  water: ['water'],
+  ricehull: ['rice hull', 'ricehull', 'ricehulls', 'rice hulls'],
+  // Water is handled separately and should not be in the main ingredient mapping
 }
 
 // Starter feed categories with 60% Protein / 40% Carbs ratio
@@ -147,10 +139,6 @@ const uiCategories = computed(() => {
     protein: availableIngredients.filter((ingredient) => ingredient.type === 'protein'),
     vitamins: availableIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
     minerals: availableIngredients.filter((ingredient) => ingredient.type === 'minerals'),
-    water: availableIngredients.filter(
-      (ingredient) =>
-        ingredient.type === 'water' || ingredient.name.toLowerCase().includes('water'),
-    ),
   }
 
   return [
@@ -179,7 +167,6 @@ const uiCategories = computed(() => {
     {
       key: 'vitamins',
       title: 'Vitamins',
-      total: 3,
       items: categorizedIngredients.vitamins.map((ingredient) => ({
         id: ingredient.id,
         label: ingredient.name,
@@ -190,19 +177,7 @@ const uiCategories = computed(() => {
     {
       key: 'minerals',
       title: 'Minerals',
-      total: 5,
       items: categorizedIngredients.minerals.map((ingredient) => ({
-        id: ingredient.id,
-        label: ingredient.name,
-        base: Math.round(ingredient.quantity * 0.1) || 1,
-        cost: ingredient.cost,
-      })),
-    },
-    {
-      key: 'water',
-      title: 'Water (% to dry ingredients)',
-      total: 30,
-      items: categorizedIngredients.water.map((ingredient) => ({
         id: ingredient.id,
         label: ingredient.name,
         base: Math.round(ingredient.quantity * 0.1) || 1,
@@ -249,7 +224,7 @@ const findInventoryItem = (ingredientId) => {
     // Vitamins
     'starter-vitamins-1': ['molasses', 'blackstrap molasses', 'sugar cane molasses'],
 
-    // Water
+    // Water (not a carbohydrate, kept for reference if needed elsewhere)
     'water-1': ['water', 'clean water', 'drinking water'],
   }
 
@@ -393,74 +368,63 @@ watch(
   { deep: true },
 )
 
-async function saveFormulation() {
-  // Calculate total kg and cost
-  const totalKg = Object.values(amounts).reduce((sum, val) => sum + (Number(val) || 0), 0)
-  const totalCost = Object.entries(amounts).reduce(
-    (sum, [id, amount]) => sum + (Number(amount) || 0) * (costs[id] || 0),
-    0,
-  )
-  const costPerKg = totalKg > 0 ? totalCost / totalKg : 0
-
-  // Prepare ingredients array
-  const ingredients = uiCategories.value.flatMap((category) =>
-    category.items.map((item) => ({
-      id: item.id,
-      label: item.label,
-      amountKg: Number(amounts[item.id]) || 0,
-      costPerKg: Number(costs[item.id]) || 0,
-      category: category.title,
-    })),
-  )
-
-  // Create formulation object
-  const formulation = {
-    feedType: 'starter',
-    name: `Starter Feed - ${new Date().toLocaleDateString()}`,
-    ingredients,
-    totalKg,
-    totalCost,
-    costPerKg,
-    notes: 'Generated from Starter Feed Calculator',
-    createdBy: 'current_user_id', // This should be replaced with the actual user ID
-  }
-
+const saveFormulation = async () => {
   try {
-    // Ensure store is properly initialized
-    if (!feedFormulationsStore || typeof feedFormulationsStore.saveFormulation !== 'function') {
-      console.error('Feed formulations store is not properly initialized:', feedFormulationsStore)
-      throw new Error('Unable to save feed formulation. Please try again later.')
-    }
-
-    console.log('Saving formulation:', formulation)
-
-    // Track inventory deduction results
+    // Initialize array to track inventory deduction results
     const deductionResults = []
 
-    // Create items array from form data
-    const items = []
-    // Get the current value of uiCategories (it's a ref)
-    const categories = uiCategories.value || []
+    // No longer require individual fields to be filled
+    // Only the totals for Carbs and Protein matter
 
+    // Validate carbs and protein totals
+    const carbsTotal =
+      uiCategories.value
+        .find((cat) => cat.key === 'carbs')
+        ?.items.reduce((sum, item) => sum + (amounts[item.id] || 0), 0) || 0
+
+    const proteinTotal =
+      uiCategories.value
+        .find((cat) => cat.key === 'protein')
+        ?.items.reduce((sum, item) => sum + (amounts[item.id] || 0), 0) || 0
+
+    if (carbsTotal !== 40) {
+      alert(`Total carbohydrates must be exactly 40%. Current total: ${carbsTotal}%`)
+      return
+    }
+
+    if (proteinTotal !== 60) {
+      alert(`Total protein must be exactly 60%. Current total: ${proteinTotal}%`)
+      return
+    }
+
+    // Prepare items for saving
+    const items = []
     for (const [ingredientId, amount] of Object.entries(amounts)) {
-      if (Number(amount) > 0) {
-        // Ensure amount is a positive number
-        // Find the ingredient in any category
-        let ingredient = null
-        for (const category of categories) {
-          if (category && category.items) {
-            const found = category.items.find((item) => item && item.id === Number(ingredientId))
-            if (found) {
-              ingredient = found
-              break
-            }
+      if (amount > 0) {
+        let ingredient = findInventoryItem(ingredientId)
+        let ingredientLabel = ''
+
+        // Find the ingredient's label from uiCategories
+        for (const category of uiCategories.value) {
+          const found = category.items.find((item) => item.id === ingredientId)
+          if (found) {
+            ingredientLabel = found.label || ingredientId
+            break
           }
         }
 
-        if (ingredient) {
+        // If we couldn't find the ingredient in inventory but have a label, still allow saving
+        if (!ingredient && ingredientLabel) {
           items.push({
             id: ingredientId,
-            label: ingredient.label || ingredientId,
+            label: ingredientLabel,
+            amountKg: parseFloat(amount) || 0,
+            costPerKg: parseFloat(costs[ingredientId]) || 0,
+          })
+        } else if (ingredient) {
+          items.push({
+            id: ingredientId,
+            label: ingredient.label || ingredientLabel || ingredientId,
             amountKg: parseFloat(amount) || 0,
             costPerKg: parseFloat(costs[ingredientId]) || 0,
           })
@@ -468,9 +432,19 @@ async function saveFormulation() {
       }
     }
 
-    // Calculate totals
-    const totalAmount = items.reduce((sum, item) => sum + item.amountKg, 0)
-    const totalCost = items.reduce((sum, item) => sum + item.amountKg * item.costPerKg, 0)
+    // Calculate totals directly from amounts and costs objects
+    let totalAmount = 0
+    let totalCost = 0
+
+    // Calculate total amount and cost from the actual form inputs
+    for (const [ingredientId, amount] of Object.entries(amounts)) {
+      const amountValue = parseFloat(amount) || 0
+      const costValue = parseFloat(costs[ingredientId]) || 0
+      totalAmount += amountValue
+      totalCost += amountValue * costValue
+    }
+
+    console.log('Calculated totals:', { totalAmount, totalCost, amounts, costs })
 
     // Pre-check inventory sufficiency to avoid partial deductions
     const insufficient = []
@@ -528,18 +502,11 @@ async function saveFormulation() {
       }
     }
 
-    // Save to database
-    const result = await feedFormulationsStore.saveFormulation(formulation)
-    console.log('Save result:', result)
-
-    // Update UI state
-    saveStatus.value = { success: true, error: null }
-
     // Filter successful and failed deductions
     const successfulDeductions = deductionResults.filter((r) => r.success)
     const failedDeductions = deductionResults.filter((r) => !r.success)
 
-    // Add record with detailed information
+    // Create record with detailed information
     const record = {
       stage: 'Starter',
       items: items.map((item) => ({
@@ -553,6 +520,13 @@ async function saveFormulation() {
       date: new Date().toISOString(),
       inventoryDeductions: deductionResults,
     }
+
+    // Update UI state
+    saveStatus.value = { success: true, error: null }
+
+    // Save to database
+    const result = await feedFormulationsStore.saveFormulation(record)
+    console.log('Save result:', result)
 
     await feedsStore.addRecord(record)
 
@@ -584,6 +558,16 @@ async function saveFormulation() {
     }
 
     alert(successMessage)
+
+    // Reset form
+    Object.keys(amounts).forEach((key) => {
+      amounts[key] = 0
+    })
+    Object.keys(costs).forEach((key) => {
+      costs[key] = 0
+    })
+
+    // Navigate to records
     router.replace({ name: 'records' })
   } catch (error) {
     console.error('Error saving feed formulation:', error)
@@ -765,18 +749,29 @@ async function saveFormulation() {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  border: 1px solid #e6e6e6;
+  border: 1px solid #007500;
   border-radius: 6px;
-  padding: 1px 3px;
+  padding: 0.3rem;
   min-width: 0;
+  border-color: rgb(19, 183, 1);
 }
 .pill.exceeded {
   background-color: #fdf2f2;
 }
 .pill.auto-populated {
-  border-color: #2f8b60;
-  background-color: #f0f8f4;
+  background-color: #f0f9ff;
+  border-color: grey;
 }
+
+.cost-display {
+  padding: 0.1rem;
+  color: rgb(0, 15, 0);
+  font-weight: 500;
+  min-width: 60px;
+  display: inline-block;
+  text-align: right;
+}
+
 .pill input {
   border: none;
   outline: none;
