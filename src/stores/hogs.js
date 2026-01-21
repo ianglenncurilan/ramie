@@ -27,6 +27,7 @@ export const useHogsStore = defineStore('hogs', () => {
         days: hog.days || 0,
         feedingCompleted: hog.feeding_completed || false,
         createdAt: hog.created_at,
+        updated_at: hog.updated_at,
         lastFeedingDate: hog.last_feeding_date,
         totalFeedingDays: hog.total_feeding_days || 0,
         lastDayIncrement: hog.last_day_increment,
@@ -149,6 +150,9 @@ export const useHogsStore = defineStore('hogs', () => {
       if ('amFeeding' in updates) dbUpdates.am_feeding = updates.amFeeding
       if ('pmFeeding' in updates) dbUpdates.pm_feeding = updates.pmFeeding
 
+      // Always update the updated_at timestamp
+      dbUpdates.updated_at = new Date().toISOString()
+
       const { data, error: updateError } = await supabase
         .from('hogs')
         .update(dbUpdates)
@@ -165,6 +169,7 @@ export const useHogsStore = defineStore('hogs', () => {
           ...updates,
           lastFeedingDate: data[0].last_feeding_date,
           lastDayIncrement: data[0].last_day_increment,
+          updated_at: data[0].updated_at,
         }
         return hogs.value[hogIndex]
       }
@@ -181,7 +186,10 @@ export const useHogsStore = defineStore('hogs', () => {
 
   // Update hog weight
   function updateHogWeight(hogId, newWeight) {
-    return updateHog(hogId, { weight: parseFloat(newWeight) || 0 })
+    return updateHog(hogId, {
+      weight: parseFloat(newWeight) || 0,
+      updated_at: new Date().toISOString(),
+    })
   }
 
   // Toggle feeding status

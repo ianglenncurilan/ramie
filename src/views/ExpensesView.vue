@@ -12,16 +12,7 @@
       </section>
       <div class="panel">
         <div class="summary-line">Financial Summary for {{ monthYearLabel }}</div>
-        <div class="action-buttons">
-          <button class="add-income-btn" @click="openIncomeModal">
-            <span>+</span>
-            Add Income
-          </button>
-          <button class="add-expense-btn" @click="openExpenseModal">
-            <span>+</span>
-            Add Expense
-          </button>
-        </div>
+       
 
         <div class="cards">
           <div class="card success">

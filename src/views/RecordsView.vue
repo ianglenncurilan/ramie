@@ -1,137 +1,178 @@
 <template>
   <div class="screen">
-    <section class="hero">
-      <img src="/pig.jpg" alt="hero" />
-      <div class="overlay">
-        <img class="receipt-icon" src="/receipt.png" alt="Receipt" />
-        <div class="brand">
-          <div class="title"></div>
+    <!-- Selection Modal -->
+    <div
+      v-if="showSelectionModal"
+      class="selection-modal-overlay"
+      @click="showSelectionModal = true"
+    >
+      <div class="selection-modal" @click.stop>
+        <div class="selection-modal-header">
+          <h3>Select Record Type</h3>
+          <p>Choose the type of records you want to view</p>
         </div>
-      </div>
-    </section>
-    <div class="panel">
-      <div class="records-header">
-        <div class="drag-indicator"></div>
-        <h3>Records</h3>
-        
-        <div class="period-toggle">
-          <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">
-            Year
-          </button>
-          <button :class="{ active: selectedPeriod === 'Month' }" @click="selectedPeriod = 'Month'">
-            Month
-          </button>
-        </div>
-        <div class="export-wrap">
-          <button
-            class="export-btn"
-            @click="exportMonth"
-            :title="`Click to download ${selectedMonthLabel}'s data as an Excel file.`"
-          >
-            {{ exportStatus || `Export ${selectedMonthLabel} Records` }}
-          </button>
-        </div>
-        <div class="month-bar" @wheel.prevent="onWheel">
-          <div class="month-track" ref="monthTrack">
-            <button
-              v-for="m in months"
-              :key="m.value"
-              class="month-chip"
-              :data-month="m.value"
-              :class="{ active: m.value === selectedMonth, disabled: !monthsWithData.has(m.value) }"
-              @click="selectMonth(m.value)"
-            >
-              {{ m.label }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="groups">
-        <div v-for="group in groupedRecords" :key="group.key" class="group">
-          <div class="group-title">{{ group.label }}</div>
-          <div class="records-card">
-            <div
-              v-for="rec in group.items"
-              :key="rec.id || rec.date"
-              class="record-row"
-              @click="openRecordModal(rec)"
-            >
-              <div class="icon-box">
-                <img src="/doc.png" alt="record" />
-              </div>
-              <div class="row-content">
-                <div class="row-title">{{ typeLabel(rec) || 'Feed' }}</div>
-              </div>
+        <div class="selection-options">
+          <div class="option-card" @click="navigateTo('feeds')">
+            <div class="option-icon">
+              <img src="/feed-icon.png" alt="Feeds" />
             </div>
-            <div v-if="group.items.length === 0" class="empty">No records</div>
+            <h4>Feeds Records</h4>
+            <p>View and manage feed production and usage records</p>
           </div>
-        </div>
-        <div v-if="groupedRecords.length === 0" class="empty">
-          No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home and use
-          the task menus (e.g., Make Feeds, Hogs Tracked).
+          <div class="option-card" @click="navigateTo('hogs')">
+            <div class="option-icon">
+              <img src="/piggg.png" alt="Hogs" />
+            </div>
+            <h4>Hogs Records</h4>
+            <p>View and manage hog sales and mortality records</p>
+          </div>
         </div>
       </div>
     </div>
-    <!-- Record Detail Modal -->
-    <div v-if="showRecordModal" class="modal-overlay" @click="closeRecordModal">
-      <div class="modal" @click.stop>
-        <div class="modal-header">
-          <h3>Record Details</h3>
-          <button class="close-btn" @click="closeRecordModal">×</button>
+
+    <!-- Main Content (initially hidden until selection) -->
+    <div v-if="!showSelectionModal">
+      <section class="hero">
+        <img src="/pig.jpg" alt="hero" />
+        <div class="overlay">
+          <img class="receipt-icon" src="/receipt.png" alt="Receipt" />
+          <div class="brand">
+            <div class="title"></div>
+          </div>
         </div>
-        <div class="modal-content" v-if="selectedRecord">
-          <div class="record-info">
-            <div class="record-header">
-              <h4>
-                {{
-                  getStage(selectedRecord) ? getStage(selectedRecord) + ' Feed' : 'Feed Formulation'
-                }}
-              </h4>
-              <div class="record-meta">
-                <span class="record-date">{{ formatDateTime(recordDate(selectedRecord)) }}</span>
-              </div>
-            </div>
+      </section>
+      <div class="panel">
+        <div class="records-header">
+          <div class="drag-indicator"></div>
+          <h3>Records</h3>
 
-            <div class="record-summary">
-              <div class="summary-item">
-                <span class="label">Total Amount:</span>
-                <span class="value">{{
-                  selectedRecord.totalAmount && selectedRecord.totalAmount > 0
-                    ? selectedRecord.totalAmount.toFixed(1) + 'kg'
-                    : 'N/A'
-                }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="label">Total Cost:</span>
-                <span class="value cost">₱{{ (selectedRecord.totalCost || 0).toFixed(2) }}</span>
-              </div>
-              <div class="summary-item" v-if="typeLabel(selectedRecord)">
-                <span class="label">Feed Type:</span>
-                <span class="value">{{ typeLabel(selectedRecord) }}</span>
-              </div>
-              <div class="summary-item" v-if="selectedRecord.creatorName">
-                <span class="label">Created by:</span>
-                <span class="value">{{ selectedRecord.creatorName }}</span>
-              </div>
+          <div class="period-toggle">
+            <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">
+              Year
+            </button>
+            <button
+              :class="{ active: selectedPeriod === 'Month' }"
+              @click="selectedPeriod = 'Month'"
+            >
+              Month
+            </button>
+          </div>
+          <div class="export-wrap">
+            <button
+              class="export-btn"
+              @click="exportMonth"
+              :title="`Click to download ${selectedMonthLabel}'s data as an Excel file.`"
+            >
+              {{ exportStatus || `Export ${selectedMonthLabel} Records` }}
+            </button>
+          </div>
+          <div class="month-bar" @wheel.prevent="onWheel">
+            <div class="month-track" ref="monthTrack">
+              <button
+                v-for="m in months"
+                :key="m.value"
+                class="month-chip"
+                :data-month="m.value"
+                :class="{
+                  active: m.value === selectedMonth,
+                  disabled: !monthsWithData.has(m.value),
+                }"
+                @click="selectMonth(m.value)"
+              >
+                {{ m.label }}
+              </button>
             </div>
+          </div>
+        </div>
 
-            <div class="ingredients-section">
-              <h5>Ingredients ({{ (selectedRecord.items || []).length }})</h5>
-              <div class="ingredients-list">
-                <div
-                  v-for="(item, idx) in selectedRecord.items || []"
-                  :key="idx"
-                  class="ingredient-item"
-                >
-                  <div class="ingredient-name">{{ item.label }}</div>
-                  <div class="ingredient-details">
-                    <span class="amount">{{ item.amountKg }}kg</span>
-                    <span class="total"
-                      >₱{{
-                        ((Number(item.amountKg) || 0) * (Number(item.costPerKg) || 0)).toFixed(2)
-                      }}</span
-                    >
+        <div class="groups">
+          <div v-for="group in groupedRecords" :key="group.key" class="group">
+            <div class="group-title">{{ group.label }}</div>
+            <div class="records-card">
+              <div
+                v-for="rec in group.items"
+                :key="rec.id || rec.date"
+                class="record-row"
+                @click="openRecordModal(rec)"
+              >
+                <div class="icon-box">
+                  <img src="/doc.png" alt="record" />
+                </div>
+                <div class="row-content">
+                  <div class="row-title">{{ typeLabel(rec) || 'Feed' }}</div>
+                </div>
+              </div>
+              <div v-if="group.items.length === 0" class="empty">No records</div>
+            </div>
+          </div>
+          <div v-if="groupedRecords.length === 0" class="empty">
+            No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home and
+            use the task menus (e.g., Make Feeds, Hogs Tracked).
+          </div>
+        </div>
+      </div>
+      <!-- Record Detail Modal -->
+      <div v-if="showRecordModal" class="modal-overlay" @click="closeRecordModal">
+        <div class="modal" @click.stop>
+          <div class="modal-header">
+            <h3>Record Details</h3>
+            <button class="close-btn" @click="closeRecordModal">×</button>
+          </div>
+          <div class="modal-content" v-if="selectedRecord">
+            <div class="record-info">
+              <div class="record-header">
+                <h4>
+                  {{
+                    getStage(selectedRecord)
+                      ? getStage(selectedRecord) + ' Feed'
+                      : 'Feed Formulation'
+                  }}
+                </h4>
+                <div class="record-meta">
+                  <span class="record-date">{{ formatDateTime(recordDate(selectedRecord)) }}</span>
+                </div>
+              </div>
+
+              <div class="record-summary">
+                <div class="summary-item">
+                  <span class="label">Total Amount:</span>
+                  <span class="value">{{
+                    selectedRecord.totalAmount && selectedRecord.totalAmount > 0
+                      ? selectedRecord.totalAmount.toFixed(1) + 'kg'
+                      : 'N/A'
+                  }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="label">Total Cost:</span>
+                  <span class="value cost">₱{{ (selectedRecord.totalCost || 0).toFixed(2) }}</span>
+                </div>
+                <div class="summary-item" v-if="typeLabel(selectedRecord)">
+                  <span class="label">Feed Type:</span>
+                  <span class="value">{{ typeLabel(selectedRecord) }}</span>
+                </div>
+                <div class="summary-item" v-if="selectedRecord.creatorName">
+                  <span class="label">Created by:</span>
+                  <span class="value">{{ selectedRecord.creatorName }}</span>
+                </div>
+              </div>
+
+              <div class="ingredients-section">
+                <h5>Ingredients ({{ (selectedRecord.items || []).length }})</h5>
+                <div class="ingredients-list">
+                  <div
+                    v-for="(item, idx) in selectedRecord.items || []"
+                    :key="idx"
+                    class="ingredient-item"
+                  >
+                    <div class="ingredient-name">{{ item.label }}</div>
+                    <div class="ingredient-details">
+                      <span class="amount">{{ item.amountKg }}kg</span>
+                      <span class="total"
+                        >₱{{
+                          ((Number(item.amountKg) || 0) * (Number(item.costPerKg) || 0)).toFixed(2)
+                        }}</span
+                      >
+                    </div>
                   </div>
                 </div>
               </div>
@@ -144,10 +185,35 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeMount } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
+import { useRouter } from 'vue-router'
 
 const feeds = useFeedsStore()
+const router = useRouter()
+
+// Control the selection modal
+const showSelectionModal = ref(true)
+
+// Navigate based on selection
+const navigateTo = (type) => {
+  if (type === 'hogs') {
+    router.push('/hogs-records')
+  } else {
+    // For feeds, just hide the modal and show the existing records view
+    showSelectionModal.value = false
+  }
+}
+
+// Check if coming back from hogs records
+onBeforeMount(() => {
+  const route = window.location.pathname
+  if (route.includes('hogs-records')) {
+    showSelectionModal.value = true
+    // Remove hogs-records from URL
+    window.history.replaceState({}, document.title, '/records')
+  }
+})
 
 // Period toggle and month navigation
 const selectedPeriod = ref('Month')
@@ -367,6 +433,136 @@ async function exportMonth() {
 </script>
 
 <style scoped>
+/* Selection Modal Styles */
+.selection-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(3px);
+}
+
+.selection-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selection-modal-header {
+  padding: 2rem 2rem 1rem;
+  text-align: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.selection-modal-header h3 {
+  margin: 0 0 0.5rem;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.selection-modal-header p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 0.95rem;
+}
+
+.selection-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: white;
+}
+
+.option-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.option-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  border-color: #dee2e6;
+}
+
+.option-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.option-icon img {
+  width: 50%;
+  height: 50%;
+  object-fit: contain;
+}
+
+.option-card h4 {
+  margin: 0 0 0.5rem;
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.option-card p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .selection-options {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .selection-modal-header {
+    padding: 1.5rem 1rem 1rem;
+  }
+
+  .option-card {
+    padding: 1.5rem 1rem;
+  }
+}
 * {
   font-family: 'Quicksand', sans-serif;
 }

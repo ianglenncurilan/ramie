@@ -52,7 +52,12 @@
                 </span>
               </div>
               <div class="weight-cell">
-                <span class="weight-value">{{ hog.weight }} kg</span>
+                <div class="weight-content">
+                  <span class="weight-value">{{ hog.weight }} kg</span>
+                  <span class="weight-date" v-if="hog.updated_at"
+                    >as of {{ formatDate(hog.updated_at) }}</span
+                  >
+                </div>
                 <button class="edit-btn" @click="openEditModal(hog)">✏️</button>
               </div>
               <div class="actions">
@@ -687,10 +692,22 @@ const getStatusText = (hog) => {
 }
 
 // Get status class
-const getStatusClass = (hog) => {
-  if (hog.isComplete) return 'status-completed'
-  if (hog.amFeeding && hog.pmFeeding) return 'status-complete'
-  if (hog.amFeeding || hog.pmFeeding) return 'status-in-progress'
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }
+  return new Date(dateString).toLocaleDateString(undefined, options)
+}
+
+function getStatusClass(hog) {
+  if (hog.isComplete) return 'status-complete'
+  if (hog.feedingStatus?.am && hog.feedingStatus?.pm) return 'status-complete'
+  if (hog.feedingStatus?.am || hog.feedingStatus?.pm) return 'status-partial'
   return 'status-pending'
 }
 
@@ -1183,8 +1200,22 @@ textarea.form-input {
 
 .weight-cell {
   flex: 0.8;
-  min-width: 90px;
-  text-align: right;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .weight-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    .weight-date {
+      font-size: 0.7rem;
+      color: #6c757d;
+      margin-top: 2px;
+    }
+  }
   padding-right: 8px;
   display: flex;
   align-items: center;
