@@ -96,6 +96,41 @@ export const useHogsStore = defineStore('hogs', () => {
     }
   }
 
+  // Update AM/PM feeding status
+  async function updateFeedingStatus(hogId, { am, pm }) {
+    try {
+      loading.value = true
+
+      // Update the database
+      const { data, error } = await supabase
+        .from('hogs')
+        .update({
+          am_feeding: am,
+          pm_feeding: pm,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', hogId)
+        .select()
+
+      if (error) throw error
+
+      // Update local state
+      const hog = hogs.value.find((h) => h.id === hogId)
+      if (hog) {
+        hog.amFeeding = am
+        hog.pmFeeding = pm
+      }
+
+      return data?.[0] || null
+    } catch (err) {
+      console.error('Error updating feeding status:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Update hog data in the database
   async function updateHog(hogId, updates) {
     try {
@@ -111,6 +146,8 @@ export const useHogsStore = defineStore('hogs', () => {
       if ('lastDayIncrement' in updates) dbUpdates.last_day_increment = updates.lastDayIncrement
       if ('weight' in updates) dbUpdates.weight = updates.weight
       if ('days' in updates) dbUpdates.days = updates.days
+      if ('amFeeding' in updates) dbUpdates.am_feeding = updates.amFeeding
+      if ('pmFeeding' in updates) dbUpdates.pm_feeding = updates.pmFeeding
 
       const { data, error: updateError } = await supabase
         .from('hogs')
@@ -184,27 +221,29 @@ export const useHogsStore = defineStore('hogs', () => {
       loading.value = true
       const hog = hogs.value.find((h) => h.id === hogId)
       if (!hog) throw new Error('Hog not found')
-      
+
       const updates = {
         feedingCompleted: false,
-        lastFeedingDate: null
+        lastFeedingDate: null,
       }
-      
+
       const updatedHog = await updateHog(hogId, updates)
-      
+
       if (!updatedHog) throw new Error('Failed to update hog')
-      
+
       // Log the activity
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (user) {
         await logStaffActivity(user.id, 'hog_feeding_undone', {
           hog_id: hogId,
           hog_code: hog.code,
           feed_date: new Date().toISOString(),
-          days: hog.days
+          days: hog.days,
         })
       }
-      
+
       return updatedHog
     } catch (err) {
       console.error('Error in markFeedingIncomplete:', err)
@@ -226,7 +265,7 @@ export const useHogsStore = defineStore('hogs', () => {
       const wasCompleted = hog.feedingCompleted
       const updates = {
         feedingCompleted: true,
-        lastFeedingDate: now.toISOString()
+        lastFeedingDate: now.toISOString(),
       }
 
       // Only increment total feeding days if it wasn't already completed
@@ -245,22 +284,24 @@ export const useHogsStore = defineStore('hogs', () => {
 
       // Update the database and local state
       const updatedHog = await updateHog(hogId, updates)
-      
+
       if (!updatedHog) throw new Error('Failed to update hog')
-      
+
       // Log the activity if this is a new feeding
       if (!wasCompleted) {
-        const { data: { user } } = await supabase.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
         if (user) {
           await logStaffActivity(user.id, 'hog_fed', {
             hog_id: hogId,
             hog_code: hog.code,
             feed_date: now.toISOString(),
-            days: updates.days || hog.days
+            days: updates.days || hog.days,
           })
         }
       }
-      
+
       return updatedHog
     } catch (err) {
       console.error('Error in markFeedingComplete:', err)
@@ -342,7 +383,11 @@ export const useHogsStore = defineStore('hogs', () => {
   // Reset all feeding statuses (call this daily to reset for new day)
   async function resetDailyFeedingStatus() {
     const today = new Date().toDateString()
-    const toReset = hogs.value.filter((hog) => hog.feedingCompleted && (!hog.lastFeedingDate || new Date(hog.lastFeedingDate).toDateString() !== today))
+    const toReset = hogs.value.filter(
+      (hog) =>
+        hog.feedingCompleted &&
+        (!hog.lastFeedingDate || new Date(hog.lastFeedingDate).toDateString() !== today),
+    )
     if (toReset.length === 0) return
     const ids = toReset.map((h) => h.id)
     const { data, error: updateError } = await supabase
@@ -352,7 +397,9 @@ export const useHogsStore = defineStore('hogs', () => {
       .select('id')
     if (!updateError) {
       const resetSet = new Set((data || []).map((d) => d.id))
-      hogs.value = hogs.value.map((h) => (resetSet.has(h.id) ? { ...h, feedingCompleted: false } : h))
+      hogs.value = hogs.value.map((h) =>
+        resetSet.has(h.id) ? { ...h, feedingCompleted: false } : h,
+      )
     }
   }
 
@@ -365,13 +412,9 @@ export const useHogsStore = defineStore('hogs', () => {
   function subscribeToRealtime() {
     const channel = supabase
       .channel('hogs_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'hogs' },
-        () => {
-          fetchHogs()
-        },
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hogs' }, () => {
+        fetchHogs()
+      })
       .subscribe()
     return () => supabase.removeChannel(channel)
   }
@@ -398,6 +441,7 @@ export const useHogsStore = defineStore('hogs', () => {
     hogs,
     loading: computed(() => loading.value),
     error: computed(() => error.value),
+    updateFeedingStatus,
     addHog,
     updateHog,
     updateHogWeight,
