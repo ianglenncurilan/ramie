@@ -42,17 +42,12 @@
             </div>
             <div class="row" v-for="ingredient in inventory.ingredients" :key="ingredient.id">
               <span class="ingredient-name">{{ ingredient.name }}</span>
-              <span class="quantity">
-                <input
-                  v-model="ingredient.quantity"
-                  @change="updateQuantity(ingredient.id, ingredient.quantity)"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  class="qty-input"
-                />
-                <span class="unit">{{ ingredient.unit }}</span>
-              </span>
+              <div class="quantity-cell">
+                <span class="quantity-pill">
+                  {{ formatNumber(ingredient.quantity) }}
+                  <span class="unit">{{ ingredient.unit }}</span>
+                </span>
+              </div>
               <span class="cost">₱{{ ingredient.cost.toFixed(2) }}</span>
               <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
                 {{ ingredient.isAvailable ? 'Available' : 'Not Available' }}
@@ -185,6 +180,12 @@ import { useInventoryStore } from '../stores/inventory'
 
 const inventory = useInventoryStore()
 
+// Format number with commas
+const formatNumber = (num) => {
+  if (num === null || num === undefined) return '0'
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
 // Modal state
 const showModal = ref(false)
 const editingIngredient = ref(null)
@@ -280,7 +281,9 @@ async function deleteIngredient(id) {
 }
 
 function updateQuantity(id, newQuantity) {
-  inventory.updateQuantity(id, newQuantity)
+  // This function is kept for backward compatibility
+  // but direct quantity updates are now disabled
+  console.log('Please use the edit button to update quantities')
 }
 
 // Function to auto-detect ingredient type based on name
@@ -508,20 +511,28 @@ function onNameChange() {
 }
 
 /* Table content */
-.quantity {
+.quantity-cell {
   display: flex;
   align-items: center;
+  padding: 4px 0;
+}
+
+.quantity-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #f0f0f0;
+  border-radius: 12px;
+  padding: 1px 12px;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #333;
+  border: 1px solid #ddd;
+  min-width: 40px;
+  justify-content: space-between;
   gap: 4px;
 }
-.qty-input {
-  width: 60px;
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-}
+
 .unit {
-  font-size: 12px;
   color: #666;
 }
 .cost {

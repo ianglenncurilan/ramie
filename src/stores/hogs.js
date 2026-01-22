@@ -324,9 +324,14 @@ export const useHogsStore = defineStore('hogs', () => {
   }
 
   // Update hog data in the database
-  async function updateHog(hogId, updates) {
+  async function updateHog(hogId, updates, updateTimestamp = true) {
     try {
       loading.value = true
+
+      // Only update timestamp if explicitly requested
+      if (updateTimestamp) {
+        updates.updated_at = new Date().toISOString()
+      }
 
       // Prepare the data to update in the database
       const dbUpdates = {}
@@ -377,10 +382,13 @@ export const useHogsStore = defineStore('hogs', () => {
 
   // Update hog weight
   function updateHogWeight(hogId, newWeight) {
-    return updateHog(hogId, {
-      weight: parseFloat(newWeight) || 0,
-      updated_at: new Date().toISOString(),
-    })
+    return updateHog(
+      hogId,
+      {
+        weight: parseFloat(newWeight) || 0,
+      },
+      true,
+    ) // Pass true to update the timestamp
   }
 
   // Toggle feeding status
@@ -482,7 +490,7 @@ export const useHogsStore = defineStore('hogs', () => {
       }
 
       // Update the database and local state
-      const updatedHog = await updateHog(hogId, updates)
+      const updatedHog = await updateHog(hogId, updates, false) // Don't update timestamp for feeding changes
 
       if (!updatedHog) throw new Error('Failed to update hog')
 

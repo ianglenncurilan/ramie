@@ -81,10 +81,11 @@
               </div>
               <div class="weight-cell">
                 <div class="weight-content">
-                  <span class="weight-value">{{ hog.weight }} kg</span>
-                  <span class="weight-date" v-if="hog.updated_at"
-                    >as of {{ formatDate(hog.updated_at) }}</span
-                  >
+                  <div class="weight-value">{{ hog.weight }} kg</div>
+                  <div class="weight-divider" v-if="hog.updated_at"></div>
+                  <div class="weight-date" v-if="hog.updated_at">
+                    as of {{ formatDate(hog.updated_at) }}
+                  </div>
                 </div>
                 <button type="button" class="edit-btn" @click="openEditModal(hog)">✏️</button>
               </div>
@@ -710,25 +711,46 @@ function capturePrevWeight(hogId, weight) {
 async function updateHogWeight(hogId, weight) {
   try {
     const hog = hogs.value.find((h) => h.id === hogId)
+    if (!hog) {
+      throw new Error('Hog not found')
+    }
+
     const oldWeight = prevWeightById.value[hogId] ?? Number(hog?.weight)
     const newWeight = Number(weight)
-    if (Number.isNaN(newWeight)) return
-    if (Number(oldWeight) === Number(newWeight)) return
+
+    if (Number.isNaN(newWeight) || newWeight <= 0) {
+      throw new Error('Please enter a valid weight')
+    }
+
+    if (Number(oldWeight) === Number(newWeight)) {
+      showEditModal.value = false
+      return
+    }
+
+    // Update the weight in the store
     await hogsStore.updateHogWeight(hogId, newWeight)
 
+    // Log the activity
     const diff = Number((newWeight - Number(oldWeight)).toFixed(2))
-    await logHogActivity(ActivityType.HOG_WEIGHT_UPDATED, hogId, {
-      code: hog?.code,
-      oldWeight,
-      newWeight,
-      difference: diff,
+    await logHogActivity({
+      type: ActivityType.HOG_WEIGHT_UPDATED,
+      hogId,
+      details: {
+        code: hog.code,
+        oldWeight,
+        newWeight,
+        difference: diff,
+      },
     })
 
-    // Explicitly close the modal after update
+    // Refresh the hogs list to show updated weight
+    await loadHogs()
+
+    // Close the modal
     showEditModal.value = false
   } catch (err) {
     console.error('Error updating hog weight:', err)
-    error.value = 'Failed to update hog weight. Please try again.'
+    error.value = err.message || 'Failed to update hog weight. Please try again.'
     alert(error.value)
   }
 }
@@ -797,7 +819,7 @@ async function deleteHog(hogId) {
 // Get status text
 const getStatusText = (hog) => {
   if (hog.amFeeding && hog.pmFeeding) return 'Complete'
-  if (hog.amFeeding || hog.pmFeeding) return 'In Progress'
+  if (hog.amFeeding || hog.pmFeeding) return 'IN PROGRESS'
   return 'Pending'
 }
 
@@ -815,8 +837,8 @@ const formatDate = (dateString) => {
 }
 
 function getStatusClass(hog) {
-  if (hog.amFeeding && hog.pmFeeding) return 'status-complete'
-  if (hog.amFeeding || hog.pmFeeding) return 'status-partial'
+  if (hog.amFeeding && hog.pmFeeding) return 'status-completed'
+  if (hog.amFeeding || hog.pmFeeding) return 'status-inprogress'
   return 'status-pending'
 }
 </script>
@@ -1311,23 +1333,35 @@ textarea.form-input {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-right: 8px;
+  gap: 6px;
 
   .weight-content {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-
-    .weight-date {
-      font-size: 0.7rem;
-      color: #6c757d;
-      margin-top: 2px;
-    }
+    flex-grow: 1;
+    gap: 4px;
   }
-  padding-right: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
+
+  .weight-value {
+    font-weight: 600;
+    color: #2d3748;
+    line-height: 1.2;
+  }
+
+  .weight-divider {
+    height: 1px;
+    background-color: #e2e8f0;
+    width: 100%;
+    margin: 2px 0;
+  }
+
+  .weight-date {
+    font-size: 0.7rem;
+    color: #718096;
+    line-height: 1.2;
+    opacity: 0.8;
+  }
 }
 
 .actions {
@@ -1377,6 +1411,20 @@ textarea.form-input {
   color: #2f8b60;
   background: #e8f5e8;
   border: 1px solid #c8e6c9;
+}
+
+.status-inprogress {
+  color: #1a56db;
+  background: #e0e7ff;
+  border: 1px solid #c7d2fe;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  padding: 2px 12px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-radius: 9999px;
 }
 
 .status-pending {
