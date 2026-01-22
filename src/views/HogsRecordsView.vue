@@ -1,5 +1,13 @@
 <template>
   <div class="hogs-records">
+    <section class="hero">
+      <img src="/pig.jpg" alt="hero" />
+      <div class="overlay">
+        <div class="brand">
+          <div class="title"></div>
+        </div>
+      </div>
+    </section>
     <div class="header">
       <h2>Hog Records</h2>
       <button class="back-btn" @click="$router.go(-1)"><span>←</span> Back</button>
@@ -141,7 +149,52 @@ function formatDate(dateString) {
 .hogs-records {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0 20px 20px;
+}
+
+.hero {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  text-align: center;
+  padding: 2rem;
+}
+
+
+.brand {
+  text-align: center;
+}
+
+.brand .title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .header {

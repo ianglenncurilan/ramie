@@ -2,7 +2,7 @@
   <div class="screen">
     <section class="panel">
       <div class="panel-header">
-        <button class="back" @click="$router.back()">←</button>
+        <button type="button" class="back" @click="$router.back()">←</button>
         <div class="title-wrap">
           <h2 class="title-lg">Hogs Tracked</h2>
           <p class="sub">Monitor your hogs across all stages</p>
@@ -15,15 +15,14 @@
         <img class="panel-illustration" src="/pig2.png" alt="icon" />
       </div>
 
-      <!-- Add Hog Button -->
       <div class="add-hog-section">
-        <button class="add-hog-btn" @click="showAddHogModal = true">
+        <button type="button" class="add-hog-btn" @click="showAddHogModal = true">
           <span class="add-icon">+</span>
           Add New Hog
         </button>
       </div>
 
-      <template v-if="hogs.length > 0">
+      <template v-if="hogs && hogs.length > 0">
         <div class="table-container">
           <div class="table">
             <div class="thead">
@@ -87,10 +86,11 @@
                     >as of {{ formatDate(hog.updated_at) }}</span
                   >
                 </div>
-                <button class="edit-btn" @click="openEditModal(hog)">✏️</button>
+                <button type="button" class="edit-btn" @click="openEditModal(hog)">✏️</button>
               </div>
               <div class="actions">
                 <button
+                  type="button"
                   class="action-btn sold-btn"
                   @click="openSoldModal(hog)"
                   title="Mark as sold"
@@ -98,6 +98,7 @@
                   💰
                 </button>
                 <button
+                  type="button"
                   class="action-btn died-btn"
                   @click="openDiedModal(hog)"
                   title="Mark as died"
@@ -112,21 +113,19 @@
       <template v-else>
         <div class="empty-state">
           <img src="/pig2.png" alt="No hogs" class="empty-icon" />
-          <h3>No Hogs Tracked</h3>
-          <p>Add your first hog to start tracking</p>
-          <button class="add-first-hog-btn" @click="showAddHogModal = true">
-            Add Your First Hog
-          </button>
+          <h3>{{ loading ? 'Loading...' : 'No Hogs Tracked' }}</h3>
+          <p v-if="!loading">Add your first hog to start tracking</p>
+          <p v-if="error" class="error-message">{{ error }}</p>
+          <div v-if="!loading"></div>
         </div>
       </template>
     </section>
 
-    <!-- Add Hog Modal -->
     <div v-if="showAddHogModal" class="modal-overlay" @click="closeAddHogModal">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>Add New Hog</h3>
-          <button class="close-btn" @click="closeAddHogModal">×</button>
+          <button type="button" class="close-btn" @click="closeAddHogModal">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
@@ -164,18 +163,17 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="closeAddHogModal">Cancel</button>
-          <button class="btn-save" @click="addNewHog">Add Hog</button>
+          <button type="button" class="btn-cancel" @click="closeAddHogModal">Cancel</button>
+          <button type="button" class="btn-save" @click="addNewHog">Add Hog</button>
         </div>
       </div>
     </div>
 
-    <!-- Edit Weight Modal -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
       <div class="modal">
         <div class="modal-header">
           <h3>Update Hog Weight</h3>
-          <button class="close-btn" @click="showEditModal = false">×</button>
+          <button type="button" class="close-btn" @click="showEditModal = false">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
@@ -191,20 +189,23 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="showEditModal = false">Cancel</button>
-          <button class="btn-save" @click="updateHogWeight(currentHog.id, currentHog.weight)">
+          <button type="button" class="btn-cancel" @click="showEditModal = false">Cancel</button>
+          <button
+            type="button"
+            class="btn-save"
+            @click="updateHogWeight(currentHog.id, currentHog.weight)"
+          >
             Update Weight
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Sold Hog Modal -->
     <div v-if="showSoldModal" class="modal-overlay" @click.self="closeSoldModal">
       <div class="modal">
         <div class="modal-header">
           <h3>Mark as Sold</h3>
-          <button class="close-btn" @click="closeSoldModal">×</button>
+          <button type="button" class="close-btn" @click="closeSoldModal">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
@@ -247,8 +248,9 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="closeSoldModal">Cancel</button>
+          <button type="button" class="btn-cancel" @click="closeSoldModal">Cancel</button>
           <button
+            type="button"
             class="btn-save"
             @click="markAsSold"
             :disabled="!saleData.pricePerKilo || !saleData.weight || !saleData.date"
@@ -259,12 +261,11 @@
       </div>
     </div>
 
-    <!-- Died Hog Modal -->
     <div v-if="showDiedModal" class="modal-overlay" @click.self="closeDiedModal">
       <div class="modal">
         <div class="modal-header">
           <h3>Mark as Deceased</h3>
-          <button class="close-btn" @click="closeDiedModal">×</button>
+          <button type="button" class="close-btn" @click="closeDiedModal">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
@@ -306,8 +307,9 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-cancel" @click="closeDiedModal">Cancel</button>
+          <button type="button" class="btn-cancel" @click="closeDiedModal">Cancel</button>
           <button
+            type="button"
             class="btn-save"
             @click="markAsDied"
             :disabled="
@@ -344,7 +346,6 @@ const showEditModal = ref(false)
 const showSoldModal = ref(false)
 const showDiedModal = ref(false)
 const loading = ref(true)
-const error = ref(null)
 const newHog = ref({
   code: '',
   weight: 0,
@@ -355,6 +356,7 @@ const newHog = ref({
 })
 
 const currentHog = ref(null)
+const error = ref(null)
 const saleData = ref({
   pricePerKilo: null,
   weight: null,
@@ -376,9 +378,21 @@ onUnmounted(() => {
 })
 
 // Computed properties
-const hogs = computed(() => hogsStore.hogs)
-const stats = computed(() => hogsStore.getStats())
-const isLoading = computed(() => hogsStore.loading)
+const hogs = computed(() => {
+  console.log('Hogs updated in component:', hogsStore.hogs)
+  return hogsStore.hogs || []
+})
+
+const stats = computed(() => {
+  const stats = hogsStore.getStats()
+  console.log('Current stats:', stats)
+  return stats
+})
+
+const isLoading = computed(() => {
+  console.log('Loading state:', hogsStore.loading)
+  return hogsStore.loading
+})
 
 const prevWeightById = ref({})
 
@@ -419,6 +433,8 @@ const toggleFeeding = async (hog, timeOfDay) => {
     }
 
     // Refresh the hogs list to reflect changes
+    // Only call this if necessary. If the store is reactive, this might cause a UI flash.
+    // Keeping it for now but be aware it can cause flicker.
     await hogsStore.fetchHogs()
   } catch (err) {
     console.error('Error toggling feeding status:', err)
@@ -538,24 +554,89 @@ const markAsDied = async () => {
   }
 }
 
-// Fetch hogs when component mounts
-onMounted(async () => {
+const loadHogs = async () => {
+  console.log('Loading hogs...')
   try {
     loading.value = true
-    await hogsStore.fetchHogs()
-    hogsStore.incrementDaysForAllHogs()
-    if (typeof hogsStore.ensureDailyReset === 'function') {
-      await hogsStore.ensureDailyReset()
-    } else if (typeof hogsStore.resetDailyFeedingStatus === 'function') {
-      await hogsStore.resetDailyFeedingStatus()
+    error.value = null
+
+    // Clear any existing errors
+    hogsStore.error = null
+
+    // Fetch hogs from the store (which will hit the database)
+    console.log('Fetching hogs from store...')
+    const fetchedHogs = await hogsStore.fetchHogs()
+
+    if (!fetchedHogs) {
+      throw new Error('No data returned from fetchHogs')
     }
-    cleanup = hogsStore.subscribeToRealtime()
+
+    console.log('Hogs after fetch:', fetchedHogs)
+
+    // Only proceed if we have hogs
+    if (fetchedHogs.length > 0) {
+      console.log(`Found ${fetchedHogs.length} hogs`)
+
+      // Ensure the UI updates with the latest data
+      hogsStore.hogs = [...fetchedHogs]
+
+      try {
+        // Increment days for all hogs
+        console.log('Incrementing days for hogs...')
+        await hogsStore.incrementDaysForAllHogs()
+
+        // Reset daily status if needed
+        if (hogsStore.ensureDailyReset && typeof hogsStore.ensureDailyReset === 'function') {
+          console.log('Ensuring daily reset...')
+          await hogsStore.ensureDailyReset()
+        } else if (
+          hogsStore.resetDailyFeedingStatus &&
+          typeof hogsStore.resetDailyFeedingStatus === 'function'
+        ) {
+          console.log('Resetting daily feeding status...')
+          await hogsStore.resetDailyFeedingStatus()
+        }
+      } catch (updateError) {
+        console.error('Error during daily updates:', updateError)
+        // Don't fail the entire operation if daily updates fail
+      }
+    } else {
+      console.log('No hogs found in the database')
+      // Ensure we clear any existing hogs
+      hogsStore.hogs = []
+    }
   } catch (err) {
     console.error('Failed to load hogs:', err)
-    error.value = 'Failed to load hogs. Please try again.'
+    error.value = `Failed to load hogs: ${err.message || 'Unknown error'}`
+
+    // If we have any cached hogs, use them
+    if (hogsStore.hogs?.length > 0) {
+      console.warn('Using cached hogs due to error:', hogsStore.hogs.length)
+    } else {
+      // If no cached hogs, ensure we show the empty state
+      hogsStore.hogs = []
+    }
   } finally {
     loading.value = false
   }
+}
+
+// Initial load
+onMounted(loadHogs)
+
+// Add event listener for visibility change to refresh data when tab becomes visible again
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    loadHogs()
+  }
+})
+
+// Clean up event listeners and subscriptions
+onUnmounted(() => {
+  if (cleanup) {
+    cleanup()
+  }
+  document.removeEventListener('visibilitychange', loadHogs)
 })
 
 // Methods
@@ -577,24 +658,42 @@ async function addNewHog() {
 
   try {
     loading.value = true
+    error.value = null
 
     // Add the new hog to the database
     const hog = await hogsStore.addHog({
       code: newHog.value.code.trim(),
-      weight: newHog.value.weight,
-      days: newHog.value.days,
+      weight: Number(newHog.value.weight),
+      days: Number(newHog.value.days),
     })
 
+    if (!hog) {
+      throw new Error('Failed to add hog: No data returned')
+    }
+
+    console.log('Hog added successfully:', hog)
+
+    // Force refresh the hogs list
+    await loadHogs()
+
     // Log the activity
-    await logHogActivity(ActivityType.HOG_ADDED, hog.id, {
-      code: hog.code,
-      weight: hog.weight,
-      days: hog.days,
-    })
+    try {
+      await logHogActivity(ActivityType.HOG_ADDED, hog.id, {
+        code: hog.code,
+        weight: hog.weight,
+        days: hog.days,
+      })
+    } catch (logError) {
+      console.error('Error logging activity:', logError)
+      // Don't fail the operation if logging fails
+    }
 
     // Reset form and close modal
     newHog.value = { code: '', weight: 0, days: 0 }
     showAddHogModal.value = false
+
+    // Show success message
+    alert(`Hog ${hog.code} added successfully!`)
   } catch (err) {
     console.error('Error adding hog:', err)
     error.value = err.message || 'Failed to add hog. Please try again.'
@@ -602,10 +701,6 @@ async function addNewHog() {
   } finally {
     loading.value = false
   }
-
-  // Reset form and close modal
-  newHog.value = { code: '', weight: 0, days: 0 }
-  showAddHogModal.value = false
 }
 
 function closeAddHogModal() {
@@ -633,6 +728,9 @@ async function updateHogWeight(hogId, weight) {
       newWeight,
       difference: diff,
     })
+
+    // Explicitly close the modal after update
+    showEditModal.value = false
   } catch (err) {
     console.error('Error updating hog weight:', err)
     error.value = 'Failed to update hog weight. Please try again.'
@@ -640,6 +738,7 @@ async function updateHogWeight(hogId, weight) {
   }
 }
 
+// ... rest of the functions (markFeedingComplete, etc.) remain unchanged
 async function markFeedingComplete(hogId) {
   try {
     const hog = hogs.value.find((h) => h.id === hogId)
@@ -725,12 +824,10 @@ function getStatusClass(hog) {
   if (hog.amFeeding || hog.pmFeeding) return 'status-partial'
   return 'status-pending'
 }
-
-// This is now handled in the onMounted hook above
 </script>
 
 <style scoped>
-/* Status buttons */
+/* ... styles remain unchanged ... */
 .status-btn {
   width: 36px;
   height: 36px;

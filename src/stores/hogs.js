@@ -11,70 +11,149 @@ export const useHogsStore = defineStore('hogs', () => {
   const error = ref(null)
   const router = useRouter()
 
-  // Fetch all hogs from the database
-  async function fetchHogs(status = 'active') {
-  try {
-    loading.value = true
-    let query = supabase.from('hogs').select('*').order('created_at', { ascending: false })
+  // Fetch all hogs from the database with retry logic
+  async function fetchHogs(status = 'active', retryCount = 0) {
+    const MAX_RETRIES = 3
+    const RETRY_DELAY = 1000 // 1 second
 
-    // Only filter by status if it's not 'all'
-    if (status !== 'all') {
-      query = query.eq('status', status)
+    try {
+      console.log(`[${new Date().toISOString()}] Fetching hogs with status: ${status}`)
+      loading.value = true
+      error.value = null
+
+      // Build the query
+      let query = supabase
+        .from('hogs')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+
+      // Only filter by status if it's not 'all'
+      if (status !== 'all') {
+        query = query.eq('status', status)
+      }
+
+      // Execute the query with a timeout
+      const { data, error: fetchError, count } = await query
+
+      if (fetchError) {
+        console.error('Error fetching hogs:', fetchError)
+        throw fetchError
+      }
+
+      console.log(`Fetched ${data?.length || 0} hogs from database`)
+
+      // Transform the data to match our frontend structure
+      const transformedHogs = (data || []).map((hog) => ({
+        id: hog.id,
+        code: hog.code || 'N/A',
+        weight: Number(hog.weight) || 0,
+        days: Number(hog.days) || 0,
+        amFeeding: Boolean(hog.am_feeding),
+        pmFeeding: Boolean(hog.pm_feeding),
+        feedingCompleted: Boolean(hog.feeding_completed),
+        status: hog.status || 'active',
+        createdAt: hog.created_at,
+        updated_at: hog.updated_at,
+        lastFeedingDate: hog.last_feeding_date,
+        totalFeedingDays: Number(hog.total_feeding_days) || 0,
+        lastDayIncrement: hog.last_day_increment,
+      }))
+
+      console.log('Transformed hogs:', transformedHogs)
+
+      // Always update the local state, even if empty array
+      hogs.value = transformedHogs
+
+      // Log the first hog for debugging
+      if (transformedHogs.length > 0) {
+        console.log('First hog details:', JSON.stringify(transformedHogs[0], null, 2))
+      }
+
+      return transformedHogs
+    } catch (err) {
+      const errorMessage = err.message || 'Failed to fetch hogs'
+      console.error('Error fetching hogs:', errorMessage, err)
+      error.value = errorMessage
+
+      // Retry logic with exponential backoff
+      if (retryCount < MAX_RETRIES) {
+        const delay = RETRY_DELAY * Math.pow(2, retryCount)
+        console.warn(`Retrying fetchHogs in ${delay}ms (${retryCount + 1}/${MAX_RETRIES})...`)
+        await new Promise((resolve) => setTimeout(resolve, delay))
+        return fetchHogs(status, retryCount + 1)
+      }
+
+      // If we have cached data, return it instead of empty array
+      if (hogs.value.length > 0) {
+        console.warn('Using cached hogs data due to fetch error')
+        return hogs.value
+      }
+
+      // Log the error to the server if possible
+      try {
+        await logStaffActivity({
+          activity_type: 'error',
+          details: `Failed to fetch hogs after ${MAX_RETRIES} retries: ${errorMessage}`,
+          reference_type: 'hogs',
+        })
+      } catch (logErr) {
+        console.error('Failed to log error:', logErr)
+      }
+
+      // Return empty array to prevent UI errors
+      return []
+    } finally {
+      loading.value = false
     }
-
-    // Execute the query
-    const result = await query
-
-    if (result.error) {
-      throw result.error
-    }
-
-    // Transform the data to match our frontend structure
-    hogs.value = (result.data || []).map((hog) => ({
-      id: hog.id,
-      code: hog.code,
-      weight: hog.weight || 0,
-      days: hog.days || 0,
-      amFeeding: hog.am_feeding || false,
-      pmFeeding: hog.pm_feeding || false,
-      feedingCompleted: hog.feeding_completed || false,
-      createdAt: hog.created_at,
-      updated_at: hog.updated_at,
-      lastFeedingDate: hog.last_feeding_date,
-      totalFeedingDays: hog.total_feeding_days || 0,
-      lastDayIncrement: hog.last_day_increment,
-    }))
-
-    return hogs.value
-  } catch (err) {
-    console.error('Error fetching hogs:', err)
-    error.value = err.message
-    throw err
-  } finally {
-    loading.value = false
   }
-}
 
   // Add a new hog to the database
   async function addHog(hogData) {
     try {
       loading.value = true
+      error.value = null
 
-      // Generate a default code if not provided
-      const hogCode = hogData.code || `HOG${Date.now().toString().slice(-4)}`
+      // Validate required fields
+      if (!hogData.code?.trim()) {
+        throw new Error('Hog code is required')
+      }
+
+      // Check if hog with same code already exists
+      const { data: existingHogs } = await supabase
+        .from('hogs')
+        .select('id')
+        .eq('code', hogData.code.trim())
+        .limit(1)
+
+      if (existingHogs && existingHogs.length > 0) {
+        throw new Error('A hog with this code already exists')
+      }
+
       const now = new Date().toISOString()
+      const hogCode = hogData.code.trim()
+
+      console.log('Adding new hog to database:', {
+        code: hogCode,
+        weight: Number(hogData.weight) || 0,
+        days: Number(hogData.days) || 0,
+        status: 'active',
+        created_at: now,
+        updated_at: now,
+      })
 
       const { data, error: insertError } = await supabase
         .from('hogs')
         .insert([
           {
             code: hogCode,
-            weight: hogData.weight || 0,
-            days: hogData.days || 0,
+            weight: Number(hogData.weight) || 0,
+            days: Number(hogData.days) || 0,
             am_feeding: false,
             pm_feeding: false,
             feeding_completed: false,
+            status: 'active',
             created_at: now,
+            updated_at: now,
             last_feeding_date: null,
             total_feeding_days: 0,
             last_day_increment: now,
@@ -82,34 +161,84 @@ export const useHogsStore = defineStore('hogs', () => {
         ])
         .select()
 
-      if (insertError) throw insertError
-
-      if (data && data.length > 0) {
-        const newHog = {
-          id: data[0].id,
-          code: data[0].code,
-          weight: data[0].weight,
-          days: data[0].days,
-          amFeeding: data[0].am_feeding || false,
-          pmFeeding: data[0].pm_feeding || false,
-          feedingCompleted: data[0].feeding_completed,
-          createdAt: data[0].created_at,
-          lastFeedingDate: data[0].last_feeding_date,
-          totalFeedingDays: data[0].total_feeding_days,
-          lastDayIncrement: data[0].last_day_increment,
-        }
-
-        hogs.value.unshift(newHog)
-        return newHog
+      if (insertError) {
+        console.error('Database error when adding hog:', insertError)
+        throw new Error(insertError.message || 'Failed to add hog to database')
       }
 
-      return null
+      if (!data || data.length === 0) {
+        throw new Error('No data returned after adding hog')
+      }
+
+      // Fetch the newly added hog to get all fields including defaults
+      const { data: addedHog, error: fetchError } = await supabase
+        .from('hogs')
+        .select('*')
+        .eq('id', data[0].id)
+        .single()
+
+      if (fetchError || !addedHog) {
+        console.error('Error fetching added hog:', fetchError)
+        throw new Error('Failed to verify hog was added')
+      }
+
+      // Transform to match frontend structure
+      const newHog = {
+        id: addedHog.id,
+        code: addedHog.code,
+        weight: Number(addedHog.weight) || 0,
+        days: Number(addedHog.days) || 0,
+        amFeeding: Boolean(addedHog.am_feeding),
+        pmFeeding: Boolean(addedHog.pm_feeding),
+        feedingCompleted: Boolean(addedHog.feeding_completed),
+        status: addedHog.status || 'active',
+        createdAt: addedHog.created_at,
+        updated_at: addedHog.updated_at,
+        lastFeedingDate: addedHog.last_feeding_date,
+        totalFeedingDays: Number(addedHog.total_feeding_days) || 0,
+        lastDayIncrement: addedHog.last_day_increment,
+      }
+
+      console.log('Successfully added hog:', newHog)
+
+      // Update local state
+      hogs.value = [newHog, ...hogs.value]
+
+      // Create an activity log
+      try {
+        await logStaffActivity({
+          activity_type: 'hog_added',
+          details: `Added hog ${newHog.code} (${newHog.weight}kg)`,
+          reference_id: newHog.id,
+          reference_type: 'hog',
+        })
+      } catch (logError) {
+        console.error('Failed to log activity:', logError)
+        // Don't fail the operation if logging fails
+      }
+
+      return newHog
     } catch (err) {
       console.error('Error adding hog:', err)
-      error.value = err.message
+      error.value = err.message || 'Failed to add hog'
+
+      // If we have a database error, try to provide more context
+      if (err.code) {
+        console.error('Database error code:', err.code)
+        console.error('Database error details:', err.details)
+        console.error('Database error hint:', err.hint)
+      }
+
       throw err
     } finally {
       loading.value = false
+
+      // Force refresh the hogs list to ensure consistency
+      try {
+        await fetchHogs()
+      } catch (fetchErr) {
+        console.error('Error refreshing hogs after add:', fetchErr)
+      }
     }
   }
 
@@ -480,15 +609,91 @@ export const useHogsStore = defineStore('hogs', () => {
     await resetDailyFeedingStatus()
   }
 
-  // Realtime subscription for hogs table
+  // Realtime subscription for hogs table with error handling
   function subscribeToRealtime() {
-    const channel = supabase
-      .channel('hogs_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'hogs' }, () => {
-        fetchHogs()
-      })
-      .subscribe()
-    return () => supabase.removeChannel(channel)
+    try {
+      const subscription = supabase
+        .channel('hogs_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'hogs',
+          },
+          (payload) => {
+            console.log('Hog change detected:', payload.eventType)
+
+            // Handle different event types
+            switch (payload.eventType) {
+              case 'INSERT':
+                hogs.value = [
+                  {
+                    id: payload.new.id,
+                    code: payload.new.code,
+                    weight: payload.new.weight || 0,
+                    days: payload.new.days || 0,
+                    amFeeding: payload.new.am_feeding || false,
+                    pmFeeding: payload.new.pm_feeding || false,
+                    feedingCompleted: payload.new.feeding_completed || false,
+                    status: payload.new.status || 'active',
+                    createdAt: payload.new.created_at,
+                    updated_at: payload.new.updated_at,
+                    lastFeedingDate: payload.new.last_feeding_date,
+                    totalFeedingDays: payload.new.total_feeding_days || 0,
+                    lastDayIncrement: payload.new.last_day_increment,
+                  },
+                  ...hogs.value,
+                ]
+                break
+
+              case 'UPDATE':
+                hogs.value = hogs.value.map((hog) =>
+                  hog.id === payload.new.id
+                    ? {
+                        ...hog,
+                        ...payload.new,
+                        amFeeding: payload.new.am_feeding || false,
+                        pmFeeding: payload.new.pm_feeding || false,
+                        feedingCompleted: payload.new.feeding_completed || false,
+                        updated_at: payload.new.updated_at,
+                      }
+                    : hog,
+                )
+                break
+
+              case 'DELETE':
+                hogs.value = hogs.value.filter((hog) => hog.id !== payload.old.id)
+                break
+
+              default:
+                // For any other event type, just refresh the data
+                fetchHogs()
+            }
+          },
+        )
+        .subscribe((status, err) => {
+          if (err) {
+            console.error('Realtime subscription error:', err)
+            // Attempt to resubscribe on error
+            setTimeout(subscribeToRealtime, 5000)
+          } else {
+            console.log('Realtime subscription status:', status)
+          }
+        })
+
+      return () => {
+        try {
+          supabase.removeChannel(subscription)
+        } catch (e) {
+          console.error('Error cleaning up subscription:', e)
+        }
+      }
+    } catch (error) {
+      console.error('Error setting up realtime subscription:', error)
+      // Return a no-op function if subscription fails
+      return () => {}
+    }
   }
 
   // Get statistics

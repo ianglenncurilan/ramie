@@ -1,4 +1,3 @@
-
 <template>
   <div class="screen">
     <div class="expenses-content">
@@ -7,13 +6,12 @@
         <div class="overlay">
           <img class="price-icon" src="/price.png" alt="Price" />
           <div class="brand">
-            <div class="title"> </div>
+            <div class="title"></div>
           </div>
         </div>
       </section>
       <div class="panel">
         <div class="summary-line">Financial Summary for {{ monthYearLabel }}</div>
-       
 
         <div class="cards">
           <div class="card success">

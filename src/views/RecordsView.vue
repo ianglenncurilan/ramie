@@ -440,7 +440,7 @@ async function exportMonth() {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(6, 87, 22, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -473,19 +473,19 @@ async function exportMonth() {
 .selection-modal-header {
   padding: 2rem 2rem 1rem;
   text-align: center;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, #196b02 0%, #06961e 100%);
 }
 
 .selection-modal-header h3 {
   margin: 0 0 0.5rem;
-  color: #2c3e50;
+  color: #ffffff;
   font-size: 1.5rem;
   font-weight: 700;
 }
 
 .selection-modal-header p {
   margin: 0;
-  color: #7f8c8d;
+  color: #cdd6d6;
   font-size: 0.95rem;
 }
 
@@ -503,8 +503,8 @@ async function exportMonth() {
   padding: 1.75rem 1.5rem;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #e9ecef;
+  transition: all 0.5s ease;
+  border: 1px solid #c7c7c8;
   display: flex;
   flex-direction: column;
   align-items: center;
