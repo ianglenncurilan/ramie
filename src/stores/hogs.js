@@ -22,13 +22,15 @@ export const useHogsStore = defineStore('hogs', () => {
       query = query.eq('status', status)
     }
 
-    // Execute the query and destructure the result
-    const { data, error: fetchError } = await query
+    // Execute the query
+    const result = await query
 
-    if (fetchError) throw fetchError
+    if (result.error) {
+      throw result.error
+    }
 
     // Transform the data to match our frontend structure
-    hogs.value = (data || []).map((hog) => ({
+    hogs.value = (result.data || []).map((hog) => ({
       id: hog.id,
       code: hog.code,
       weight: hog.weight || 0,

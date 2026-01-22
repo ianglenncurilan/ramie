@@ -15,8 +15,7 @@ export const logActivity = async (activity) => {
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
-      console.error('No authenticated user found')
-      return { data: null, error: 'Not authenticated' }
+      throw new Error('No authenticated user found')
     }
 
     const { data, error } = await supabase
@@ -36,7 +35,7 @@ export const logActivity = async (activity) => {
     return { data, error: null }
   } catch (error) {
     console.error('Error logging activity:', error)
-    return { data: null, error }
+    throw error
   }
 }
 
@@ -69,6 +68,6 @@ export const getActivities = async (filters = {}) => {
     return { data, error: null }
   } catch (error) {
     console.error('Error fetching activities:', error)
-    return { data: null, error }
+    throw error
   }
 }

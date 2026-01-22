@@ -1,3 +1,4 @@
+
 <template>
   <div class="screen">
     <div class="expenses-content">
