@@ -560,9 +560,6 @@ const loadHogs = async () => {
     loading.value = true
     error.value = null
 
-    // Clear any existing errors
-    hogsStore.error = null
-
     // Fetch hogs from the store (which will hit the database)
     console.log('Fetching hogs from store...')
     const fetchedHogs = await hogsStore.fetchHogs()
@@ -577,8 +574,8 @@ const loadHogs = async () => {
     if (fetchedHogs.length > 0) {
       console.log(`Found ${fetchedHogs.length} hogs`)
 
-      // Ensure the UI updates with the latest data
-      hogsStore.hogs = [...fetchedHogs]
+      // The store will handle updating the hogs array
+      // No need to directly set hogsStore.hogs as it's already updated by fetchHogs
 
       try {
         // Increment days for all hogs
@@ -602,19 +599,17 @@ const loadHogs = async () => {
       }
     } else {
       console.log('No hogs found in the database')
-      // Ensure we clear any existing hogs
-      hogsStore.hogs = []
+      // The store will handle the empty state
     }
   } catch (err) {
     console.error('Failed to load hogs:', err)
     error.value = `Failed to load hogs: ${err.message || 'Unknown error'}`
 
-    // If we have any cached hogs, use them
+    // The store already maintains its own error state, no need to set it here
+
+    // If we have any cached hogs, they'll be shown automatically
     if (hogsStore.hogs?.length > 0) {
       console.warn('Using cached hogs due to error:', hogsStore.hogs.length)
-    } else {
-      // If no cached hogs, ensure we show the empty state
-      hogsStore.hogs = []
     }
   } finally {
     loading.value = false
