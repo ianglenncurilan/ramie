@@ -358,6 +358,8 @@ const currentHog = ref(null)
 const saleData = ref({
   pricePerKilo: null,
   weight: null,
+  buyer: '',
+  notes: '',
   date: new Date().toISOString().split('T')[0],
 })
 
@@ -387,12 +389,42 @@ const getHogStage = (days) => {
   return 'Finisher'
 }
 
-const toggleFeeding = (hog, timeOfDay) => {
-  if (hog.amFeeding && hog.pmFeeding) {
-    return // Do nothing if already complete
+const toggleFeeding = async (hog, timeOfDay) => {
+  try {
+    // Don't allow toggling if both feedings are already complete
+    if (hog.amFeeding && hog.pmFeeding) {
+      return
+    }
+
+    const newStatus = !hog[`${timeOfDay}Feeding`]
+
+    // Update the feeding time in the store
+    await hogsStore.setFeedingTime(hog.id, timeOfDay, newStatus)
+
+    // Get the updated hog to check current status
+    const updatedHog = hogsStore.hogs.find((h) => h.id === hog.id)
+
+    if (!updatedHog) return
+
+    // Check if both feedings are now complete
+    if (updatedHog.amFeeding && updatedHog.pmFeeding) {
+      // Mark as completed for the day
+      await hogsStore.markFeedingComplete(hog.id)
+    } else if (newStatus) {
+      // If this is the first feeding being marked, set to in-progress
+      await hogsStore.updateHog(hog.id, { status: 'in-progress' })
+    } else if (!updatedHog.amFeeding && !updatedHog.pmFeeding) {
+      // If both feedings are now unchecked, set back to pending
+      await hogsStore.updateHog(hog.id, { status: 'pending' })
+    }
+
+    // Refresh the hogs list to reflect changes
+    await hogsStore.fetchHogs()
+  } catch (err) {
+    console.error('Error toggling feeding status:', err)
+    error.value = 'Failed to update feeding status. Please try again.'
+    alert(error.value)
   }
-  const newStatus = !hog[`${timeOfDay}Feeding`]
-  hogsStore.setFeedingTime(hog.id, timeOfDay, newStatus)
 }
 
 // Open edit modal with hog data
@@ -447,64 +479,51 @@ const closeDiedModal = () => {
 
 // Mark hog as sold
 const markAsSold = async () => {
-  if (
-    !currentHog.value ||
-    !saleData.value.pricePerKilo ||
-    !saleData.value.weight ||
-    !saleData.value.date
-  )
+  if (!currentHog.value || !saleData.value.pricePerKilo || !saleData.value.weight) {
+    alert('Please fill in all required fields')
     return
+  }
 
   try {
     const totalPrice = saleData.value.pricePerKilo * saleData.value.weight
-    const saleDetails = {
-      pricePerKilo: saleData.value.pricePerKilo,
-      finalWeight: saleData.value.weight,
-      totalPrice: totalPrice,
-      saleDate: saleData.value.date,
-    }
 
-    await hogsStore.updateHog(currentHog.value.id, {
-      status: 'sold',
-      statusInfo: JSON.stringify(saleDetails),
-      weight: saleData.value.weight, // Update the weight to final weight
+    await hogsStore.markAsSold(currentHog.value.id, {
+      price: totalPrice,
+      weight: saleData.value.weight,
+      buyer: saleData.value.buyer || '',
+      notes: saleData.value.notes || '',
+      date: saleData.value.date || new Date().toISOString(),
     })
 
     logHogActivity({
       hogId: currentHog.value.id,
-      type: ActivityType.HOG_SOLD,
+      type: 'HOG_SOLD',
       details: `Sold for ₱${totalPrice.toFixed(2)} (${saleData.value.weight}kg × ₱${saleData.value.pricePerKilo}/kg)`,
     })
 
     closeSoldModal()
   } catch (error) {
     console.error('Error marking hog as sold:', error)
+    alert('Failed to mark hog as sold. Please try again.')
   }
 }
 
 // Mark hog as died
 const markAsDied = async () => {
-  if (!currentHog.value || !deathData.value.cause || !deathData.value.date) return
-  if (deathData.value.cause === 'others' && !deathData.value.otherCause) return
+  if (!currentHog.value || !deathData.value.cause) {
+    alert('Please select a cause of death')
+    return
+  }
 
   try {
     const cause =
-      deathData.value.cause === 'others'
-        ? deathData.value.otherCause
-        : deathData.value.cause
-            .split('_')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ')
+      deathData.value.cause === 'other' ? deathData.value.otherCause : deathData.value.cause
 
-    const deathDetails = {
+    await hogsStore.markAsDeceased(currentHog.value.id, {
       cause: cause,
-      date: deathData.value.date,
-      notes: deathData.value.notes,
-    }
-
-    await hogsStore.updateHog(currentHog.value.id, {
-      status: 'died',
-      statusInfo: JSON.stringify(deathDetails),
+      weight: currentHog.value.weight,
+      notes: deathData.value.notes || '',
+      dateOfDeath: deathData.value.date || new Date().toISOString(),
     })
 
     logHogActivity({

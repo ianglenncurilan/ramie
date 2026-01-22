@@ -1,203 +1,274 @@
 <template>
   <div class="hogs-records">
+    <div class="header">
+      <h2>Hog Records</h2>
+      <button class="back-btn" @click="$router.go(-1)"><span>←</span> Back</button>
+    </div>
+
     <div class="tabs">
-      <button class="tab" :class="{ active: activeTab === 'sold' }" @click="activeTab = 'sold'">
+      <button class="tab" :class="{ active: activeTab === 'sale' }" @click="activeTab = 'sale'">
         Sold Hogs
       </button>
-      <button class="tab" :class="{ active: activeTab === 'died' }" @click="activeTab = 'died'">
+      <button class="tab" :class="{ active: activeTab === 'death' }" @click="activeTab = 'death'">
         Deceased Hogs
       </button>
     </div>
 
     <div class="records-list">
-      <div v-if="activeTab === 'sold'" class="sold-records">
-        <div v-for="record in soldRecords" :key="record.id" class="record-card">
-          <div class="record-header">
-            <h4>{{ record.hogName || `Hog #${record.hogId}` }}</h4>
-            <span class="record-date">{{ formatDate(record.date) }}</span>
-          </div>
-          <div class="record-details">
-            <div class="detail">
-              <span class="label">Amount:</span>
-              <span class="value">₱{{ record.amount.toLocaleString() }}</span>
-            </div>
-            <div class="detail" v-if="record.buyer">
-              <span class="label">Buyer:</span>
-              <span class="value">{{ record.buyer }}</span>
-            </div>
-            <div class="detail" v-if="record.notes">
-              <span class="label">Notes:</span>
-              <span class="value">{{ record.notes }}</span>
-            </div>
-          </div>
-        </div>
-        <div v-if="soldRecords.length === 0" class="empty-state">No sold hogs records found</div>
-      </div>
+      <div v-if="loading" class="loading">Loading records...</div>
 
-      <div v-else class="died-records">
-        <div v-for="record in diedRecords" :key="record.id" class="record-card">
-          <div class="record-header">
-            <h4>{{ record.hogName || `Hog #${record.hogId}` }}</h4>
-            <span class="record-date">{{ formatDate(record.date) }}</span>
-          </div>
-          <div class="record-details">
-            <div class="detail">
-              <span class="label">Cause:</span>
-              <span class="value">{{ record.cause || 'Unknown' }}</span>
+      <template v-else>
+        <!-- Sales Records -->
+        <div v-if="activeTab === 'sale'" class="sold-records">
+          <div v-if="soldRecords.length === 0" class="empty-state">No sold hogs records found</div>
+
+          <div v-for="record in soldRecords" :key="record.id" class="record-card">
+            <div class="record-header">
+              <h4>{{ getHogName(record.hog_id) || `Hog #${record.hog_id?.slice(0, 8)}` }}</h4>
+              <span class="record-date">{{ formatDate(record.event_date) }}</span>
             </div>
-            <div class="detail" v-if="record.notes">
-              <span class="label">Notes:</span>
-              <span class="value">{{ record.notes }}</span>
+            <div class="record-details">
+              <div class="detail">
+                <span class="label">Sale Price:</span>
+                <span class="value"
+                  >₱{{ Number(record.details?.sale_price || 0).toLocaleString() }}</span
+                >
+              </div>
+              <div class="detail">
+                <span class="label">Weight at Sale:</span>
+                <span class="value">{{ record.details?.weight || 'N/A' }} kg</span>
+              </div>
+              <div class="detail" v-if="record.details?.buyer">
+                <span class="label">Buyer:</span>
+                <span class="value">{{ record.details.buyer }}</span>
+              </div>
+              <div class="detail" v-if="record.details?.notes">
+                <span class="label">Notes:</span>
+                <span class="value">{{ record.details.notes }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div v-if="diedRecords.length === 0" class="empty-state">
-          No deceased hogs records found
+
+        <!-- Death Records -->
+        <div v-else class="died-records">
+          <div v-if="deathRecords.length === 0" class="empty-state">
+            No deceased hogs records found
+          </div>
+
+          <div v-for="record in deathRecords" :key="record.id" class="record-card">
+            <div class="record-header">
+              <h4>{{ getHogName(record.hog_id) || `Hog #${record.hog_id?.slice(0, 8)}` }}</h4>
+              <span class="record-date">{{ formatDate(record.event_date) }}</span>
+            </div>
+            <div class="record-details">
+              <div class="detail">
+                <span class="label">Cause of Death:</span>
+                <span class="value">{{ record.details?.cause_of_death || 'Unknown' }}</span>
+              </div>
+              <div class="detail" v-if="record.details?.weight">
+                <span class="label">Weight at Death:</span>
+                <span class="value">{{ record.details.weight }} kg</span>
+              </div>
+              <div class="detail" v-if="record.details?.notes">
+                <span class="label">Notes:</span>
+                <span class="value">{{ record.details.notes }}</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useHogsStore } from '@/stores/hogs'
 
 const router = useRouter()
-const activeTab = ref('sold')
+const hogsStore = useHogsStore()
+const activeTab = ref('sale')
+const loading = ref(false)
 
-// Sample data - replace with actual data fetching from your store/API
-const soldRecords = ref([
-  {
-    id: 1,
-    hogId: 'H001',
-    hogName: 'Duroc Boar #1',
-    date: '2023-12-15',
-    amount: 25000,
-    buyer: 'Juan Dela Cruz',
-    notes: 'Sold at 95kg',
-  },
-  {
-    id: 2,
-    hogId: 'H012',
-    hogName: 'Large White #5',
-    date: '2024-01-10',
-    amount: 28000,
-    buyer: 'Maria Santos',
-    notes: 'Sold at 102kg',
-  },
-])
+// Fetch records when component mounts
+onMounted(async () => {
+  await fetchRecords()
+})
 
-const diedRecords = ref([
-  {
-    id: 1,
-    hogId: 'H045',
-    hogName: 'Landrace Sow #3',
-    date: '2023-11-20',
-    cause: 'Disease',
-    notes: 'Showed signs of illness for 3 days',
-  },
-  {
-    id: 2,
-    hogId: 'H067',
-    hogName: 'Pietrain #8',
-    date: '2023-12-05',
-    cause: 'Injury',
-    notes: 'Leg injury from pen accident',
-  },
-])
+// Fetch records from the store
+async function fetchRecords() {
+  try {
+    loading.value = true
+    await hogsStore.fetchRecords()
+  } catch (error) {
+    console.error('Error fetching records:', error)
+  } finally {
+    loading.value = false
+  }
+}
 
-const formatDate = (dateString) => {
-  const options = { year: 'numeric', month: 'short', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
+// Get hog name by ID
+function getHogName(hogId) {
+  const hog = hogsStore.hogs.find((h) => h.id === hogId)
+  return hog?.code || null
+}
+
+// Filter records by type
+const soldRecords = computed(() => {
+  return hogsStore.records.filter((record) => record.record_type === 'sale')
+})
+
+const deathRecords = computed(() => {
+  return hogsStore.records.filter((record) => record.record_type === 'death')
+})
+
+// Format date for display
+function formatDate(dateString) {
+  if (!dateString) return 'N/A'
+  try {
+    const options = { year: 'numeric', month: 'short', day: 'numeric' }
+    return new Date(dateString).toLocaleDateString(undefined, options)
+  } catch (e) {
+    console.error('Error formatting date:', e)
+    return dateString
+  }
 }
 </script>
 
 <style scoped>
 .hogs-records {
+  max-width: 1000px;
+  margin: 0 auto;
   padding: 20px;
-  max-width: 100%;
-  background-color: #fff;
-  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.back-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
 }
 
 .tabs {
   display: flex;
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  overflow: hidden;
-  border: 1px solid #e9ecef;
+  gap: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 .tab {
-  flex: 1;
-  padding: 12px 16px;
-  background: none;
+  padding: 8px 24px;
   border: none;
-  border-bottom: 3px solid transparent;
-  font-size: 14px;
-  font-weight: 500;
-  color: #6c757d;
+  background: transparent;
+  border-radius: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  text-transform: uppercase;
+  transition: all 0.2s;
+  font-size: 15px;
+  font-weight: 500;
+  color: #666;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  margin-bottom: -1px;
 }
 
 .tab:hover {
-  background-color: #e9ecef;
-  color: #495057;
+  color: #333;
+  border-bottom-color: #ddd;
 }
 
 .tab.active {
-  color: #0d6efd;
-  border-bottom-color: #0d6efd;
-  background-color: #fff;
+  color: #2f8b60;
+  border-bottom: 2px solid #2f8b60;
   font-weight: 600;
 }
 
 .records-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  margin-top: 16px;
 }
 
 .record-card {
-  background: #fff;
+  background: white;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 16px;
-  border: 1px solid #e9ecef;
-  transition: box-shadow 0.2s ease;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.record-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #2f8b60;
 }
 
 .record-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .record-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .record-header h4 {
   margin: 0;
-  font-size: 15px;
-  color: #212529;
+  font-size: 16px;
+  color: #2c3e50;
   font-weight: 600;
 }
 
 .record-date {
   font-size: 13px;
-  color: #6c757d;
+  color: #7f8c8d;
   background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 400;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
 }
 
 .record-details {
@@ -207,21 +278,21 @@ const formatDate = (dateString) => {
 
 .detail {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 10px;
   font-size: 14px;
-  padding: 4px 0;
+  line-height: 1.5;
 }
 
 .label {
-  color: #6c757d;
-  font-weight: 400;
+  font-weight: 500;
+  color: #7f8c8d;
+  min-width: 120px;
 }
 
 .value {
-  color: #212529;
-  font-weight: 500;
-  text-align: right;
+  color: #2c3e50;
+  flex: 1;
+  word-break: break-word;
 }
 
 .empty-state {

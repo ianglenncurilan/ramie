@@ -2,20 +2,25 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '@/services/supabase'
 import { logStaffActivity } from '@/services/staffService'
+import { useRouter } from 'vue-router'
 
 export const useHogsStore = defineStore('hogs', () => {
   const hogs = ref([])
+  const records = ref([])
   const loading = ref(false)
   const error = ref(null)
+  const router = useRouter()
 
   // Fetch all hogs from the database
-  async function fetchHogs() {
+  async function fetchHogs(status = 'active') {
     try {
       loading.value = true
-      const { data, error: fetchError } = await supabase
-        .from('hogs')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let query = supabase.from('hogs').select('*').order('created_at', { ascending: false })
+
+      // Only filter by status if it's not 'all'
+      if (status !== 'all') {
+        query = query.eq('status', status)
+      }
 
       if (fetchError) throw fetchError
 
@@ -377,18 +382,20 @@ export const useHogsStore = defineStore('hogs', () => {
     try {
       loading.value = true
 
-      const { error: deleteError } = await supabase.from('hogs').delete().eq('id', hogId)
+      // Instead of deleting, mark as inactive
+      const { error: updateError } = await supabase
+        .from('hogs')
+        .update({
+          status: 'inactive',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', hogId)
 
-      if (deleteError) throw deleteError
+      if (updateError) throw updateError
 
-      // Update local state
-      const index = hogs.value.findIndex((hog) => hog.id === hogId)
-      if (index !== -1) {
-        hogs.value.splice(index, 1)
-        return true
-      }
-
-      return false
+      // Remove from local state
+      hogs.value = hogs.value.filter((hog) => hog.id !== hogId)
+      return true
     } catch (err) {
       console.error('Error deleting hog:', err)
       error.value = err.message
@@ -497,8 +504,134 @@ export const useHogsStore = defineStore('hogs', () => {
     }
   }
 
+  // Create a new record
+  async function createRecord(recordData) {
+    try {
+      const { data, error: recordError } = await supabase
+        .from('records')
+        .insert(recordData)
+        .select()
+        .single()
+
+      if (recordError) throw recordError
+      return data
+    } catch (err) {
+      console.error('Error creating record:', err)
+      error.value = err.message
+      throw err
+    }
+  }
+
+  // Fetch all records
+  async function fetchRecords() {
+    try {
+      loading.value = true
+      const { data, error: fetchError } = await supabase
+        .from('records')
+        .select('*')
+        .order('event_date', { ascending: false })
+
+      if (fetchError) throw fetchError
+
+      records.value = data || []
+      return records.value
+    } catch (err) {
+      console.error('Error fetching records:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Mark a hog as sold
+  async function markAsSold(hogId, saleData) {
+    try {
+      loading.value = true
+      const now = new Date().toISOString()
+
+      // Update hog status
+      const { error: updateError } = await supabase
+        .from('hogs')
+        .update({
+          status: 'sold',
+          sold_date: now,
+          updated_at: now,
+        })
+        .eq('id', hogId)
+
+      if (updateError) throw updateError
+
+      // Create sale record
+      await createRecord({
+        hog_id: hogId,
+        record_type: 'sale',
+        event_date: now,
+        details: {
+          sale_price: saleData.price,
+          weight: saleData.weight,
+          buyer: saleData.buyer || null,
+          notes: saleData.notes || null,
+        },
+      })
+
+      // Refresh hogs list
+      await fetchHogs('active')
+      return true
+    } catch (err) {
+      console.error('Error marking hog as sold:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Mark a hog as deceased
+  async function markAsDeceased(hogId, deathData) {
+    try {
+      loading.value = true
+      const now = new Date().toISOString()
+
+      // Update hog status
+      const { error: updateError } = await supabase
+        .from('hogs')
+        .update({
+          status: 'deceased',
+          deceased_date: deathData.dateOfDeath || now,
+          updated_at: now,
+        })
+        .eq('id', hogId)
+
+      if (updateError) throw updateError
+
+      // Create death record
+      await createRecord({
+        hog_id: hogId,
+        record_type: 'death',
+        event_date: deathData.dateOfDeath || now,
+        details: {
+          cause_of_death: deathData.cause,
+          weight: deathData.weight,
+          notes: deathData.notes || null,
+        },
+      })
+
+      // Refresh hogs list
+      await fetchHogs('active')
+      return true
+    } catch (err) {
+      console.error('Error marking hog as deceased:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     hogs,
+    records,
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     updateFeedingStatus,
@@ -511,15 +644,18 @@ export const useHogsStore = defineStore('hogs', () => {
     markFeedingComplete,
     deleteHog,
     getHogById,
-    getAllHogs,
+    getAllHogs: () => fetchHogs('all'), // Modified to fetch all statuses
     getHogsByFeedingStatus,
     getHogsNeedingFeeding,
     incrementDaysForAllHogs,
     resetDailyFeedingStatus,
-    getStats,
-    fetchHogs,
-    resetDailyFeedingStatus,
     ensureDailyReset,
     subscribeToRealtime,
+    getStats,
+    fetchHogs,
+    createRecord,
+    fetchRecords,
+    markAsSold,
+    markAsDeceased,
   }
 })
