@@ -13,42 +13,45 @@ export const useHogsStore = defineStore('hogs', () => {
 
   // Fetch all hogs from the database
   async function fetchHogs(status = 'active') {
-    try {
-      loading.value = true
-      let query = supabase.from('hogs').select('*').order('created_at', { ascending: false })
+  try {
+    loading.value = true
+    let query = supabase.from('hogs').select('*').order('created_at', { ascending: false })
 
-      // Only filter by status if it's not 'all'
-      if (status !== 'all') {
-        query = query.eq('status', status)
-      }
-
-      if (fetchError) throw fetchError
-
-      // Transform the data to match our frontend structure
-      hogs.value = (data || []).map((hog) => ({
-        id: hog.id,
-        code: hog.code,
-        weight: hog.weight || 0,
-        days: hog.days || 0,
-        amFeeding: hog.am_feeding || false,
-        pmFeeding: hog.pm_feeding || false,
-        feedingCompleted: hog.feeding_completed || false,
-        createdAt: hog.created_at,
-        updated_at: hog.updated_at,
-        lastFeedingDate: hog.last_feeding_date,
-        totalFeedingDays: hog.total_feeding_days || 0,
-        lastDayIncrement: hog.last_day_increment,
-      }))
-
-      return hogs.value
-    } catch (err) {
-      console.error('Error fetching hogs:', err)
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
+    // Only filter by status if it's not 'all'
+    if (status !== 'all') {
+      query = query.eq('status', status)
     }
+
+    // Execute the query and destructure the result
+    const { data, error: fetchError } = await query
+
+    if (fetchError) throw fetchError
+
+    // Transform the data to match our frontend structure
+    hogs.value = (data || []).map((hog) => ({
+      id: hog.id,
+      code: hog.code,
+      weight: hog.weight || 0,
+      days: hog.days || 0,
+      amFeeding: hog.am_feeding || false,
+      pmFeeding: hog.pm_feeding || false,
+      feedingCompleted: hog.feeding_completed || false,
+      createdAt: hog.created_at,
+      updated_at: hog.updated_at,
+      lastFeedingDate: hog.last_feeding_date,
+      totalFeedingDays: hog.total_feeding_days || 0,
+      lastDayIncrement: hog.last_day_increment,
+    }))
+
+    return hogs.value
+  } catch (err) {
+    console.error('Error fetching hogs:', err)
+    error.value = err.message
+    throw err
+  } finally {
+    loading.value = false
   }
+}
 
   // Add a new hog to the database
   async function addHog(hogData) {
