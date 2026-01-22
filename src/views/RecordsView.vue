@@ -32,15 +32,6 @@
 
     <!-- Main Content (initially hidden until selection) -->
     <div v-if="!showSelectionModal">
-      <section class="hero">
-        <img src="/pig.jpg" alt="hero" />
-        <div class="overlay">
-          <img class="receipt-icon" src="/receipt.png" alt="Receipt" />
-          <div class="brand">
-            <div class="title"></div>
-          </div>
-        </div>
-      </section>
       <div class="panel">
         <div class="records-header">
           <div class="drag-indicator"></div>

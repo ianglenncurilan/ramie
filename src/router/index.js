@@ -13,6 +13,7 @@ import ManageStaffView from '../views/ManageStaffView.vue'
 import InventoryView from '../views/InventoryView.vue'
 import HogsTrackedView from '../views/HogsTrackedView.vue'
 import HogsRecordsView from '../views/HogsRecordsView.vue'
+import HogDetailsView from '../views/HogDetailsView.vue'
 import FeedCalculatorView from '../views/FeedCalculatorView.vue'
 import StarterFeedCalculatorView from '../views/StarterFeedCalculatorView.vue'
 import GrowerFeedCalculatorView from '../views/GrowerFeedCalculatorView.vue'
@@ -117,6 +118,13 @@ const router = createRouter({
       name: 'hogs-records',
       component: HogsRecordsView,
       beforeEnter: requireAuth,
+    },
+    {
+      path: '/hog-details/:id',
+      name: 'hog-details',
+      component: HogDetailsView,
+      beforeEnter: requireAuth,
+      props: true,
     },
     {
       path: '/feeds/starter',
