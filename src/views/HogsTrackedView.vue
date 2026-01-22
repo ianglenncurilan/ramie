@@ -40,11 +40,40 @@
               <span class="stage">{{ getHogStage(hog.days) }}</span>
               <span class="days">{{ hog.days }}</span>
               <div class="feeding-status-cell">
-                <AMPMPStatus
-                  v-model="hog.feedingStatus"
-                  :disabled="hog.isComplete"
-                  @update:modelValue="updateFeedingStatus(hog.id, $event)"
-                />
+                <div
+                  class="feeding-toggle"
+                  :class="{ fed: hog.amFeeding, disabled: hog.amFeeding && hog.pmFeeding }"
+                  @click="toggleFeeding(hog, 'am')"
+                >
+                  <span class="time-label">AM</span>
+                  <div class="icon-wrapper">
+                    <svg v-if="hog.amFeeding" class="check-icon" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <svg v-else class="x-icon" viewBox="0 0 24 24">
+                      <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div
+                  class="feeding-toggle"
+                  :class="{ fed: hog.pmFeeding, disabled: hog.amFeeding && hog.pmFeeding }"
+                  @click="toggleFeeding(hog, 'pm')"
+                >
+                  <span class="time-label">PM</span>
+                  <div class="icon-wrapper">
+                    <svg v-if="hog.pmFeeding" class="check-icon" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                    </svg>
+                    <svg v-else class="x-icon" viewBox="0 0 24 24">
+                      <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                      />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div class="status-cell">
                 <span :class="getStatusClass(hog)">
@@ -358,19 +387,12 @@ const getHogStage = (days) => {
   return 'Finisher'
 }
 
-// Update feeding status from AMPMPStatus component
-function updateFeedingStatus(hogId, status) {
-  const hog = hogs.value.find((h) => h.id === hogId)
-  if (hog) {
-    hog.amFeeding = status.am
-    hog.pmFeeding = status.pm
-
-    // Update the hog in the database
-    updateHog(hogId, {
-      amFeeding: status.am,
-      pmFeeding: status.pm,
-    })
+const toggleFeeding = (hog, timeOfDay) => {
+  if (hog.amFeeding && hog.pmFeeding) {
+    return // Do nothing if already complete
   }
+  const newStatus = !hog[`${timeOfDay}Feeding`]
+  hogsStore.setFeedingTime(hog.id, timeOfDay, newStatus)
 }
 
 // Open edit modal with hog data
@@ -659,33 +681,8 @@ async function deleteHog(hogId) {
   }
 }
 
-// Set feeding status (fed/not fed)
-const setFeeding = async (hogId, timeOfDay, isFed) => {
-  try {
-    const updates = {
-      [`${timeOfDay}Feeding`]: isFed,
-      updated_at: new Date().toISOString(),
-    }
-
-    const { data, error } = await supabase.from('hogs').update(updates).eq('id', hogId).select()
-
-    if (error) throw error
-
-    // Update local state
-    const index = hogs.value.findIndex((h) => h.id === hogId)
-    if (index !== -1) {
-      hogs.value[index][`${timeOfDay}Feeding`] = isFed
-    }
-  } catch (err) {
-    console.error(`Error setting ${timeOfDay} feeding status:`, err)
-    error.value = `Failed to update ${timeOfDay} feeding status. Please try again.`
-    alert(error.value)
-  }
-}
-
 // Get status text
 const getStatusText = (hog) => {
-  if (hog.isComplete) return 'Completed'
   if (hog.amFeeding && hog.pmFeeding) return 'Complete'
   if (hog.amFeeding || hog.pmFeeding) return 'In Progress'
   return 'Pending'
@@ -705,9 +702,8 @@ const formatDate = (dateString) => {
 }
 
 function getStatusClass(hog) {
-  if (hog.isComplete) return 'status-complete'
-  if (hog.feedingStatus?.am && hog.feedingStatus?.pm) return 'status-complete'
-  if (hog.feedingStatus?.am || hog.feedingStatus?.pm) return 'status-partial'
+  if (hog.amFeeding && hog.pmFeeding) return 'status-complete'
+  if (hog.amFeeding || hog.pmFeeding) return 'status-partial'
   return 'status-pending'
 }
 
@@ -1276,6 +1272,68 @@ textarea.form-input {
   color: #c94d4d;
   background: #fff0f0;
   border: 1px solid #ffcdd2;
+}
+
+.feeding-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+.feeding-toggle:hover:not(.disabled) {
+  background-color: #eeeeee;
+  transform: translateY(-1px);
+}
+
+.feeding-toggle.fed {
+  background-color: #e8f5e9; /* light green */
+  border-color: #a5d6a7;
+  color: #388e3c;
+}
+
+.feeding-toggle.fed .check-icon {
+  fill: #4caf50;
+}
+
+.feeding-toggle .x-icon {
+  fill: #bdbdbd;
+}
+
+.feeding-toggle.fed:hover:not(.disabled) {
+  background-color: #dceddc;
+}
+
+.feeding-toggle.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.time-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.icon-wrapper {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.check-icon,
+.x-icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* Actions */

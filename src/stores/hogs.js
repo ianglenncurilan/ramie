@@ -25,6 +25,8 @@ export const useHogsStore = defineStore('hogs', () => {
         code: hog.code,
         weight: hog.weight || 0,
         days: hog.days || 0,
+        amFeeding: hog.am_feeding || false,
+        pmFeeding: hog.pm_feeding || false,
         feedingCompleted: hog.feeding_completed || false,
         createdAt: hog.created_at,
         updated_at: hog.updated_at,
@@ -59,6 +61,8 @@ export const useHogsStore = defineStore('hogs', () => {
             code: hogCode,
             weight: hogData.weight || 0,
             days: hogData.days || 0,
+            am_feeding: false,
+            pm_feeding: false,
             feeding_completed: false,
             created_at: now,
             last_feeding_date: null,
@@ -76,6 +80,8 @@ export const useHogsStore = defineStore('hogs', () => {
           code: data[0].code,
           weight: data[0].weight,
           days: data[0].days,
+          amFeeding: data[0].am_feeding || false,
+          pmFeeding: data[0].pm_feeding || false,
           feedingCompleted: data[0].feeding_completed,
           createdAt: data[0].created_at,
           lastFeedingDate: data[0].last_feeding_date,
@@ -125,6 +131,52 @@ export const useHogsStore = defineStore('hogs', () => {
       return data?.[0] || null
     } catch (err) {
       console.error('Error updating feeding status:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Set feeding status for a specific time of day (AM/PM)
+  async function setFeedingTime(hogId, timeOfDay, isFed) {
+    try {
+      // Validate timeOfDay
+      if (!['am', 'pm'].includes(timeOfDay)) {
+        throw new Error("Invalid time of day. Must be 'am' or 'pm'.")
+      }
+
+      loading.value = true
+
+      // Prepare the database update
+      const dbUpdate = {}
+      dbUpdate[`${timeOfDay}_feeding`] = isFed
+      dbUpdate.updated_at = new Date().toISOString()
+
+      // Update the database
+      const { data, error: updateError } = await supabase
+        .from('hogs')
+        .update(dbUpdate)
+        .eq('id', hogId)
+        .select()
+
+      if (updateError) throw updateError
+
+      // Update local state reactively
+      const hogIndex = hogs.value.findIndex((h) => h.id === hogId)
+      if (hogIndex !== -1) {
+        // Create a new object to ensure reactivity
+        const updatedHog = {
+          ...hogs.value[hogIndex],
+        }
+        updatedHog[`${timeOfDay}Feeding`] = isFed
+        // Replace the old object with the new one
+        hogs.value.splice(hogIndex, 1, updatedHog)
+      }
+
+      return data?.[0] || null
+    } catch (err) {
+      console.error(`Error setting ${timeOfDay} feeding status:`, err)
       error.value = err.message
       throw err
     } finally {
@@ -450,6 +502,7 @@ export const useHogsStore = defineStore('hogs', () => {
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     updateFeedingStatus,
+    setFeedingTime,
     addHog,
     updateHog,
     updateHogWeight,
