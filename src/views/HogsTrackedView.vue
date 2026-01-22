@@ -23,7 +23,7 @@
         </button>
       </div>
 
-      <template v-if="hogs.length > 0">
+      <template v-if="activeHogs.length > 0">
         <div class="table-container">
           <div class="table">
             <div class="thead">
@@ -35,7 +35,7 @@
               <span class="weight-cell">Weight (kg)</span>
               <span class="actions">Actions</span>
             </div>
-            <div class="row" v-for="hog in hogs" :key="hog.id">
+            <div class="row" v-for="hog in activeHogs" :key="hog.id">
               <span class="hog-code">{{ hog.code }}</span>
               <span class="stage">{{ getHogStage(hog.days) }}</span>
               <span class="days">{{ hog.days }}</span>
@@ -401,25 +401,29 @@ const toggleFeeding = async (hog, timeOfDay) => {
     // Update the feeding time in the store
     await hogsStore.setFeedingTime(hog.id, timeOfDay, newStatus)
 
-    // Get the updated hog to check current status
-    const updatedHog = hogsStore.hogs.find((h) => h.id === hog.id)
+    // Get the current state from the store
+    const currentHog = hogsStore.hogs.find((h) => h.id === hog.id)
+    if (!currentHog) return
 
-    if (!updatedHog) return
+    // Determine the new feeding status
+    const amFeeding = timeOfDay === 'am' ? newStatus : currentHog.amFeeding
+    const pmFeeding = timeOfDay === 'pm' ? newStatus : currentHog.pmFeeding
 
-    // Check if both feedings are now complete
-    if (updatedHog.amFeeding && updatedHog.pmFeeding) {
-      // Mark as completed for the day
+    // Update status based on feeding state
+    let statusUpdate = {}
+    if (amFeeding && pmFeeding) {
+      statusUpdate = { status: 'completed' }
       await hogsStore.markFeedingComplete(hog.id)
-    } else if (newStatus) {
-      // If this is the first feeding being marked, set to in-progress
-      await hogsStore.updateHog(hog.id, { status: 'in-progress' })
-    } else if (!updatedHog.amFeeding && !updatedHog.pmFeeding) {
-      // If both feedings are now unchecked, set back to pending
-      await hogsStore.updateHog(hog.id, { status: 'pending' })
+    } else if (amFeeding || pmFeeding) {
+      statusUpdate = { status: 'in-progress' }
+    } else {
+      statusUpdate = { status: 'pending' }
     }
 
-    // Refresh the hogs list to reflect changes
-    await hogsStore.fetchHogs()
+    // Only update if status changed
+    if (statusUpdate.status !== currentHog.status) {
+      await hogsStore.updateHog(hog.id, statusUpdate)
+    }
   } catch (err) {
     console.error('Error toggling feeding status:', err)
     error.value = 'Failed to update feeding status. Please try again.'
@@ -538,11 +542,24 @@ const markAsDied = async () => {
   }
 }
 
+// Computed property to get active hogs
+const activeHogs = computed(() => {
+  return hogsStore.hogs.filter(
+    (hog) => !['sold', 'deceased', 'inactive'].includes(hog.status || 'active'),
+  )
+})
+
 // Fetch hogs when component mounts
 onMounted(async () => {
   try {
     loading.value = true
-    await hogsStore.fetchHogs()
+    // First fetch all hogs without status filter
+    await hogsStore.fetchHogs('all')
+
+    // Ensure hogs array exists in the store
+    hogsStore.hogs = hogsStore.hogs || []
+
+    // Rest of your existing code
     hogsStore.incrementDaysForAllHogs()
     if (typeof hogsStore.ensureDailyReset === 'function') {
       await hogsStore.ensureDailyReset()
