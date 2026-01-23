@@ -725,9 +725,21 @@ export const useHogsStore = defineStore('hogs', () => {
   // Create a new record
   async function createRecord(recordData) {
     try {
+      // Supabase column `details` may be TEXT in some schemas; normalize to JSON string on write.
+      const normalized =
+        recordData && typeof recordData === 'object'
+          ? {
+              ...recordData,
+              details:
+                recordData.details && typeof recordData.details === 'object'
+                  ? JSON.stringify(recordData.details)
+                  : recordData.details,
+            }
+          : recordData
+
       const { data, error: recordError } = await supabase
         .from('records')
-        .insert(recordData)
+        .insert(normalized)
         .select()
         .single()
 
@@ -751,7 +763,17 @@ export const useHogsStore = defineStore('hogs', () => {
 
       if (fetchError) throw fetchError
 
-      records.value = data || []
+      // Normalize details to an object for UI usage (if stored as JSON string)
+      records.value = (data || []).map((row) => {
+        if (row && typeof row.details === 'string') {
+          try {
+            return { ...row, details: JSON.parse(row.details) }
+          } catch {
+            return row
+          }
+        }
+        return row
+      })
       return records.value
     } catch (err) {
       console.error('Error fetching records:', err)
@@ -767,13 +789,18 @@ export const useHogsStore = defineStore('hogs', () => {
     try {
       loading.value = true
       const now = new Date().toISOString()
+      const eventDate = saleData?.date || now
+      const totalPrice = Number(saleData?.price) || 0
+      const weightKg = Number(saleData?.weight) || 0
+      const pricePerKg = weightKg > 0 ? totalPrice / weightKg : null
 
       // Update hog status
       const { error: updateError } = await supabase
         .from('hogs')
         .update({
           status: 'sold',
-          sold_date: now,
+          sold_date: eventDate,
+          sale_price: totalPrice,
           updated_at: now,
         })
         .eq('id', hogId)
@@ -784,17 +811,26 @@ export const useHogsStore = defineStore('hogs', () => {
       await createRecord({
         hog_id: hogId,
         record_type: 'sale',
-        event_date: now,
+        event_date: eventDate,
+        // Persist to dedicated columns (records table schema)
+        sale_price: totalPrice,
+        total_cost: totalPrice,
+        // Store weight in standard amount/unit fields so UI + analytics can use it
+        amount: weightKg,
+        unit: 'kg',
+        cost_per_unit: pricePerKg,
         details: {
-          sale_price: saleData.price,
-          weight: saleData.weight,
-          buyer: saleData.buyer || null,
-          notes: saleData.notes || null,
+          sale_price: totalPrice,
+          weight: weightKg,
+          buyer: saleData?.buyer || null,
+          notes: saleData?.notes || null,
         },
       })
 
       // Refresh hogs list
       await fetchHogs('active')
+      // Refresh records list so the records view picks up latest sale immediately
+      await fetchRecords()
       return true
     } catch (err) {
       console.error('Error marking hog as sold:', err)

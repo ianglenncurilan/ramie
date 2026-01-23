@@ -98,6 +98,11 @@ const handleLogin = async () => {
 
       // Handle specific error cases with user-friendly messages
       if (
+        error.message.includes('Invalid email format') ||
+        error.message.includes('Invalid email')
+      ) {
+        errors.value.email = 'Please enter a valid email address.'
+      } else if (
         error.message.includes('Invalid login credentials') ||
         error.message.includes('Invalid email or password')
       ) {
@@ -234,30 +239,46 @@ const togglePasswordVisibility = () => {
 
       <!-- Login Form -->
       <form @submit.prevent="onFormSubmit" class="login-form">
-        <div class="input-group1">
-          <i class="mdi mdi-email-outline"></i>
-          <input
-            v-model="formData.email"
-            type="email"
-            placeholder="Email Address"
-            @input="clearErrors('email')"
-          />
-          <p v-if="errors.email" class="err">{{ errors.email }}</p>
+        <div class="form-group">
+          <div class="input-group1">
+            <i class="mdi mdi-email-outline"></i>
+            <input
+              v-model="formData.email"
+              type="email"
+              placeholder="Email Address"
+              @input="clearErrors('email')"
+              :class="{ 'error-input': errors.email }"
+              H
+            />
+          </div>
+          <div v-if="errors.email" class="error-container">
+            <i class="mdi mdi-alert-circle error-icon"></i>
+            <span class="error-message">{{ errors.email }}</span>
+          </div>
         </div>
-        <div class="input-group2">
-          <i class="mdi mdi-lock-outline"></i>
-          <input
-            :type="passwordVisible ? 'text' : 'password'"
-            v-model="formData.password"
-            placeholder="Password"
-            @input="clearErrors('password')"
-          />
-          <i
-            class="mdi password-toggle"
-            :class="passwordVisible ? 'mdi-eye-off' : 'mdi-eye'"
-            @click="togglePasswordVisibility"
-          ></i>
-          <p v-if="errors.password" class="err">{{ errors.password }}</p>
+        <div class="form-group">
+          <div class="input-group2">
+            <i class="mdi mdi-lock-outline"></i>
+            <input
+              :type="passwordVisible ? 'text' : 'password'"
+              v-model="formData.password"
+              placeholder="Password"
+              @input="clearErrors('password')"
+              :class="{
+                'error-input': errors.password,
+                'success-input': formData.password && !errors.password,
+              }"
+            />
+            <i
+              class="mdi password-toggle"
+              :class="passwordVisible ? 'mdi-eye-off' : 'mdi-eye'"
+              @click="togglePasswordVisibility"
+            ></i>
+          </div>
+          <div v-if="errors.password" class="error-container">
+            <i class="mdi mdi-alert-circle error-icon"></i>
+            <span class="error-message">{{ errors.password }}</span>
+          </div>
         </div>
 
         <!-- Alert Notifications -->
@@ -483,12 +504,33 @@ h2 {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
 }
 
-/* Error text position (won't push layout) */
-.err {
+/* Error message styling */
+.error-message {
   color: var(--error);
   font-size: 12px;
-  margin-top: 6px;
-  margin-left: 12px;
+  margin-left: 2px;
+  color: red;
+}
+
+.error-container {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+  margin-left: 8px;
+}
+
+.error-icon {
+  color: var(--error);
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+.error-input {
+  border-color: var(--error) !important;
+}
+
+.success-input {
+  border-color: var(--success) !important;
 }
 
 /* Make primary and social buttons pill-shaped and consistent height */
@@ -854,9 +896,12 @@ h2 {
     font-size: 13px;
   }
 
-  .err {
-    margin-left: 10px;
-    margin-top: 6px;
+  .error-message {
+    font-size: 11px;
+  }
+
+  .error-container {
+    margin-left: 6px;
   }
 
   .input-group2 {
@@ -950,9 +995,12 @@ h2 {
     font-size: 12px;
   }
 
-  .err {
-    margin-left: 8px;
-    margin-top: 5px;
+  .error-message {
+    font-size: 11px;
+  }
+
+  .error-container {
+    margin-left: 4px;
   }
 
   .input-group2 {

@@ -33,20 +33,79 @@
     <!-- Main Content (initially hidden until selection) -->
     <div v-if="!showSelectionModal">
       <div class="panel">
+        <button class="back-btn" @click="$router.back()">
+          <span>←</span>
+        </button>
         <div class="records-header">
           <div class="drag-indicator"></div>
           <h3>Records</h3>
 
-          <div class="period-toggle">
-            <button :class="{ active: selectedPeriod === 'Year' }" @click="selectedPeriod = 'Year'">
-              Year
-            </button>
-            <button
-              :class="{ active: selectedPeriod === 'Month' }"
-              @click="selectedPeriod = 'Month'"
-            >
-              Month
-            </button>
+          <div class="filters-container">
+            <div class="filter-group">
+              <label for="date-filter-type">Filter by:</label>
+              <select id="date-filter-type" v-model="dateFilterType" @change="updateDateFilter">
+                <option value="specific">Specific Date</option>
+                <option value="week">This Week</option>
+                <option value="week-range">Week Range</option>
+                <option value="month">Month</option>
+                <option value="months-ago">Last X Months</option>
+              </select>
+            </div>
+
+            <!-- Specific Date -->
+            <div class="filter-group" v-if="dateFilterType === 'specific'">
+              <label for="specific-date">Date:</label>
+              <input
+                type="date"
+                id="specific-date"
+                v-model="specificDate"
+                @change="updateDateFilter"
+              />
+            </div>
+
+            <!-- Week Range -->
+            <div class="filter-group" v-if="dateFilterType === 'week-range'">
+              <label for="start-week">From:</label>
+              <input type="week" id="start-week" v-model="startWeek" @change="updateDateFilter" />
+              <label for="end-week">To:</label>
+              <input
+                type="week"
+                id="end-week"
+                v-model="endWeek"
+                @change="updateDateFilter"
+                :min="startWeek"
+              />
+            </div>
+
+            <!-- Month Selector -->
+            <div class="filter-group" v-if="dateFilterType === 'month'">
+              <label for="month">Month:</label>
+              <select id="month" v-model="selectedMonth" @change="updateDateFilter">
+                <option v-for="month in months" :key="month.value" :value="month.value">
+                  {{ month.label }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Last X Months -->
+            <div class="filter-group" v-if="dateFilterType === 'months-ago'">
+              <label for="months-ago">Last</label>
+              <input
+                type="number"
+                id="months-ago"
+                v-model.number="monthsAgo"
+                min="1"
+                max="24"
+                @change="updateDateFilter"
+              />
+              <span>months</span>
+            </div>
+
+            <!-- Current Filter Display -->
+            <div class="filter-status" v-if="currentFilterDisplay">
+              {{ currentFilterDisplay }}
+              <button class="clear-filter" @click="clearFilters">×</button>
+            </div>
           </div>
           <div class="export-wrap">
             <button
@@ -125,14 +184,7 @@
               </div>
 
               <div class="record-summary">
-                <div class="summary-item">
-                  <span class="label">Total Amount:</span>
-                  <span class="value">{{
-                    selectedRecord.totalAmount && selectedRecord.totalAmount > 0
-                      ? selectedRecord.totalAmount.toFixed(1) + 'kg'
-                      : 'N/A'
-                  }}</span>
-                </div>
+                
                 <div class="summary-item">
                   <span class="label">Total Cost:</span>
                   <span class="value cost">₱{{ (selectedRecord.totalCost || 0).toFixed(2) }}</span>
@@ -147,26 +199,7 @@
                 </div>
               </div>
 
-              <div class="ingredients-section">
-                <h5>Ingredients ({{ (selectedRecord.items || []).length }})</h5>
-                <div class="ingredients-list">
-                  <div
-                    v-for="(item, idx) in selectedRecord.items || []"
-                    :key="idx"
-                    class="ingredient-item"
-                  >
-                    <div class="ingredient-name">{{ item.label }}</div>
-                    <div class="ingredient-details">
-                      <span class="amount">{{ item.amountKg }}kg</span>
-                      <span class="total"
-                        >₱{{
-                          ((Number(item.amountKg) || 0) * (Number(item.costPerKg) || 0)).toFixed(2)
-                        }}</span
-                      >
-                    </div>
-                  </div>
-                </div>
-              </div>
+              
             </div>
           </div>
         </div>
@@ -178,6 +211,117 @@
 <script setup>
 import { ref, computed, onMounted, watch, onBeforeMount } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
+
+// Date filter state
+const dateFilterType = ref('month')
+const specificDate = ref('')
+const startWeek = ref('')
+const endWeek = ref('')
+const monthsAgo = ref(1)
+const currentFilterDisplay = ref('')
+
+// Initialize dates
+const today = new Date()
+const currentYear = today.getFullYear()
+const currentMonth = today.getMonth()
+
+// Set initial selected month to current month
+const selectedMonth = ref(currentMonth)
+
+// Format date as YYYY-MM-DD
+const formatDate = (date) => {
+  const d = new Date(date)
+  return d.toISOString().split('T')[0]
+}
+
+// Get start and end of week for a date
+const getWeekRange = (date) => {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Adjust when day is Sunday
+  const start = new Date(d.setDate(diff))
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  return { start, end }
+}
+
+// Update date filter based on selected type
+const updateDateFilter = () => {
+  const now = new Date()
+
+  switch (dateFilterType.value) {
+    case 'specific':
+      if (specificDate.value) {
+        const date = new Date(specificDate.value)
+        currentFilterDisplay.value = `Showing records for ${date.toLocaleDateString()}`
+      }
+      break
+
+    case 'week':
+      const { start, end } = getWeekRange(now)
+      currentFilterDisplay.value = `This week (${start.toLocaleDateString()} - ${end.toLocaleDateString()})`
+      break
+
+    case 'week-range':
+      if (startWeek.value && endWeek.value) {
+        const startDate = new Date(startWeek.value)
+        const endDate = new Date(endWeek.value)
+        currentFilterDisplay.value = `Week range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`
+      }
+      break
+
+    case 'month':
+      const monthName = months[selectedMonth.value].label
+      currentFilterDisplay.value = `Month: ${monthName} ${currentYear}`
+      break
+
+    case 'months-ago':
+      const monthsText = monthsAgo.value === 1 ? 'month' : 'months'
+      currentFilterDisplay.value = `Last ${monthsAgo.value} ${monthsText}`
+      break
+  }
+
+  // Trigger filtered recomputation
+  filtered.value = [...filtered.value]
+}
+
+// Clear all filters
+const clearFilters = () => {
+  dateFilterType.value = 'month'
+  specificDate.value = ''
+  startWeek.value = ''
+  endWeek.value = ''
+  monthsAgo.value = 1
+  selectedMonth.value = currentMonth
+  currentFilterDisplay.value = ''
+  updateDateFilter()
+}
+
+// Initialize filters
+onMounted(() => {
+  // Set default week values
+  const { start, end } = getWeekRange(today)
+  const formatWeek = (date) => {
+    const year = date.getFullYear()
+    const weekNum = getWeekNumber(date)
+    return `${year}-W${weekNum.toString().padStart(2, '0')}`
+  }
+
+  startWeek.value = formatWeek(start)
+  endWeek.value = formatWeek(end)
+  specificDate.value = formatDate(today)
+
+  updateDateFilter()
+})
+
+// Helper to get week number
+function getWeekNumber(d) {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7))
+  const week1 = new Date(date.getFullYear(), 0, 4)
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
+}
 import { useRouter } from 'vue-router'
 
 const feeds = useFeedsStore()
@@ -224,7 +368,6 @@ const months = [
   { value: 10, label: 'Nov' },
   { value: 11, label: 'Dec' },
 ]
-const selectedMonth = ref(now.getMonth())
 const monthTrack = ref(null)
 const wheelLock = ref(false)
 
@@ -299,17 +442,50 @@ function labelForDay(d) {
   return d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
-// Filter by period and group by day
+// Filter records based on selected date filter
 const filtered = computed(() => {
   const recs = Array.isArray(feeds.records) ? feeds.records : []
-  if (selectedPeriod.value === 'Month') {
-    return recs.filter((r) => {
-      const d = dateOf(r)
-      return d.getMonth() === selectedMonth.value && d.getFullYear() === now.getFullYear()
-    })
-  }
-  // Year
-  return recs.filter((r) => dateOf(r).getFullYear() === now.getFullYear())
+  if (recs.length === 0) return []
+
+  return recs.filter((record) => {
+    const recordDate = dateOf(record)
+    if (!recordDate) return false
+
+    const recordTime = recordDate.getTime()
+
+    switch (dateFilterType.value) {
+      case 'specific':
+        if (!specificDate.value) return true
+        const selectedDate = new Date(specificDate.value)
+        return isSameDay(recordDate, selectedDate)
+
+      case 'week': {
+        const { start, end } = getWeekRange(new Date())
+        return recordDate >= start && recordDate <= end
+      }
+
+      case 'week-range':
+        if (!startWeek.value || !endWeek.value) return true
+        const startDate = new Date(startWeek.value)
+        const endDate = new Date(endWeek.value)
+        endDate.setDate(endDate.getDate() + 6) // End of week
+        return recordDate >= startDate && recordDate <= endDate
+
+      case 'month':
+        return (
+          recordDate.getMonth() === selectedMonth.value && recordDate.getFullYear() === currentYear
+        )
+
+      case 'months-ago': {
+        const cutoffDate = new Date()
+        cutoffDate.setMonth(cutoffDate.getMonth() - monthsAgo.value)
+        return recordDate >= cutoffDate
+      }
+
+      default:
+        return true
+    }
+  })
 })
 
 const groupedRecords = computed(() => {
@@ -424,6 +600,106 @@ async function exportMonth() {
 </script>
 
 <style scoped>
+/* Filters */
+.filters-container {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem 0;
+  padding: 1.25rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.filter-group select,
+.filter-group input[type='date'],
+.filter-group input[type='week'],
+.filter-group input[type='number'] {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.filter-group input[type='number'] {
+  width: 60px;
+  text-align: center;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.filter-status {
+  margin-left: auto;
+  padding: 0.5rem 1rem;
+  background: #e8f5e9;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #2e7d32;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clear-filter {
+  background: none;
+  border: none;
+  color: #2e7d32;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.clear-filter:hover {
+  opacity: 1;
+  color: #1b5e20;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .filter-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .filter-status {
+    margin-left: 0;
+    justify-content: center;
+    text-align: center;
+  }
+}
 /* Selection Modal Styles */
 .selection-modal-overlay {
   position: fixed;
@@ -464,7 +740,7 @@ async function exportMonth() {
 .selection-modal-header {
   padding: 2rem 2rem 1rem;
   text-align: center;
-  background: linear-gradient(135deg, #196b02 0%, #06961e 100%);
+  background: darkgreen;
 }
 
 .selection-modal-header h3 {
@@ -560,7 +836,7 @@ async function exportMonth() {
 
 .screen {
   height: 100vh;
-  background: #f5f5f5;
+  background: #2f8b60;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -609,32 +885,60 @@ async function exportMonth() {
   font-size: 22px;
 }
 .panel {
-  margin: 0 16px 16px 16px;
-  background: #2f8b60;
-  border-radius: 16px;
-  padding: 18px;
-  color: #fff;
+  margin: 12px 16px 100px 16px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px;
   flex: 1;
   overflow-y: auto;
+  max-height: calc(100vh - 140px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  color: #555;
+}
+
+.back-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn span {
+  font-size: 1.1em;
 }
 .records-header {
   text-align: center;
+  margin-bottom: 20px;
 }
 .summary-line {
   margin: 6px 0 8px 0;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #666;
 }
 .drag-indicator {
   width: 64px;
   height: 6px;
   margin: 4px auto 8px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(47, 139, 96, 0.3);
   border-radius: 999px;
 }
 .records-header h3 {
   margin: 0 0 8px 0;
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2f8b60;
 }
 .period-toggle {
   display: flex;
@@ -661,16 +965,20 @@ async function exportMonth() {
   margin: 8px 0 12px;
 }
 .export-btn {
-  background: rgba(255, 255, 255, 0.3);
+  background: #2f8b60;
   color: #fff;
   border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(47, 139, 96, 0.2);
 }
 .export-btn:hover {
-  background: rgba(255, 255, 255, 0.45);
+  background: #247a52;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(47, 139, 96, 0.3);
 }
 .month-bar {
   display: flex;
@@ -700,26 +1008,32 @@ async function exportMonth() {
   background: transparent;
 }
 .month-bar .month-chip {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border: none;
+  background: #f0f8f4;
+  color: #2f8b60;
+  border: 1px solid #e0e0e0;
   padding: 8px 14px;
   border-radius: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   scroll-snap-align: center;
   white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.month-bar .month-chip:hover {
+  background: #e8f5e9;
+  transform: translateY(-1px);
 }
 .month-bar .month-chip.active {
-  background: #fff;
-  color: #2f8b60;
+  background: #2f8b60;
+  color: #fff;
   border: 2px solid #2f8b60;
   box-shadow: 0 2px 8px rgba(47, 139, 96, 0.25);
 }
 .month-bar .month-chip.disabled {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.6);
+  background: #f5f5f5;
+  color: #999;
   filter: grayscale(40%);
+  cursor: not-allowed;
 }
 .month-bar .arrow {
   background: rgba(255, 255, 255, 0.2);
@@ -737,25 +1051,38 @@ async function exportMonth() {
   gap: 12px;
 }
 .group-title {
-  color: #e5ffe5;
+  color: #2f8b60;
   font-weight: 700;
   margin: 8px 2px;
+  font-size: 16px;
 }
 .records-card {
   background: #fff;
   color: #333;
   border-radius: 12px;
-  padding: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
 }
 .record-row {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  margin-bottom: 4px;
 }
+
+.record-row:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
 .record-row:last-child {
   border-bottom: 0;
 }
@@ -858,9 +1185,12 @@ async function exportMonth() {
   color: #789;
 }
 .empty {
-  padding: 12px;
+  padding: 20px;
   text-align: center;
-  color: rgb(255, 255, 255);
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 12px 0;
 }
 .bottombar {
   position: fixed;
