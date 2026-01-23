@@ -13,6 +13,7 @@ export const useFeedsStore = defineStore('feeds', () => {
   // Fetch all expenses and income
   async function fetchExpenses() {
     try {
+      console.log('fetchExpenses called')
       loading.value = true
       // Fetch all entries from expenses table
       const { data, error: fetchError } = await supabase
@@ -20,17 +21,31 @@ export const useFeedsStore = defineStore('feeds', () => {
         .select('*')
         .order('date', { ascending: false })
 
-      if (fetchError) throw fetchError
-      
+      if (fetchError) {
+        console.error('Error fetching expenses:', fetchError)
+        throw fetchError
+      }
+
+      console.log('Fetched expenses data:', data)
+
       // Separate expenses and income based on type
       if (data) {
-        expenses.value = data.filter(entry => !entry.type || entry.type !== 'income')
-        income.value = data.filter(entry => entry.type === 'income')
+        const expenseItems = data.filter((entry) => !entry.type || entry.type !== 'income')
+        const incomeItems = data.filter((entry) => entry.type === 'income')
+
+        console.log(
+          `Separated into ${expenseItems.length} expenses and ${incomeItems.length} income items`,
+        )
+
+        expenses.value = expenseItems
+        income.value = incomeItems
       } else {
+        console.log('No data returned from expenses table')
         expenses.value = []
         income.value = []
       }
-      
+
+      console.log('Current income array:', income.value)
       return data
     } catch (err) {
       console.error('Error fetching expenses:', err)
@@ -51,7 +66,7 @@ export const useFeedsStore = defineStore('feeds', () => {
           {
             label: entry.label,
             amount: Number(entry.amount),
-            type: 'expense',  // Explicitly mark as expense
+            type: 'expense', // Explicitly mark as expense
             date: entry.date || new Date().toISOString(),
             reference_id: entry.reference_id || null,
             reference_type: entry.reference_type || null,
@@ -111,9 +126,7 @@ export const useFeedsStore = defineStore('feeds', () => {
       if (fetchError) throw fetchError
 
       // Fetch creator names in batch
-      const creatorIds = Array.from(
-        new Set((data || []).map((r) => r.created_by).filter(Boolean)),
-      )
+      const creatorIds = Array.from(new Set((data || []).map((r) => r.created_by).filter(Boolean)))
       let creatorsMap = {}
       if (creatorIds.length > 0) {
         const { data: usersData } = await supabase
@@ -186,8 +199,7 @@ export const useFeedsStore = defineStore('feeds', () => {
         ? {
             date: record.date || new Date().toISOString(),
             type:
-              record.type ||
-              (record.stage ? `feed-${String(record.stage).toLowerCase()}` : 'feed'),
+              record.type || (record.stage ? `feed-${String(record.stage).toLowerCase()}` : 'feed'),
             ingredients: record.items || [],
             total_cost: Number(record.totalCost) || 0,
             notes: record.notes || '',
@@ -268,31 +280,40 @@ export const useFeedsStore = defineStore('feeds', () => {
   // Add income (stored in expenses table with type 'income')
   async function addIncome(entry) {
     try {
+      console.log('addIncome called with:', entry)
       loading.value = true
+      const incomeEntry = {
+        label: entry.label,
+        amount: Number(entry.amount),
+        type: 'income', // Mark as income
+        date: entry.date || new Date().toISOString(),
+        reference_id: entry.reference_id || null,
+        reference_type: entry.reference_type || null,
+        notes: entry.notes || '',
+      }
+      console.log('Inserting income entry:', incomeEntry)
+
       const { data, error: addError } = await supabase
         .from('expenses')
-        .insert([
-          {
-            label: entry.label,
-            amount: Number(entry.amount),
-            type: 'income',  // Mark as income
-            date: entry.date || new Date().toISOString(),
-            reference_id: entry.reference_id || null,
-            reference_type: entry.reference_type || null,
-            notes: entry.notes || '',
-          },
-        ])
+        .insert([incomeEntry])
         .select()
 
-      if (addError) throw addError
+      if (addError) {
+        console.error('Error inserting income:', addError)
+        throw addError
+      }
+
+      console.log('Income insertion successful, data:', data)
 
       // Update local state
       if (data && data.length > 0) {
         // Add to income array and sort by date
         income.value.unshift(data[0])
+        console.log('Updated local income array, new length:', income.value.length)
         return data[0]
       }
 
+      console.warn('No data returned from income insertion')
       return null
     } catch (err) {
       console.error('Error adding income:', err)

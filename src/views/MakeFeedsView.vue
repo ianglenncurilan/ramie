@@ -4,7 +4,7 @@
       <div class="panel-header">
         <button class="back" @click="$router.back()">←</button>
         <div class="title-wrap">
-          <h2 class="title-lg">Make<br />Feeds</h2>
+          <h2 class="title-lg">Make Feeds</h2>
           <p class="sub">Make feeds according to your hogs' stage</p>
         </div>
         <img class="panel-illustration" src="/makefeeds.png" alt="icon" />

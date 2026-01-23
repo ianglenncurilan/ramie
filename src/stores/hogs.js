@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { supabase } from '@/services/supabase'
 import { logStaffActivity } from '@/services/staffService'
 import { useRouter } from 'vue-router'
+import { useFeedsStore } from './feeds'
 
 export const useHogsStore = defineStore('hogs', () => {
   const hogs = ref([])
@@ -784,8 +785,40 @@ export const useHogsStore = defineStore('hogs', () => {
     }
   }
 
+  // Create a financial record in the expenses table
+  async function createFinancialRecord(recordData) {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert({
+          income: recordData.amount,
+          date: recordData.date || new Date().toISOString(),
+          type: recordData.type || 'hog_sale',
+          description: recordData.description || 'Hog Sale',
+          reference_type: 'records',
+          reference_id: recordData.reference_id,
+          record_id: recordData.reference_id, // Link back to the original record
+          sale_price: recordData.amount,
+          total_cost: recordData.amount,
+          amount: recordData.quantity || 1,
+          label: recordData.label || 'Hog Sale',
+          notes: recordData.notes || null,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    } catch (err) {
+      console.error('Error creating financial record:', err)
+      error.value = err.message
+      throw err
+    }
+  }
+
   // Mark a hog as sold
   async function markAsSold(hogId, saleData) {
+    let recordId = null
     try {
       loading.value = true
       const now = new Date().toISOString()
@@ -793,6 +826,7 @@ export const useHogsStore = defineStore('hogs', () => {
       const totalPrice = Number(saleData?.price) || 0
       const weightKg = Number(saleData?.weight) || 0
       const pricePerKg = weightKg > 0 ? totalPrice / weightKg : null
+      const feedsStore = useFeedsStore()
 
       // Update hog status
       const { error: updateError } = await supabase
@@ -808,7 +842,7 @@ export const useHogsStore = defineStore('hogs', () => {
       if (updateError) throw updateError
 
       // Create sale record
-      await createRecord({
+      const record = await createRecord({
         hog_id: hogId,
         record_type: 'sale',
         event_date: eventDate,
@@ -827,10 +861,67 @@ export const useHogsStore = defineStore('hogs', () => {
         },
       })
 
-      // Refresh hogs list
-      await fetchHogs('active')
-      // Refresh records list so the records view picks up latest sale immediately
-      await fetchRecords()
+      // Save the record ID for the financial record
+      recordId = record.id
+
+      // Record the sale as income in the expenses table
+      if (totalPrice > 0) {
+        try {
+          const buyer = saleData?.buyer || 'Unknown Buyer'
+          const pricePerKilo =
+            saleData?.price_per_kilo || (weightKg > 0 ? totalPrice / weightKg : 0)
+
+          // Create the income record data
+          const incomeData = {
+            label: `Hog Sale - ${buyer}`,
+            amount: totalPrice,
+            date: eventDate,
+            type: 'income',
+            reference_id: recordId,
+            reference_type: 'hog_sale',
+            notes: `Sale of hog ${hogId} (${weightKg}kg × ₱${pricePerKilo.toFixed(2)}/kg) to ${buyer}${saleData?.notes ? ' - ' + saleData.notes : ''}`,
+            details: {
+              hog_id: hogId,
+              weight_kg: weightKg,
+              price_per_kg: pricePerKilo,
+              buyer: buyer,
+              sale_date: eventDate,
+            },
+          }
+
+          console.log('Adding income record:', incomeData)
+
+          // Add the income record
+          const result = await feedsStore.addIncome(incomeData)
+          console.log('Income record added successfully:', result)
+
+          // Also create a financial record for consistency
+          await createFinancialRecord({
+            amount: totalPrice,
+            date: eventDate,
+            type: 'hog_sale',
+            description: `Sale of hog ${hogId} (${weightKg}kg) to ${buyer}`,
+            reference_id: recordId,
+            reference_type: 'hog_sale',
+            label: `Hog Sale - ${buyer}`,
+            notes: saleData?.notes || null,
+            quantity: 1,
+            details: {
+              weight_kg: weightKg,
+              price_per_kg: pricePerKilo,
+              total_price: totalPrice,
+            },
+          })
+
+          // Force refresh the expenses data to ensure UI is updated
+          await feedsStore.fetchExpenses()
+          console.log('Refreshed expenses data. Current income count:', feedsStore.income.length)
+        } catch (err) {
+          console.error('Error adding income record:', err)
+          // Don't rethrow the error to prevent the entire operation from failing
+          // Just log it and continue
+        }
+      }
       return true
     } catch (err) {
       console.error('Error marking hog as sold:', err)
@@ -886,6 +977,7 @@ export const useHogsStore = defineStore('hogs', () => {
   return {
     hogs,
     records,
+    createFinancialRecord,
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     updateFeedingStatus,

@@ -37,8 +37,10 @@
           <span>←</span>
         </button>
         <div class="records-header">
-          <div class="drag-indicator"></div>
-          <h3>Records</h3>
+          <div class="header-titles">
+            <h3>Feed Records</h3>
+            <p class="page-description">Track and manage feed production and usage records</p>
+          </div>
 
           <div class="filters-container">
             <div class="filter-group">
@@ -184,7 +186,6 @@
               </div>
 
               <div class="record-summary">
-                
                 <div class="summary-item">
                   <span class="label">Total Cost:</span>
                   <span class="value cost">₱{{ (selectedRecord.totalCost || 0).toFixed(2) }}</span>
@@ -198,8 +199,6 @@
                   <span class="value">{{ selectedRecord.creatorName }}</span>
                 </div>
               </div>
-
-              
             </div>
           </div>
         </div>
@@ -885,15 +884,33 @@ async function exportMonth() {
   font-size: 22px;
 }
 .panel {
-  margin: 12px 16px 100px 16px;
+  margin: 16px 16px 100px 16px;
   background: #fff;
-  border-radius: 18px;
-  padding: 20px;
+  border-radius: 24px;
+  padding: 24px;
   flex: 1;
   overflow-y: auto;
   max-height: calc(100vh - 140px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  max-width: 1400px;
+  width: calc(100% - 32px);
+  align-self: center;
 }
+.header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.page-description {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+  font-weight: 400;
+}
+
 .back-btn {
   width: 36px;
   height: 36px;

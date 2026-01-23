@@ -7,12 +7,13 @@
             <button class="back-btn" @click="$router.go(-1)">
               <span>←</span>
             </button>
-            <h2>Hog Records</h2>
+            <div class="header-titles">
+              <h2>Hog Records</h2>
+              <p class="page-description">Track and manage all hog sales and mortality records</p>
+            </div>
           </div>
           <div class="header-actions">
-            <button class="btn export-btn" @click="exportToCSV">
-              <span>📊 Export to CSV</span>
-            </button>
+           
           </div>
         </div>
 
@@ -329,6 +330,7 @@ const searchQuery = ref('')
 const sortBy = ref('date-desc')
 const currentPage = ref(1)
 const itemsPerPage = 10
+const dateRange = ref({ start: '', end: '' })
 
 // Date filter state (matching RecordsView)
 const dateFilterType = ref('month')
@@ -806,7 +808,7 @@ function viewHogDetails(hogId) {
   max-height: calc(100vh - 140px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.06);
-  max-width: 1200px;
+  max-width: 1400px;
   width: calc(100% - 32px);
   align-self: center;
 }
@@ -814,6 +816,19 @@ function viewHogDetails(hogId) {
 .panel-inner {
   display: grid;
   gap: 20px;
+}
+
+.header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-description {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+  font-weight: 400;
 }
 
 .tracked-hog {
@@ -1442,9 +1457,7 @@ function viewHogDetails(hogId) {
     text-align: center;
     font-size: 13px;
   }
-  
 }
-
 
 .header {
   flex-direction: column;

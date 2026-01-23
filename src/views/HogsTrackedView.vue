@@ -503,13 +503,15 @@ const markAsSold = async () => {
 
   try {
     const totalPrice = saleData.value.pricePerKilo * saleData.value.weight
+    const saleDate = saleData.value.date || new Date().toISOString()
 
     await hogsStore.markAsSold(currentHog.value.id, {
       price: totalPrice,
+      price_per_kilo: saleData.value.pricePerKilo, // Add price per kilo
       weight: saleData.value.weight,
-      buyer: saleData.value.buyer || '',
+      buyer: saleData.value.buyer || 'Unknown Buyer',
       notes: saleData.value.notes || '',
-      date: saleData.value.date || new Date().toISOString(),
+      date: saleDate,
     })
 
     logHogActivity({
@@ -519,6 +521,14 @@ const markAsSold = async () => {
     })
 
     closeSoldModal()
+
+    // Show success message
+    alert(
+      `Successfully recorded sale of hog ${currentHog.value.code} for ₱${totalPrice.toFixed(2)}`,
+    )
+
+    // Refresh the hogs list
+    await loadHogs()
   } catch (error) {
     console.error('Error marking hog as sold:', error)
     alert('Failed to mark hog as sold. Please try again.')
