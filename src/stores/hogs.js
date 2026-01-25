@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import { supabase } from '@/services/supabase'
 import { logStaffActivity } from '@/services/staffService'
 import { useRouter } from 'vue-router'
-import { useFeedsStore } from './feeds'
 
 export const useHogsStore = defineStore('hogs', () => {
   const hogs = ref([])
@@ -207,16 +206,12 @@ export const useHogsStore = defineStore('hogs', () => {
 
       // Create an activity log
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        if (user) {
-          await logStaffActivity(user.id, 'hog_added', {
-            message: `Added hog ${newHog.code} (${newHog.weight}kg)`,
-            reference_id: newHog.id,
-            reference_type: 'hog',
-          })
-        }
+        await logStaffActivity({
+          activity_type: 'hog_added',
+          details: `Added hog ${newHog.code} (${newHog.weight}kg)`,
+          reference_id: newHog.id,
+          reference_type: 'hog',
+        })
       } catch (logError) {
         console.error('Failed to log activity:', logError)
         // Don't fail the operation if logging fails
@@ -333,6 +328,11 @@ export const useHogsStore = defineStore('hogs', () => {
     try {
       loading.value = true
 
+      // Only update timestamp if explicitly requested
+      if (updateTimestamp) {
+        updates.updated_at = new Date().toISOString()
+      }
+
       // Prepare the data to update in the database
       const dbUpdates = {}
 
@@ -345,12 +345,9 @@ export const useHogsStore = defineStore('hogs', () => {
       if ('days' in updates) dbUpdates.days = updates.days
       if ('amFeeding' in updates) dbUpdates.am_feeding = updates.amFeeding
       if ('pmFeeding' in updates) dbUpdates.pm_feeding = updates.pmFeeding
-      if ('status' in updates) dbUpdates.status = updates.status
 
-      // Only update the timestamp if explicitly requested
-      if (updateTimestamp) {
-        dbUpdates.updated_at = new Date().toISOString()
-      }
+      // Always update the updated_at timestamp
+      dbUpdates.updated_at = new Date().toISOString()
 
       const { data, error: updateError } = await supabase
         .from('hogs')
@@ -597,37 +594,21 @@ export const useHogsStore = defineStore('hogs', () => {
     const today = new Date().toDateString()
     const toReset = hogs.value.filter(
       (hog) =>
-        (hog.feedingCompleted || hog.amFeeding || hog.pmFeeding) &&
+        hog.feedingCompleted &&
         (!hog.lastFeedingDate || new Date(hog.lastFeedingDate).toDateString() !== today),
     )
     if (toReset.length === 0) return
     const ids = toReset.map((h) => h.id)
     const { data, error: updateError } = await supabase
       .from('hogs')
-      .update({
-        feeding_completed: false,
-        am_feeding: false,
-        pm_feeding: false,
-        last_feeding_date: null,
-      })
+      .update({ feeding_completed: false })
       .in('id', ids)
-      .select('*')
-
-    if (!updateError && data) {
-      const updatedHogs = new Map(
-        data.map((hog) => [
-          hog.id,
-          {
-            ...hog,
-            amFeeding: false,
-            pmFeeding: false,
-            feedingCompleted: false,
-            lastFeedingDate: null,
-          },
-        ]),
+      .select('id')
+    if (!updateError) {
+      const resetSet = new Set((data || []).map((d) => d.id))
+      hogs.value = hogs.value.map((h) =>
+        resetSet.has(h.id) ? { ...h, feedingCompleted: false } : h,
       )
-
-      hogs.value = hogs.value.map((h) => updatedHogs.get(h.id) || h)
     }
   }
 
@@ -744,21 +725,9 @@ export const useHogsStore = defineStore('hogs', () => {
   // Create a new record
   async function createRecord(recordData) {
     try {
-      // Supabase column `details` may be TEXT in some schemas; normalize to JSON string on write.
-      const normalized =
-        recordData && typeof recordData === 'object'
-          ? {
-              ...recordData,
-              details:
-                recordData.details && typeof recordData.details === 'object'
-                  ? JSON.stringify(recordData.details)
-                  : recordData.details,
-            }
-          : recordData
-
       const { data, error: recordError } = await supabase
         .from('records')
-        .insert(normalized)
+        .insert(recordData)
         .select()
         .single()
 
@@ -782,17 +751,7 @@ export const useHogsStore = defineStore('hogs', () => {
 
       if (fetchError) throw fetchError
 
-      // Normalize details to an object for UI usage (if stored as JSON string)
-      records.value = (data || []).map((row) => {
-        if (row && typeof row.details === 'string') {
-          try {
-            return { ...row, details: JSON.parse(row.details) }
-          } catch {
-            return row
-          }
-        }
-        return row
-      })
+      records.value = data || []
       return records.value
     } catch (err) {
       console.error('Error fetching records:', err)
@@ -803,56 +762,18 @@ export const useHogsStore = defineStore('hogs', () => {
     }
   }
 
-  // Create a financial record in the expenses table
-  async function createFinancialRecord(recordData) {
-    try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert({
-          income: recordData.amount,
-          date: recordData.date || new Date().toISOString(),
-          type: recordData.type || 'hog_sale',
-          description: recordData.description || 'Hog Sale',
-          reference_type: 'records',
-          reference_id: recordData.reference_id,
-          record_id: recordData.reference_id, // Link back to the original record
-          sale_price: recordData.amount,
-          total_cost: recordData.amount,
-          amount: recordData.quantity || 1,
-          label: recordData.label || 'Hog Sale',
-          notes: recordData.notes || null,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      return data
-    } catch (err) {
-      console.error('Error creating financial record:', err)
-      error.value = err.message
-      throw err
-    }
-  }
-
   // Mark a hog as sold
   async function markAsSold(hogId, saleData) {
-    let recordId = null
     try {
       loading.value = true
       const now = new Date().toISOString()
-      const eventDate = saleData?.date || now
-      const totalPrice = Number(saleData?.price) || 0
-      const weightKg = Number(saleData?.weight) || 0
-      const pricePerKg = weightKg > 0 ? totalPrice / weightKg : null
-      const feedsStore = useFeedsStore()
 
       // Update hog status
       const { error: updateError } = await supabase
         .from('hogs')
         .update({
           status: 'sold',
-          sold_date: eventDate,
-          sale_price: totalPrice,
+          sold_date: now,
           updated_at: now,
         })
         .eq('id', hogId)
@@ -860,86 +781,20 @@ export const useHogsStore = defineStore('hogs', () => {
       if (updateError) throw updateError
 
       // Create sale record
-      const record = await createRecord({
+      await createRecord({
         hog_id: hogId,
         record_type: 'sale',
-        event_date: eventDate,
-        // Persist to dedicated columns (records table schema)
-        sale_price: totalPrice,
-        total_cost: totalPrice,
-        // Store weight in standard amount/unit fields so UI + analytics can use it
-        amount: weightKg,
-        unit: 'kg',
-        cost_per_unit: pricePerKg,
+        event_date: now,
         details: {
-          sale_price: totalPrice,
-          weight: weightKg,
-          buyer: saleData?.buyer || null,
-          notes: saleData?.notes || null,
+          sale_price: saleData.price,
+          weight: saleData.weight,
+          buyer: saleData.buyer || null,
+          notes: saleData.notes || null,
         },
       })
 
-      // Save the record ID for the financial record
-      recordId = record.id
-
-      // Record the sale as income in the expenses table
-      if (totalPrice > 0) {
-        try {
-          const buyer = saleData?.buyer || 'Unknown Buyer'
-          const pricePerKilo =
-            saleData?.price_per_kilo || (weightKg > 0 ? totalPrice / weightKg : 0)
-
-          // Create the income record data
-          const incomeData = {
-            label: `Hog Sale - ${buyer}`,
-            amount: totalPrice,
-            date: eventDate,
-            type: 'income',
-            reference_id: recordId,
-            reference_type: 'hog_sale',
-            notes: `Sale of hog ${hogId} (${weightKg}kg × ₱${pricePerKilo.toFixed(2)}/kg) to ${buyer}${saleData?.notes ? ' - ' + saleData.notes : ''}`,
-            details: {
-              hog_id: hogId,
-              weight_kg: weightKg,
-              price_per_kg: pricePerKilo,
-              buyer: buyer,
-              sale_date: eventDate,
-            },
-          }
-
-          console.log('Adding income record:', incomeData)
-
-          // Add the income record
-          const result = await feedsStore.addIncome(incomeData)
-          console.log('Income record added successfully:', result)
-
-          // Also create a financial record for consistency
-          await createFinancialRecord({
-            amount: totalPrice,
-            date: eventDate,
-            type: 'hog_sale',
-            description: `Sale of hog ${hogId} (${weightKg}kg) to ${buyer}`,
-            reference_id: recordId,
-            reference_type: 'hog_sale',
-            label: `Hog Sale - ${buyer}`,
-            notes: saleData?.notes || null,
-            quantity: 1,
-            details: {
-              weight_kg: weightKg,
-              price_per_kg: pricePerKilo,
-              total_price: totalPrice,
-            },
-          })
-
-          // Force refresh the expenses data to ensure UI is updated
-          await feedsStore.fetchExpenses()
-          console.log('Refreshed expenses data. Current income count:', feedsStore.income.length)
-        } catch (err) {
-          console.error('Error adding income record:', err)
-          // Don't rethrow the error to prevent the entire operation from failing
-          // Just log it and continue
-        }
-      }
+      // Refresh hogs list
+      await fetchHogs('active')
       return true
     } catch (err) {
       console.error('Error marking hog as sold:', err)
@@ -995,7 +850,6 @@ export const useHogsStore = defineStore('hogs', () => {
   return {
     hogs,
     records,
-    createFinancialRecord,
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     updateFeedingStatus,

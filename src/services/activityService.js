@@ -6,8 +6,11 @@ export const ActivityType = {
   HOG_DELETED: 'hog_deleted',
   HOG_FED: 'hog_fed',
   HOG_WEIGHT_UPDATED: 'hog_weight_updated',
+  HOG_SOLD: 'hog_sold',
+  HOG_DIED: 'hog_died',
   FEEDING_COMPLETED: 'feeding_completed',
   FEEDING_INCOMPLETE: 'feeding_incomplete',
+  FEEDING_UNDONE: 'feeding_undone',
 }
 
 export const logActivity = async (activity) => {

@@ -479,10 +479,37 @@ const toggleFeeding = async (hog, timeOfDay) => {
 
     if (!updatedHog) return
 
+    // Log the feeding activity
+    if (newStatus) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        await logStaffActivity(user.id, 'hog_fed', {
+          hog_id: hog.id,
+          hog_code: hog.code,
+          time_of_day: timeOfDay.toUpperCase(),
+          weight: hog.weight,
+        })
+      }
+    }
+
     // Check if both feedings are now complete
     if (updatedHog.amFeeding && updatedHog.pmFeeding) {
       // Mark as completed for the day
       await hogsStore.markFeedingComplete(hog.id)
+      
+      // Log feeding completed
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) {
+        await logStaffActivity(user.id, 'feeding_completed', {
+          hog_id: hog.id,
+          hog_code: hog.code,
+          weight: hog.weight,
+        })
+      }
     } else if (newStatus) {
       // If this is the first feeding being marked, set to in-progress
       await hogsStore.updateHog(hog.id, { status: 'in-progress' })
@@ -550,8 +577,8 @@ const performUndo = async (hog) => {
         await logStaffActivity(user.id, 'feeding_undone', {
           hog_id: hog.id,
           hog_code: hog.code,
+          code: hog.code,
           action: 'feeding_undone',
-          details: `Reset feedings for ${hog.code}`,
         })
       } catch (logError) {
         console.error('Failed to log activity:', logError)
@@ -642,13 +669,6 @@ const markAsSold = async () => {
       date: saleDate,
     })
 
-    // Log the hog activity
-    await logHogActivity({
-      hogId: currentHog.value.id,
-      type: 'HOG_SOLD',
-      details: `SOLD A HOG for ₱${totalPrice.toFixed(2)} (${saleData.value.weight}kg × ₱${saleData.value.pricePerKilo}/kg)`,
-    })
-
     // Log staff activity
     const {
       data: { user },
@@ -657,12 +677,23 @@ const markAsSold = async () => {
       await logStaffActivity(user.id, 'hog_sold', {
         hog_id: currentHog.value.id,
         hog_code: currentHog.value.code,
+        code: currentHog.value.code,
         sale_price: totalPrice,
+        price: totalPrice,
         weight: saleData.value.weight,
         price_per_kilo: saleData.value.pricePerKilo,
         buyer: saleData.value.buyer || '',
       })
     }
+
+    // Also log using the activity logger for consistency
+    await logHogActivity(ActivityType.HOG_SOLD, currentHog.value.id, {
+      code: currentHog.value.code,
+      sale_price: totalPrice,
+      weight: saleData.value.weight,
+      price_per_kilo: saleData.value.pricePerKilo,
+      buyer: saleData.value.buyer || '',
+    })
 
     closeSoldModal()
 
@@ -697,10 +728,29 @@ const markAsDied = async () => {
       dateOfDeath: deathData.value.date || new Date().toISOString(),
     })
 
-    logHogActivity({
-      hogId: currentHog.value.id,
-      type: ActivityType.HOG_DIED,
-      details: `Cause: ${cause}${deathData.value.notes ? ` (${deathData.value.notes})` : ''}`,
+    // Log staff activity
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      await logStaffActivity(user.id, 'hog_died', {
+        hog_id: currentHog.value.id,
+        hog_code: currentHog.value.code,
+        code: currentHog.value.code,
+        cause: cause,
+        cause_of_death: cause,
+        weight: currentHog.value.weight,
+        notes: deathData.value.notes || '',
+      })
+    }
+
+    // Also log using the activity logger for consistency
+    await logHogActivity(ActivityType.HOG_DIED, currentHog.value.id, {
+      code: currentHog.value.code,
+      cause: cause,
+      cause_of_death: cause,
+      weight: currentHog.value.weight,
+      notes: deathData.value.notes || '',
     })
 
     closeDiedModal()
@@ -845,6 +895,20 @@ async function addNewHog() {
 
     // Log the activity
     try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      
+      if (user) {
+        await logStaffActivity(user.id, 'hog_added', {
+          hog_id: hog.id,
+          hog_code: hog.code,
+          code: hog.code,
+          weight: hog.weight,
+          days: hog.days,
+        })
+      }
+
       await logHogActivity(ActivityType.HOG_ADDED, hog.id, {
         code: hog.code,
         weight: hog.weight,
@@ -886,8 +950,11 @@ async function updateHogWeight(hogId, weight) {
       throw new Error('Hog not found')
     }
 
+    // Handle case where weight might be a ref or reactive object
+    const weightValue = weight?.value !== undefined ? weight.value : weight
+
     const oldWeight = prevWeightById.value[hogId] ?? Number(hog?.weight)
-    const newWeight = Number(weight)
+    const newWeight = Number(weightValue)
 
     if (Number.isNaN(newWeight) || newWeight <= 0) {
       throw new Error('Please enter a valid weight')
@@ -901,17 +968,28 @@ async function updateHogWeight(hogId, weight) {
     // Update the weight in the store
     await hogsStore.updateHogWeight(hogId, newWeight)
 
-    // Log the activity
+    // Log the activity - use object format instead of JSON string
     const diff = Number((newWeight - Number(oldWeight)).toFixed(2))
-    await logHogActivity({
-      type: ActivityType.HOG_WEIGHT_UPDATED,
-      hogId,
-      details: {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    
+    if (user) {
+      await logStaffActivity(user.id, 'hog_weight_updated', {
         code: hog.code,
-        oldWeight,
-        newWeight,
+        oldWeight: oldWeight,
+        newWeight: newWeight,
         difference: diff,
-      },
+        hog_id: hogId,
+      })
+    }
+
+    // Also log using the activity logger for consistency
+    await logHogActivity(ActivityType.HOG_WEIGHT_UPDATED, hogId, {
+      code: hog.code,
+      oldWeight: oldWeight,
+      newWeight: newWeight,
+      difference: diff,
     })
 
     // Refresh the hogs list to show updated weight

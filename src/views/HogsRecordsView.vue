@@ -7,13 +7,12 @@
             <button class="back-btn" @click="$router.go(-1)">
               <span>←</span>
             </button>
-            <div class="header-titles">
-              <h2>Hog Records</h2>
-              <p class="page-description">Track and manage all hog sales and mortality records</p>
-            </div>
+            <h2>Hog Records</h2>
           </div>
           <div class="header-actions">
-           
+            <button class="btn export-btn" @click="exportToCSV">
+              <span>📊 Export to CSV</span>
+            </button>
           </div>
         </div>
 
@@ -121,36 +120,6 @@
               <option value="weight-asc">Weight (Low to High)</option>
             </select>
           </div>
-
-          <!-- Date Range Picker -->
-          <div class="date-range-picker">
-            <div class="date-input">
-              <label>From:</label>
-              <input type="date" v-model="dateRange.start" @change="applyFilters" />
-            </div>
-            <div class="date-input">
-              <label>To:</label>
-              <input
-                type="date"
-                v-model="dateRange.end"
-                @change="applyFilters"
-                :min="dateRange.start"
-              />
-            </div>
-            <button
-              class="clear-date-range"
-              @click="clearDateRange"
-              :disabled="!dateRange.start && !dateRange.end"
-            >
-              Clear
-            </button>
-          </div>
-
-          <!-- Total Amount -->
-          <div class="total-amount" v-if="activeTab === 'sale' && filteredRecords.length > 0">
-            <span>Total Sales: </span>
-            <strong>₱{{ formatNumber(totalSales) }}</strong>
-          </div>
         </div>
 
         <div class="records-list">
@@ -181,12 +150,7 @@
                 :class="{ 'tracked-hog': record.is_tracked }"
               >
                 <div class="record-header">
-                  <h4>
-                    {{
-                      getHogName(record.hog_id) ||
-                      (record.hog_id ? `Hog #${String(record.hog_id).slice(0, 8)}` : 'Unknown Hog')
-                    }}
-                  </h4>
+                  <h4>{{ getHogName(record.hog_id) || `Hog #${record.hog_id?.slice(0, 8)}` }}</h4>
                   <span class="record-date">{{ formatDate(record.event_date) }}</span>
                 </div>
                 <div v-if="record.hog_details" class="hog-details">
@@ -209,18 +173,12 @@
                   <div class="detail">
                     <span class="label">Sale Price:</span>
                     <span class="value"
-                      >₱{{
-                        Number(
-                          record.sale_price ?? record.details?.sale_price ?? 0,
-                        ).toLocaleString()
-                      }}</span
+                      >₱{{ Number(record.details?.sale_price || 0).toLocaleString() }}</span
                     >
                   </div>
                   <div class="detail">
                     <span class="label">Weight at Sale:</span>
-                    <span class="value"
-                      >{{ record.amount ?? record.details?.weight ?? 'N/A' }} kg</span
-                    >
+                    <span class="value">{{ record.details?.weight || 'N/A' }} kg</span>
                   </div>
                   <div class="detail" v-if="record.details?.buyer">
                     <span class="label">Buyer:</span>
@@ -330,7 +288,6 @@ const searchQuery = ref('')
 const sortBy = ref('date-desc')
 const currentPage = ref(1)
 const itemsPerPage = 10
-const dateRange = ref({ start: '', end: '' })
 
 // Date filter state (matching RecordsView)
 const dateFilterType = ref('month')
@@ -530,35 +487,6 @@ const filteredRecords = computed(() => {
     })
   }
 
-  // Apply date range filter
-  if (dateRange.value.start || dateRange.value.end) {
-    const startDate = dateRange.value.start ? new Date(dateRange.value.start) : null
-    const endDate = dateRange.value.end ? new Date(dateRange.value.end) : null
-
-    if (startDate || endDate) {
-      result = result.filter((record) => {
-        const recordDate = new Date(record.event_date)
-        // Reset time part for date comparison
-        const recordDateOnly = new Date(
-          recordDate.getFullYear(),
-          recordDate.getMonth(),
-          recordDate.getDate(),
-        )
-        const startDateOnly = startDate
-          ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
-          : null
-        const endDateOnly = endDate
-          ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() + 1)
-          : null // Add 1 day to include the end date
-
-        return (
-          (!startDateOnly || recordDateOnly >= startDateOnly) &&
-          (!endDateOnly || recordDateOnly <= endDateOnly)
-        )
-      })
-    }
-  }
-
   // Apply date filter based on selected type
   result = result.filter((record) => {
     const recordDate = new Date(record.event_date)
@@ -602,24 +530,6 @@ const filteredRecords = computed(() => {
   return sortRecords(result, sortBy.value)
 })
 
-// Calculate total sales from filtered records
-const totalSales = computed(() => {
-  if (activeTab.value !== 'sale') return 0
-
-  return filteredRecords.value.reduce((total, record) => {
-    const amount = record.sale_price || record.details?.sale_price || 0
-    return total + Number(amount)
-  }, 0)
-})
-
-// Format number with commas
-const formatNumber = (num) => {
-  return Number(num).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
-
 // Check if any filters are active
 const hasActiveFilters = computed(() => {
   return (
@@ -628,9 +538,7 @@ const hasActiveFilters = computed(() => {
     (dateFilterType.value === 'month' && selectedMonth.value !== currentMonth) ||
     (dateFilterType.value === 'specific' && specificDate.value !== '') ||
     (dateFilterType.value === 'week-range' && (startWeek.value !== '' || endWeek.value !== '')) ||
-    (dateFilterType.value === 'months-ago' && monthsAgo.value !== 1) ||
-    dateRange.value.start !== '' ||
-    dateRange.value.end !== ''
+    (dateFilterType.value === 'months-ago' && monthsAgo.value !== 1)
   )
 })
 
@@ -656,13 +564,10 @@ function sortRecords(records, sortOption) {
         comparison = new Date(a.event_date) - new Date(b.event_date)
         break
       case 'price':
-        comparison =
-          Number(a.sale_price ?? a.details?.sale_price ?? 0) -
-          Number(b.sale_price ?? b.details?.sale_price ?? 0)
+        comparison = (a.details?.sale_price || 0) - (b.details?.sale_price || 0)
         break
       case 'weight':
-        comparison =
-          Number(a.amount ?? a.details?.weight ?? 0) - Number(b.amount ?? b.details?.weight ?? 0)
+        comparison = (a.details?.weight || 0) - (b.details?.weight || 0)
         break
     }
 
@@ -678,13 +583,6 @@ function applyFilters() {
 // Reset all filters (keep name for template + tab switching)
 function resetFilters() {
   clearFilters()
-  dateRange.value = { start: '', end: '' }
-}
-
-// Clear date range
-const clearDateRange = () => {
-  dateRange.value = { start: '', end: '' }
-  applyFilters()
 }
 
 // Apply sorting
@@ -714,10 +612,10 @@ function exportToCSV() {
           record.hog_id ? String(record.hog_id).slice(0, 8) : 'N/A',
           getHogName(record.hog_id) || 'N/A',
           formatDate(record.event_date),
-          (record.sale_price ?? record.details?.sale_price)
-            ? `₱${Number(record.sale_price ?? record.details?.sale_price).toLocaleString()}`
+          record.details?.sale_price
+            ? `₱${Number(record.details.sale_price).toLocaleString()}`
             : 'N/A',
-          (record.amount ?? record.details?.weight) || 'N/A',
+          record.details?.weight || 'N/A',
           record.details?.buyer || 'N/A',
           record.details?.notes || 'N/A',
         ]
@@ -784,6 +682,7 @@ function viewHogDetails(hogId) {
   router.push({ name: 'hog-details', params: { id: hogId } })
 }
 </script>
+
 <style scoped>
 * {
   font-family: 'Quicksand', sans-serif;
@@ -808,7 +707,7 @@ function viewHogDetails(hogId) {
   max-height: calc(100vh - 140px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.06);
-  max-width: 1400px;
+  max-width: 1200px;
   width: calc(100% - 32px);
   align-self: center;
 }
@@ -816,19 +715,6 @@ function viewHogDetails(hogId) {
 .panel-inner {
   display: grid;
   gap: 20px;
-}
-
-.header-titles {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.page-description {
-  color: #666;
-  font-size: 14px;
-  margin: 0;
-  font-weight: 400;
 }
 
 .tracked-hog {
@@ -1116,7 +1002,6 @@ function viewHogDetails(hogId) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border: 1px solid #c8e6c9;
 }
 
 .clear-filter {
@@ -1368,109 +1253,53 @@ function viewHogDetails(hogId) {
   color: #555;
 }
 
-/* Date Range Picker */
-.date-range-picker {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin: 1rem 0;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.date-input {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.date-input input {
-  padding: 0.5rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.clear-date-range {
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-}
-
-.clear-date-range:hover {
-  background: #f0f0f0;
-  color: #333;
-}
-
-.clear-date-range:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: none;
-}
-
-/* Total Amount */
-.total-amount {
-  margin-left: auto;
-  padding: 0.6rem 1.2rem;
-  background: #e8f5e9;
-  border-radius: 20px;
-  font-size: 0.95rem;
-  color: #2e7d32;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid #c8e6c9;
-}
-
-.total-amount strong {
-  font-size: 1.1em;
-  color: #1b5e20;
-}
-
-/* Responsive adjustments */
 @media (max-width: 768px) {
-  .date-range-picker {
+  .panel {
+    margin: 12px 12px 100px 12px;
+    padding: 16px;
+    width: calc(100% - 24px);
+  }
+
+  .filters-container {
+    padding: 1rem;
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
   }
 
-  .date-input {
+  .filter-group {
     width: 100%;
+    justify-content: space-between;
   }
 
-  .date-input input {
-    flex: 1;
-  }
-
-  .total-amount {
+  .filter-status {
     margin-left: 0;
     justify-content: center;
     text-align: center;
+  }
+
+  .records-list {
+    grid-template-columns: 1fr;
+  }
+
+  .tab {
+    padding: 10px;
     font-size: 13px;
   }
-}
 
-.header {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1rem;
-}
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 
-.header-actions {
-  width: 100%;
-}
+  .header-actions {
+    width: 100%;
+  }
 
-.export-btn {
-  width: 100%;
-  justify-content: center;
+  .export-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
