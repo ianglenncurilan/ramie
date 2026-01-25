@@ -199,7 +199,6 @@ const currentFilter = ref('all')
 const activityFilters = [
   { label: 'All', value: 'all' },
   { label: 'Hog Added', value: 'hog_added' },
-  { label: 'Hog Updated', value: 'hog_updated' },
   { label: 'Hog Deleted', value: 'hog_deleted' },
   { label: 'Feeding Completed', value: 'feeding_completed' },
   { label: 'Feeding Incomplete', value: 'feeding_incomplete' },
