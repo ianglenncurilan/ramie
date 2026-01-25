@@ -81,6 +81,7 @@
   border-radius: 10px;
   border: 1px solid #e6e6e6;
   background: #fff;
+  margin-bottom: 12px;
 }
 .panel-illustration {
   width: 72px;
@@ -96,6 +97,7 @@
   font-size: 28px;
   line-height: 1.05;
   margin: 0;
+  padding-top: 4px;
 }
 .sub {
   color: #7a8b99;

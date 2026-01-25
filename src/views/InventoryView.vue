@@ -380,6 +380,7 @@ function onNameChange() {
   border-radius: 10px;
   border: 1px solid #e6e6e6;
   background: #fff;
+  margin-bottom: 8px;
 }
 .add-btn {
   width: 40px;
@@ -408,6 +409,7 @@ function onNameChange() {
   font-size: 24px;
   line-height: 1.05;
   margin: 0;
+  padding-top: 6px;
 }
 .sub {
   color: #7a8b99;
@@ -464,6 +466,7 @@ function onNameChange() {
   align-items: center;
   /* ensure horizontal scrolling shows when viewport is narrow */
   min-width: 760px;
+  
 }
 .thead {
   font-weight: 600;
@@ -478,10 +481,12 @@ function onNameChange() {
 .thead span:nth-child(1),
 .row > :nth-child(1) {
   text-align: left;
+  
+
 }
 .thead span:nth-child(2),
 .row > :nth-child(2) {
-  text-align: center;
+  text-align: left;
 }
 .thead span:nth-child(3),
 .row > :nth-child(3) {
@@ -514,7 +519,7 @@ function onNameChange() {
 .quantity-cell {
   display: flex;
   align-items: center;
-  padding: 4px 0;
+  padding: 8px 0;
 }
 
 .quantity-pill {

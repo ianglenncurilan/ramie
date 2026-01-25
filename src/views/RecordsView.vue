@@ -706,7 +706,7 @@ async function exportMonth() {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(6, 87, 22, 0.7);
+  background-color: rgba(255, 255, 255, 0.886);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -739,7 +739,7 @@ async function exportMonth() {
 .selection-modal-header {
   padding: 2rem 2rem 1rem;
   text-align: center;
-  background: darkgreen;
+  background: #2f8b60;
 }
 
 .selection-modal-header h3 {

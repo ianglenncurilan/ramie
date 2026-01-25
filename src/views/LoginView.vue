@@ -737,7 +737,7 @@ h2 {
 
 .input-group2 {
   position: relative;
-  margin-bottom: 20px;
+  margin-bottom: 2px;
 }
 
 /* General input group icon styles */

@@ -548,7 +548,7 @@ function cancelSignOut() {
   width: 70%; /* smaller than full width */
   max-width: 360px;
   justify-self: center; /* center within grid */
-  background: #428542;
+  background: #1d6946;
   color: #fff;
   border-radius: 9999px; /* pill like login */
   height: 48px; /* match login button height */
@@ -561,7 +561,7 @@ function cancelSignOut() {
   justify-content: center;
 }
 .signout:hover {
-  background: #003a05;
+  background: #147045;
 }
 button {
   cursor: pointer;

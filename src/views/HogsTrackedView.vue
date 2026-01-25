@@ -1462,6 +1462,7 @@ textarea.form-input {
   height: 36px;
   border-radius: 10px;
   border: 1px solid #e6e6e6;
+  margin-bottom: 32px;
   background: #fff;
   cursor: pointer;
 }
@@ -1479,6 +1480,7 @@ textarea.form-input {
   font-size: 24px;
   line-height: 1.05;
   margin: 0;
+  padding-top: 6px;
 }
 .sub {
   color: #7a8b99;
@@ -1525,6 +1527,7 @@ textarea.form-input {
   align-items: center;
   gap: 8px;
   transition: background-color 0.2s ease;
+  margin-left: 50px;
 }
 .add-hog-btn:hover {
   background: #247a52;
