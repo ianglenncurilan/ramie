@@ -29,7 +29,7 @@
               <span class="hog-code">Hog Code</span>
               <span class="stage">Stage</span>
               <span class="days">Days</span>
-              <span class="feeding-header">Feeding Status</span>
+              <span class="feeding-header">Feeding</span>
               <span class="status-header">Status</span>
               <span class="weight-cell">Weight (kg)</span>
               <span class="actions">Actions</span>
@@ -39,38 +39,92 @@
               <span class="stage">{{ getHogStage(hog.days) }}</span>
               <span class="days">{{ hog.days }}</span>
               <div class="feeding-status-cell">
-                <div
-                  class="feeding-toggle"
-                  :class="{ fed: hog.amFeeding, disabled: hog.amFeeding && hog.pmFeeding }"
-                  @click="toggleFeeding(hog, 'am')"
-                >
-                  <span class="time-label">AM</span>
-                  <div class="icon-wrapper">
-                    <svg v-if="hog.amFeeding" class="check-icon" viewBox="0 0 24 24">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                    </svg>
-                    <svg v-else class="x-icon" viewBox="0 0 24 24">
-                      <path
-                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                      />
-                    </svg>
+                <div class="feeding-toggle-container">
+                  <div
+                    class="feeding-toggle"
+                    :class="{
+                      fed: hog.amFeeding,
+                      disabled: hog.feedingCompleted || (hog.amFeeding && hog.pmFeeding),
+                    }"
+                    @click="!hog.feedingCompleted && toggleFeeding(hog, 'am')"
+                    :title="
+                      hog.amFeeding ? 'Morning feed completed' : 'Click if the morning feed is done'
+                    "
+                  >
+                    <span class="time-label">AM</span>
+                    <div class="icon-wrapper">
+                      <svg v-if="hog.amFeeding" class="check-icon" viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                      </svg>
+                      <svg v-else class="x-icon" viewBox="0 0 24 24">
+                        <path
+                          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-                <div
-                  class="feeding-toggle"
-                  :class="{ fed: hog.pmFeeding, disabled: hog.amFeeding && hog.pmFeeding }"
-                  @click="toggleFeeding(hog, 'pm')"
-                >
-                  <span class="time-label">PM</span>
-                  <div class="icon-wrapper">
-                    <svg v-if="hog.pmFeeding" class="check-icon" viewBox="0 0 24 24">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                    </svg>
-                    <svg v-else class="x-icon" viewBox="0 0 24 24">
-                      <path
-                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                      />
-                    </svg>
+                <div class="feeding-toggle-container">
+                  <div
+                    class="feeding-toggle"
+                    :class="{
+                      fed: hog.pmFeeding,
+                      disabled: hog.feedingCompleted || (hog.amFeeding && hog.pmFeeding),
+                    }"
+                    @click="!hog.feedingCompleted && toggleFeeding(hog, 'pm')"
+                    :title="
+                      hog.pmFeeding
+                        ? 'Afternoon feed completed'
+                        : 'Click if the afternoon feed is done'
+                    "
+                  >
+                    <span class="time-label">PM</span>
+                    <div class="icon-wrapper">
+                      <svg v-if="hog.pmFeeding" class="check-icon" viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                      </svg>
+                      <svg v-else class="x-icon" viewBox="0 0 24 24">
+                        <path
+                          d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div class="undo-container">
+                  <button
+                    class="undo-btn"
+                    @click.prevent="(hog.amFeeding || hog.pmFeeding) && confirmUndo(hog, $event)"
+                    :disabled="isUndoing === hog.id || !(hog.amFeeding || hog.pmFeeding)"
+                    :class="{ 'is-disabled': !(hog.amFeeding || hog.pmFeeding) }"
+                    :aria-label="
+                      hog.amFeeding || hog.pmFeeding
+                        ? 'Undo feeding for ' + hog.code
+                        : 'No feeding to undo'
+                    "
+                    :title="
+                      hog.amFeeding || hog.pmFeeding
+                        ? showUndoTooltip === hog.id
+                          ? 'Click again to confirm'
+                          : 'Undo feeding'
+                        : 'No feeding to undo'
+                    "
+                  >
+                    <span class="undo-icon-wrapper" :class="{ loading: isUndoing === hog.id }">
+                      <svg class="undo-icon" viewBox="0 0 24 24" v-if="isUndoing !== hog.id">
+                        <path
+                          fill="currentColor"
+                          d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"
+                        />
+                      </svg>
+                      <span class="spinner" v-else></span>
+                    </span>
+                  </button>
+                  <div
+                    class="tooltip"
+                    v-if="showUndoTooltip === hog.id && (hog.amFeeding || hog.pmFeeding)"
+                  >
+                    Click again to confirm
                   </div>
                 </div>
               </div>
@@ -332,7 +386,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-
+import { supabase } from '@/services/supabase'
+import { logStaffActivity } from '@/services/staffService'
 import { useActivityLogger } from '@/composables/useActivityLogger'
 
 import { useHogsStore } from '../stores/hogs'
@@ -396,6 +451,9 @@ const isLoading = computed(() => {
 })
 
 const prevWeightById = ref({})
+const isUndoing = ref(null)
+const showUndoTooltip = ref(null)
+let undoTimeout = null
 
 // Determine hog stage based on days
 const getHogStage = (days) => {
@@ -407,7 +465,7 @@ const getHogStage = (days) => {
 const toggleFeeding = async (hog, timeOfDay) => {
   try {
     // Don't allow toggling if both feedings are already complete
-    if (hog.amFeeding && hog.pmFeeding) {
+    if (hog.feedingCompleted) {
       return
     }
 
@@ -432,15 +490,85 @@ const toggleFeeding = async (hog, timeOfDay) => {
       // If both feedings are now unchecked, set back to pending
       await hogsStore.updateHog(hog.id, { status: 'pending' })
     }
-
-    // Refresh the hogs list to reflect changes
-    // Only call this if necessary. If the store is reactive, this might cause a UI flash.
-    // Keeping it for now but be aware it can cause flicker.
-    await hogsStore.fetchHogs()
   } catch (err) {
     console.error('Error toggling feeding status:', err)
     error.value = 'Failed to update feeding status. Please try again.'
     alert(error.value)
+  }
+}
+
+// Undo feeding completion with confirmation
+const confirmUndo = async (hog, event) => {
+  event?.preventDefault()
+
+  if (showUndoTooltip.value === hog.id) {
+    // Second click - proceed with undo
+    await performUndo(hog)
+    showUndoTooltip.value = null
+    return false
+  } else {
+    // First click - show confirmation
+    showUndoTooltip.value = hog.id
+
+    // Hide tooltip after 3 seconds if not confirmed
+    if (undoTimeout) clearTimeout(undoTimeout)
+    undoTimeout = setTimeout(() => {
+      if (showUndoTooltip.value === hog.id) {
+        showUndoTooltip.value = null
+      }
+    }, 3000)
+    return false
+  }
+}
+
+const performUndo = async (hog) => {
+  try {
+    isUndoing.value = hog.id
+
+    // Get the current user for logging
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    // Prepare updates
+    const updates = {
+      feeding_completed: false,
+      last_feeding_date: null,
+      updated_at: new Date().toISOString(),
+      // Reset both AM and PM feedings
+      am_feeding: false,
+      pm_feeding: false,
+      status: 'pending', // Default status to pending
+    }
+
+    // Update the hog in the database
+    await hogsStore.updateHog(hog.id, updates)
+
+    // Log the undo action if user is authenticated
+    if (user) {
+      try {
+        await logStaffActivity(user.id, 'feeding_undone', {
+          hog_id: hog.id,
+          hog_code: hog.code,
+          action: 'feeding_undone',
+          details: `Reset feedings for ${hog.code}`,
+        })
+      } catch (logError) {
+        console.error('Failed to log activity:', logError)
+        // Don't fail the operation if logging fails
+      }
+    }
+
+    // Refresh the hogs list to show the updated status
+    await loadHogs()
+    return true
+  } catch (err) {
+    console.error('Error undoing action:', err)
+    error.value = 'Failed to undo. Please try again.'
+    alert(error.value)
+    return false
+  } finally {
+    isUndoing.value = null
   }
 }
 
@@ -514,11 +642,27 @@ const markAsSold = async () => {
       date: saleDate,
     })
 
-    logHogActivity({
+    // Log the hog activity
+    await logHogActivity({
       hogId: currentHog.value.id,
       type: 'HOG_SOLD',
-      details: `Sold for ₱${totalPrice.toFixed(2)} (${saleData.value.weight}kg × ₱${saleData.value.pricePerKilo}/kg)`,
+      details: `SOLD A HOG for ₱${totalPrice.toFixed(2)} (${saleData.value.weight}kg × ₱${saleData.value.pricePerKilo}/kg)`,
     })
+
+    // Log staff activity
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      await logStaffActivity(user.id, 'hog_sold', {
+        hog_id: currentHog.value.id,
+        hog_code: currentHog.value.code,
+        sale_price: totalPrice,
+        weight: saleData.value.weight,
+        price_per_kilo: saleData.value.pricePerKilo,
+        buyer: saleData.value.buyer || '',
+      })
+    }
 
     closeSoldModal()
 
@@ -571,22 +715,26 @@ const loadHogs = async () => {
     loading.value = true
     error.value = null
 
-    // Fetch hogs from the store (which will hit the database)
-    console.log('Fetching hogs from store...')
-    const fetchedHogs = await hogsStore.fetchHogs()
+    // Fetch ALL hogs from the store (including sold and deceased)
+    console.log('Fetching all hogs from store...')
+    const allHogs = await hogsStore.getAllHogs()
 
-    if (!fetchedHogs) {
+    if (!allHogs) {
       throw new Error('No data returned from fetchHogs')
     }
 
-    console.log('Hogs after fetch:', fetchedHogs)
+    console.log('All hogs after fetch:', allHogs)
 
-    // Only proceed if we have hogs
-    if (fetchedHogs.length > 0) {
-      console.log(`Found ${fetchedHogs.length} hogs`)
+    // Filter to only show active hogs in the table
+    const activeHogs = allHogs.filter((hog) => hog.status === 'active')
+    console.log(`Found ${activeHogs.length} active hogs out of ${allHogs.length} total hogs`)
 
-      // The store will handle updating the hogs array
-      // No need to directly set hogsStore.hogs as it's already updated by fetchHogs
+    // Only proceed if we have active hogs
+    if (activeHogs.length > 0) {
+      console.log(`Processing ${activeHogs.length} active hogs`)
+
+      // Update the local hogs array with the filtered list
+      hogs.value = activeHogs
 
       try {
         // Increment days for all hogs
@@ -618,17 +766,30 @@ const loadHogs = async () => {
 
     // The store already maintains its own error state, no need to set it here
 
-    // If we have any cached hogs, they'll be shown automatically
+    // If we have any cached hogs, filter to show only active ones
     if (hogsStore.hogs?.length > 0) {
-      console.warn('Using cached hogs due to error:', hogsStore.hogs.length)
+      console.warn('Using cached hogs due to error')
+      hogs.value = hogsStore.hogs.filter((hog) => hog.status === 'active')
     }
   } finally {
     loading.value = false
   }
 }
 
-// Initial load
-onMounted(loadHogs)
+// Initial load and setup real-time subscription
+onMounted(() => {
+  loadHogs()
+
+  // Set up real-time subscription for hogs
+  const unsubscribe = hogsStore.subscribeToRealtime()
+
+  // Clean up subscription when component is unmounted
+  onUnmounted(() => {
+    if (unsubscribe && typeof unsubscribe === 'function') {
+      unsubscribe()
+    }
+  })
+})
 
 // Add event listener for visibility change to refresh data when tab becomes visible again
 document.addEventListener('visibilitychange', () => {
@@ -855,6 +1016,121 @@ function getStatusClass(hog) {
 
 <style scoped>
 /* ... styles remain unchanged ... */
+.undo-container {
+  position: relative;
+  display: inline-flex;
+  margin-left: 4px;
+}
+
+.undo-btn {
+  background: #fff8e1;
+  border: 1px solid #ffe0b2;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  color: #e65100;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.undo-btn:not(:disabled):hover {
+  background: #ffe0b2;
+  border-color: #ffb74d;
+  transform: scale(1.1);
+}
+
+.undo-btn:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+.undo-btn:disabled,
+.undo-btn.is-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #9e9e9e;
+  box-shadow: none;
+  transform: none !important;
+}
+
+.undo-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.undo-icon {
+  width: 16px;
+  height: 16px;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(230, 81, 0, 0.2);
+  border-radius: 50%;
+  border-top-color: #e65100;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.15s ease-out;
+  pointer-events: none;
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  right: 8px;
+  border-width: 4px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .status-btn {
   width: 36px;
   height: 36px;
@@ -1443,32 +1719,78 @@ textarea.form-input {
   border: 1px solid #ffcdd2;
 }
 
+.feeding-toggle-container {
+  position: relative;
+  display: inline-block;
+}
+
 .feeding-toggle {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 20px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid #e0e0e0;
-  background-color: #f5f5f5;
-  color: #757575;
+  margin: 0 2px;
+  position: relative;
+  overflow: visible;
+}
+
+.feeding-toggle::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 100;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.feeding-toggle::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.feeding-toggle:hover::after,
+.feeding-toggle:hover::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px);
 }
 
 .feeding-toggle:hover:not(.disabled) {
-  background-color: #eeeeee;
-  transform: translateY(-1px);
+  background: #e8f5e9;
+  border-color: #c8e6c9;
 }
 
 .feeding-toggle.fed {
-  background-color: #e8f5e9; /* light green */
-  border-color: #a5d6a7;
-  color: #388e3c;
-}
-
-.feeding-toggle.fed .check-icon {
-  fill: #4caf50;
+  background: #e8f5e9;
+  border-color: #4caf50;
 }
 
 .feeding-toggle .x-icon {

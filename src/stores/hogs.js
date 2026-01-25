@@ -207,12 +207,16 @@ export const useHogsStore = defineStore('hogs', () => {
 
       // Create an activity log
       try {
-        await logStaffActivity({
-          activity_type: 'hog_added',
-          details: `Added hog ${newHog.code} (${newHog.weight}kg)`,
-          reference_id: newHog.id,
-          reference_type: 'hog',
-        })
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (user) {
+          await logStaffActivity(user.id, 'hog_added', {
+            message: `Added hog ${newHog.code} (${newHog.weight}kg)`,
+            reference_id: newHog.id,
+            reference_type: 'hog',
+          })
+        }
       } catch (logError) {
         console.error('Failed to log activity:', logError)
         // Don't fail the operation if logging fails
@@ -329,11 +333,6 @@ export const useHogsStore = defineStore('hogs', () => {
     try {
       loading.value = true
 
-      // Only update timestamp if explicitly requested
-      if (updateTimestamp) {
-        updates.updated_at = new Date().toISOString()
-      }
-
       // Prepare the data to update in the database
       const dbUpdates = {}
 
@@ -346,9 +345,12 @@ export const useHogsStore = defineStore('hogs', () => {
       if ('days' in updates) dbUpdates.days = updates.days
       if ('amFeeding' in updates) dbUpdates.am_feeding = updates.amFeeding
       if ('pmFeeding' in updates) dbUpdates.pm_feeding = updates.pmFeeding
+      if ('status' in updates) dbUpdates.status = updates.status
 
-      // Always update the updated_at timestamp
-      dbUpdates.updated_at = new Date().toISOString()
+      // Only update the timestamp if explicitly requested
+      if (updateTimestamp) {
+        dbUpdates.updated_at = new Date().toISOString()
+      }
 
       const { data, error: updateError } = await supabase
         .from('hogs')
@@ -595,21 +597,37 @@ export const useHogsStore = defineStore('hogs', () => {
     const today = new Date().toDateString()
     const toReset = hogs.value.filter(
       (hog) =>
-        hog.feedingCompleted &&
+        (hog.feedingCompleted || hog.amFeeding || hog.pmFeeding) &&
         (!hog.lastFeedingDate || new Date(hog.lastFeedingDate).toDateString() !== today),
     )
     if (toReset.length === 0) return
     const ids = toReset.map((h) => h.id)
     const { data, error: updateError } = await supabase
       .from('hogs')
-      .update({ feeding_completed: false })
+      .update({
+        feeding_completed: false,
+        am_feeding: false,
+        pm_feeding: false,
+        last_feeding_date: null,
+      })
       .in('id', ids)
-      .select('id')
-    if (!updateError) {
-      const resetSet = new Set((data || []).map((d) => d.id))
-      hogs.value = hogs.value.map((h) =>
-        resetSet.has(h.id) ? { ...h, feedingCompleted: false } : h,
+      .select('*')
+
+    if (!updateError && data) {
+      const updatedHogs = new Map(
+        data.map((hog) => [
+          hog.id,
+          {
+            ...hog,
+            amFeeding: false,
+            pmFeeding: false,
+            feedingCompleted: false,
+            lastFeedingDate: null,
+          },
+        ]),
       )
+
+      hogs.value = hogs.value.map((h) => updatedHogs.get(h.id) || h)
     }
   }
 

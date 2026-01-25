@@ -456,6 +456,8 @@ const getActivityMessage = (activity) => {
       return `Added new staff: ${details.staff_name || 'New User'}`
     case 'staff_updated':
       return `Updated staff: ${details.staff_name || 'User'}`
+    case 'hog_unsold':
+      return `Reinstated hog ${details.hog_code || ''} (previously sold)`
     default: {
       const base = String(activity.activity_type || 'action')
         .replace(/_/g, ' ')

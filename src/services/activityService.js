@@ -7,13 +7,15 @@ export const ActivityType = {
   HOG_FED: 'hog_fed',
   HOG_WEIGHT_UPDATED: 'hog_weight_updated',
   FEEDING_COMPLETED: 'feeding_completed',
-  FEEDING_INCOMPLETE: 'feeding_incomplete'
+  FEEDING_INCOMPLETE: 'feeding_incomplete',
 }
 
 export const logActivity = async (activity) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       throw new Error('No authenticated user found')
     }
@@ -26,8 +28,8 @@ export const logActivity = async (activity) => {
           activity_type: activity.type,
           details: activity.details || {},
           reference_type: activity.referenceType,
-          reference_id: activity.referenceId
-        }
+          reference_id: activity.referenceId,
+        },
       ])
       .select()
 
@@ -41,30 +43,32 @@ export const logActivity = async (activity) => {
 
 export const getActivities = async (filters = {}) => {
   try {
-    console.log('Fetching activities with filters:', filters);
-    
+    console.log('Fetching activities with filters:', filters)
+
     let query = supabase
       .from('staff_activities')
-      .select(`
+      .select(
+        `
         *,
         users!staff_activities_staff_member_id_fkey(id, full_name, email)
-      `)
-      .order('created_at', { ascending: false });
+      `,
+      )
+      .order('created_at', { ascending: false })
 
     // Apply filters
     if (filters.type) {
-      query = query.eq('activity_type', filters.type);
+      query = query.eq('activity_type', filters.type)
     }
     if (filters.limit) {
-      query = query.limit(filters.limit);
+      query = query.limit(filters.limit)
     }
 
-    const { data, error } = await query;
-    
+    const { data, error } = await query
+
     // Debug log the raw response
-    console.log('Raw activities data:', data);
-    
-    if (error) throw error;
+    console.log('Raw activities data:', data)
+
+    if (error) throw error
     return { data, error: null }
   } catch (error) {
     console.error('Error fetching activities:', error)
