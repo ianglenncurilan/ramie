@@ -29,17 +29,23 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Main Content (initially hidden until selection) -->
-    <div v-if="!showSelectionModal">
-      <div class="panel">
-        <button class="back-btn" @click="$router.back()">
-          <span>←</span>
-        </button>
-        <div class="records-header">
-          <div class="header-titles">
-            <h3>Feed Records</h3>
-            <p class="page-description">Track and manage feed production and usage records</p>
+  <!-- Main Content (initially hidden until selection) -->
+  <div v-if="!showSelectionModal" class="records-container">
+    <div class="panel">
+      <div class="panel-inner">
+        <div class="header-container">
+          <div class="header">
+            <div class="header-left">
+              <button class="back-btn" @click="$router.back()">
+                <span>←</span>
+              </button>
+              <div class="header-titles">
+                <h2>Feed Records</h2>
+                <p class="page-description">Track and manage feed production and usage records</p>
+              </div>
+            </div>
           </div>
 
           <div class="filters-container">
@@ -135,31 +141,33 @@
               </button>
             </div>
           </div>
-        </div>
 
-        <div class="groups">
-          <div v-for="group in groupedRecords" :key="group.key" class="group">
-            <div class="group-title">{{ group.label }}</div>
-            <div class="records-card">
-              <div
-                v-for="rec in group.items"
-                :key="rec.id || rec.date"
-                class="record-row"
-                @click="openRecordModal(rec)"
-              >
-                <div class="icon-box">
-                  <img src="/doc.png" alt="record" />
-                </div>
-                <div class="row-content">
-                  <div class="row-title">{{ typeLabel(rec) || 'Feed' }}</div>
+          <div class="scrollable-content">
+            <div class="groups">
+              <div v-for="group in groupedRecords" :key="group.key" class="group">
+                <div class="group-title">{{ group.label }}</div>
+                <div class="records-card">
+                  <div
+                    v-for="rec in group.items"
+                    :key="rec.id || rec.date"
+                    class="record-row"
+                    @click="openRecordModal(rec)"
+                  >
+                    <div class="icon-box">
+                      <img src="/doc.png" alt="record" />
+                    </div>
+                    <div class="row-content">
+                      <div class="row-title">{{ typeLabel(rec) || 'Feed' }}</div>
+                    </div>
+                  </div>
+                  <div v-if="group.items.length === 0" class="empty">No records</div>
                 </div>
               </div>
-              <div v-if="group.items.length === 0" class="empty">No records</div>
+              <div v-if="groupedRecords.length === 0" class="empty">
+                No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home
+                and use the task menus (e.g., Make Feeds, Hogs Tracked).
+              </div>
             </div>
-          </div>
-          <div v-if="groupedRecords.length === 0" class="empty">
-            No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home and
-            use the task menus (e.g., Make Feeds, Hogs Tracked).
           </div>
         </div>
       </div>
@@ -840,6 +848,51 @@ async function exportMonth() {
   display: flex;
   flex-direction: column;
 }
+
+.records-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.header-container {
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 18px 24px 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin: 0 -24px;
+  padding-left: 24px;
+  padding-right: 24px;
+  background-clip: padding-box;
+}
+
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  margin-top: 0;
+  height: calc(100vh - 300px); /* Adjust this value based on your header height */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure the panel takes full height */
+.panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
 .hero {
   position: relative;
   margin: 16px;
@@ -884,50 +937,66 @@ async function exportMonth() {
   font-size: 22px;
 }
 .panel {
-  margin: 16px 16px 100px 16px;
+  margin: 0 auto;
+  margin-top: 10px;
   background: #fff;
-  border-radius: 24px;
-  padding: 24px;
-  flex: 1;
-  overflow-y: auto;
-  max-height: calc(100vh - 140px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  max-width: 1400px;
-  width: calc(100% - 32px);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  max-width: 1600px;
+  width: 95%;
   align-self: center;
 }
-.header-titles {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 16px;
+
+.panel-inner {
+  padding: 18px 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  gap: 20px;
 }
 
-.page-description {
-  color: #666;
-  font-size: 14px;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
   margin: 0;
-  font-weight: 400;
+  color: #2f8b60;
 }
 
 .back-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid #e6e6e6;
-  background: #fff;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  width: 36px;
+  height: 36px;
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
   transition: all 0.2s ease;
+  text-decoration: none;
+  padding: 0;
+  margin: 0;
   color: #555;
 }
 
 .back-btn:hover {
-  background: #f0f0f0;
+  background-color: #e0e0e0;
+  color: #333;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -935,15 +1004,20 @@ async function exportMonth() {
 .back-btn span {
   font-size: 1.1em;
 }
-.records-header {
-  text-align: center;
-  margin-bottom: 20px;
+
+.page-description {
+  color: #666;
+  font-size: 14px;
+  margin: 0 0 1rem 0;
+  font-weight: 400;
 }
+
 .summary-line {
   margin: 6px 0 8px 0;
   font-size: 12px;
   color: #666;
 }
+
 .drag-indicator {
   width: 64px;
   height: 6px;
@@ -951,18 +1025,14 @@ async function exportMonth() {
   background: rgba(47, 139, 96, 0.3);
   border-radius: 999px;
 }
-.records-header h3 {
-  margin: 0 0 8px 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #2f8b60;
-}
+
 .period-toggle {
   display: flex;
   gap: 10px;
   justify-content: center;
   margin-bottom: 10px;
 }
+
 .period-toggle button {
   background: rgba(255, 255, 255, 0.3);
   color: #fff;
@@ -972,15 +1042,18 @@ async function exportMonth() {
   font-weight: 700;
   cursor: pointer;
 }
+
 .period-toggle button.active {
   background: #fff;
   color: #2f8b60;
 }
+
 .export-wrap {
   display: flex;
   justify-content: center;
   margin: 8px 0 12px;
 }
+
 .export-btn {
   background: #2f8b60;
   color: #fff;
@@ -992,25 +1065,28 @@ async function exportMonth() {
   transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(47, 139, 96, 0.2);
 }
+
 .export-btn:hover {
   background: #247a52;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(47, 139, 96, 0.3);
 }
+
 .month-bar {
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: center; /* center the whole months row under export */
+  justify-content: center;
   margin-bottom: 16px;
 }
+
 .month-track {
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
   display: flex;
   gap: 10px;
-  justify-content: center; /* center chips when space allows */
+  justify-content: center;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   padding: 2px 2px;
@@ -1018,12 +1094,15 @@ async function exportMonth() {
   max-width: 100%;
   margin: 0 auto;
 }
+
 .month-track::-webkit-scrollbar {
   display: none;
 }
+
 .month-track::-webkit-scrollbar-thumb {
   background: transparent;
 }
+
 .month-bar .month-chip {
   background: #f0f8f4;
   color: #2f8b60;
@@ -1036,22 +1115,26 @@ async function exportMonth() {
   white-space: nowrap;
   transition: all 0.2s ease;
 }
+
 .month-bar .month-chip:hover {
   background: #e8f5e9;
   transform: translateY(-1px);
 }
+
 .month-bar .month-chip.active {
   background: #2f8b60;
   color: #fff;
   border: 2px solid #2f8b60;
   box-shadow: 0 2px 8px rgba(47, 139, 96, 0.25);
 }
+
 .month-bar .month-chip.disabled {
   background: #f5f5f5;
   color: #999;
   filter: grayscale(40%);
   cursor: not-allowed;
 }
+
 .month-bar .arrow {
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
@@ -1067,20 +1150,24 @@ async function exportMonth() {
   flex-direction: column;
   gap: 12px;
 }
+
 .group-title {
   color: #2f8b60;
   font-weight: 700;
   margin: 8px 2px;
   font-size: 16px;
 }
+
 .records-card {
   background: #fff;
-  color: #333;
   border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  width: 100%;
   border: 1px solid #e2e8f0;
 }
+
 .record-row {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1130,14 +1217,15 @@ async function exportMonth() {
 }
 .item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  padding: 12px 8px;
-  border-bottom: 1px solid #eee;
+  grid-template-columns: auto 2fr 1fr auto;
+  gap: 16px;
+  padding: 16px 12px;
+  border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  align-items: center;
 }
 .item:hover {
   background: #f8f9fa;
@@ -1150,7 +1238,8 @@ async function exportMonth() {
 .item-content {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0; /* Prevents flex item from overflowing */
 }
 .item-title {
   font-weight: 600;
@@ -1158,8 +1247,9 @@ async function exportMonth() {
 }
 .item-details {
   display: flex;
-  gap: 12px;
-  font-size: 12px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 13px;
   color: #666;
 }
 .amount {
@@ -1169,6 +1259,7 @@ async function exportMonth() {
 .cost {
   color: #c94d4d;
   font-weight: 600;
+  white-space: nowrap;
 }
 .rate {
   color: #666;
