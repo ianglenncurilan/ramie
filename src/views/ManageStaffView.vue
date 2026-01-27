@@ -200,13 +200,9 @@ const activityFilters = [
   { label: 'All', value: 'all' },
   { label: 'Hog Added', value: 'hog_added' },
   { label: 'Hog Deleted', value: 'hog_deleted' },
-  { label: 'Hog Fed', value: 'hog_fed' },
   { label: 'Feeding Completed', value: 'feeding_completed' },
   { label: 'Feeding Incomplete', value: 'feeding_incomplete' },
-  { label: 'Feeding Undone', value: 'feeding_undone' },
   { label: 'Weight Updated', value: 'hog_weight_updated' },
-  { label: 'Hog Sold', value: 'hog_sold' },
-  { label: 'Hog Deceased', value: 'hog_died' },
 ]
 
 // Computed Properties
@@ -397,54 +393,26 @@ const formatRole = (user) => {
 }
 
 const getActivityMessage = (activity) => {
-  // Parse details if it's a JSON string, otherwise use as object
-  let details = activity.details || {}
-  if (typeof details === 'string') {
-    try {
-      details = JSON.parse(details)
-    } catch (e) {
-      // If parsing fails, try to extract from string format
-      console.warn('Failed to parse details as JSON:', e)
-      details = {}
-    }
-  }
+  const details = activity.details || {}
 
   switch (activity.activity_type) {
     case 'hog_added':
-      return `Added a new hog (${details.code || details.Code || 'Unknown'})`
+      return `Added a new hog (${details.code || 'Unknown'})`
     case 'hog_updated':
-      return `Updated hog ${details.code || details.Code || ''}`
+      return `Updated hog ${details.code || ''}`
     case 'hog_deleted':
-      return `Deleted hog ${details.code || details.Code || ''}`
+      return `Deleted hog ${details.code || ''}`
     case 'hog_weight_updated': {
-      // Handle both camelCase and PascalCase
-      const code = details.code || details.Code || ''
-      const oldWeight = details.oldWeight || details.OldWeight || 'N/A'
-      const newWeight = details.newWeight || details.NewWeight || 'N/A'
-      const difference = details.difference || details.Difference || 0
-      const hasDiff = typeof difference === 'number' && difference !== 0
+      const hasDiff = typeof details.difference === 'number' && details.difference !== 0
       const diffText = hasDiff
-        ? ` (${difference > 0 ? '+' : ''}${difference}kg)`
+        ? ` (${details.difference > 0 ? '+' : ''}${details.difference}kg)`
         : ''
-      return `Updated weight for hog ${code} from ${oldWeight}kg to ${newWeight}kg${diffText}`
+      return `Updated weight for hog ${details.code || ''} from ${details.oldWeight}kg to ${details.newWeight}kg${diffText}`
     }
     case 'feeding_completed':
-      return `Marked feeding as complete for hog ${details.code || details.Code || ''}`
+      return `Marked feeding as complete for hog ${details.code || ''}`
     case 'feeding_incomplete':
-      return `Marked feeding as incomplete for hog ${details.code || details.Code || ''}`
-    case 'hog_fed':
-      return `Fed hog ${details.code || details.Code || details.hog_code || ''}`
-    case 'feeding_undone':
-    case 'hog_feeding_undone':
-      return `Undid feeding for hog ${details.code || details.Code || details.hog_code || ''}`
-    case 'hog_sold':
-      const salePrice = details.sale_price || details.price || 0
-      const weight = details.weight || 'N/A'
-      return `Sold hog ${details.code || details.Code || details.hog_code || ''} for ₱${Number(salePrice).toLocaleString()} (${weight}kg)`
-    case 'hog_died':
-    case 'hog_deceased':
-      const cause = details.cause || details.cause_of_death || 'Unknown'
-      return `Marked hog ${details.code || details.Code || details.hog_code || ''} as deceased (${cause})`
+      return `Marked feeding as incomplete for hog ${details.code || ''}`
     case 'feed_formulated': {
       // Show: Made Starter Feed / Made Grower Feed / Made Finisher Feed
       const stageRaw = details.stage || ''

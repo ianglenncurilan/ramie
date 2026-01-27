@@ -118,72 +118,49 @@ export const useHogsStore = defineStore('hogs', () => {
         throw new Error('Hog code is required')
       }
 
+      const now = new Date().toISOString()
+      const hogCode = hogData.code.trim()
+
       // Check if hog with same code already exists
       const { data: existingHogs } = await supabase
         .from('hogs')
         .select('id')
-        .eq('code', hogData.code.trim())
+        .eq('code', hogCode)
         .limit(1)
 
       if (existingHogs && existingHogs.length > 0) {
         throw new Error('A hog with this code already exists')
       }
 
-      const now = new Date().toISOString()
-      const hogCode = hogData.code.trim()
-
-      console.log('Adding new hog to database:', {
+      // Prepare the new hog data
+      const newHogData = {
         code: hogCode,
         weight: Number(hogData.weight) || 0,
         days: Number(hogData.days) || 0,
+        am_feeding: false,
+        pm_feeding: false,
+        feeding_completed: false,
         status: 'active',
         created_at: now,
         updated_at: now,
-      })
-
-      const { data, error: insertError } = await supabase
-        .from('hogs')
-        .insert([
-          {
-            code: hogCode,
-            weight: Number(hogData.weight) || 0,
-            days: Number(hogData.days) || 0,
-            am_feeding: false,
-            pm_feeding: false,
-            feeding_completed: false,
-            status: 'active',
-            created_at: now,
-            updated_at: now,
-            last_feeding_date: null,
-            total_feeding_days: 0,
-            last_day_increment: now,
-          },
-        ])
-        .select()
-
-      if (insertError) {
-        console.error('Database error when adding hog:', insertError)
-        throw new Error(insertError.message || 'Failed to add hog to database')
+        last_feeding_date: null,
+        total_feeding_days: 0,
+        last_day_increment: now,
       }
 
+      console.log('Adding new hog to database:', newHogData)
+
+      // Insert the new hog
+      const { data, error: insertError } = await supabase.from('hogs').insert([newHogData]).select()
+
+      if (insertError) throw insertError
       if (!data || data.length === 0) {
-        throw new Error('No data returned after adding hog')
+        throw new Error('No data returned after insert')
       }
 
-      // Fetch the newly added hog to get all fields including defaults
-      const { data: addedHog, error: fetchError } = await supabase
-        .from('hogs')
-        .select('*')
-        .eq('id', data[0].id)
-        .single()
-
-      if (fetchError || !addedHog) {
-        console.error('Error fetching added hog:', fetchError)
-        throw new Error('Failed to verify hog was added')
-      }
-
-      // Transform to match frontend structure
-      const newHog = {
+      // Transform the response to match our frontend structure
+      const addedHog = data[0]
+      const transformedHog = {
         id: addedHog.id,
         code: addedHog.code,
         weight: Number(addedHog.weight) || 0,
@@ -199,10 +176,11 @@ export const useHogsStore = defineStore('hogs', () => {
         lastDayIncrement: addedHog.last_day_increment,
       }
 
-      console.log('Successfully added hog:', newHog)
+      console.log('Successfully added hog:', transformedHog)
+      return transformedHog
 
-      // Update local state
-      hogs.value = [newHog, ...hogs.value]
+      // The real-time subscription will handle updating the local state
+      // No need to manually update hogs.value here
 
       // Create an activity log
       try {
@@ -327,6 +305,7 @@ export const useHogsStore = defineStore('hogs', () => {
   async function updateHog(hogId, updates, updateTimestamp = true) {
     try {
       loading.value = true
+      console.log('Updating hog:', hogId, 'with updates:', updates)
 
       // Only update timestamp if explicitly requested
       if (updateTimestamp) {
@@ -337,39 +316,70 @@ export const useHogsStore = defineStore('hogs', () => {
       const dbUpdates = {}
 
       // Map frontend field names to database column names
-      if ('feedingCompleted' in updates) dbUpdates.feeding_completed = updates.feedingCompleted
-      if ('lastFeedingDate' in updates) dbUpdates.last_feeding_date = updates.lastFeedingDate
-      if ('totalFeedingDays' in updates) dbUpdates.total_feeding_days = updates.totalFeedingDays
-      if ('lastDayIncrement' in updates) dbUpdates.last_day_increment = updates.lastDayIncrement
-      if ('weight' in updates) dbUpdates.weight = updates.weight
-      if ('days' in updates) dbUpdates.days = updates.days
-      if ('amFeeding' in updates) dbUpdates.am_feeding = updates.amFeeding
-      if ('pmFeeding' in updates) dbUpdates.pm_feeding = updates.pmFeeding
+      const fieldMappings = {
+        // Frontend field: Database column
+        feedingCompleted: 'feeding_completed',
+        lastFeedingDate: 'last_feeding_date',
+        totalFeedingDays: 'total_feeding_days',
+        lastDayIncrement: 'last_day_increment',
+        amFeeding: 'am_feeding',
+        pmFeeding: 'pm_feeding',
+        status: 'status',
+        weight: 'weight',
+        days: 'days',
+      }
+
+      // Map the updates to database column names
+      Object.entries(updates).forEach(([key, value]) => {
+        if (key in fieldMappings) {
+          dbUpdates[fieldMappings[key]] = value
+        } else {
+          // If the key doesn't have a mapping, use it as-is
+          dbUpdates[key] = value
+        }
+      })
 
       // Always update the updated_at timestamp
       dbUpdates.updated_at = new Date().toISOString()
+
+      console.log('Sending database updates:', dbUpdates)
 
       const { data, error: updateError } = await supabase
         .from('hogs')
         .update(dbUpdates)
         .eq('id', hogId)
-        .select()
+        .select('*')
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Database update error:', updateError)
+        throw updateError
+      }
 
       // Update local state
       const hogIndex = hogs.value.findIndex((hog) => hog.id === hogId)
       if (hogIndex !== -1 && data && data[0]) {
-        hogs.value[hogIndex] = {
+        const updatedHog = data[0]
+
+        // Map database fields back to frontend field names
+        const updatedFields = {
           ...hogs.value[hogIndex],
-          ...updates,
-          lastFeedingDate: data[0].last_feeding_date,
-          lastDayIncrement: data[0].last_day_increment,
-          updated_at: data[0].updated_at,
+          ...updates, // Keep the original updates for any unmapped fields
+          feedingCompleted: updatedHog.feeding_completed,
+          lastFeedingDate: updatedHog.last_feeding_date,
+          totalFeedingDays: updatedHog.total_feeding_days,
+          lastDayIncrement: updatedHog.last_day_increment,
+          amFeeding: updatedHog.am_feeding,
+          pmFeeding: updatedHog.pm_feeding,
+          status: updatedHog.status,
+          updated_at: updatedHog.updated_at,
         }
-        return hogs.value[hogIndex]
+
+        console.log('Updating local state with:', updatedFields)
+        hogs.value[hogIndex] = updatedFields
+        return updatedFields
       }
 
+      console.warn('Hog not found in local state or no data returned')
       return null
     } catch (err) {
       console.error('Error updating hog:', err)
@@ -591,24 +601,74 @@ export const useHogsStore = defineStore('hogs', () => {
 
   // Reset all feeding statuses (call this daily to reset for new day)
   async function resetDailyFeedingStatus() {
-    const today = new Date().toDateString()
-    const toReset = hogs.value.filter(
-      (hog) =>
-        hog.feedingCompleted &&
-        (!hog.lastFeedingDate || new Date(hog.lastFeedingDate).toDateString() !== today),
-    )
-    if (toReset.length === 0) return
-    const ids = toReset.map((h) => h.id)
-    const { data, error: updateError } = await supabase
-      .from('hogs')
-      .update({ feeding_completed: false })
-      .in('id', ids)
-      .select('id')
-    if (!updateError) {
-      const resetSet = new Set((data || []).map((d) => d.id))
-      hogs.value = hogs.value.map((h) =>
-        resetSet.has(h.id) ? { ...h, feedingCompleted: false } : h,
-      )
+    try {
+      loading.value = true
+      console.log('Resetting daily feeding status...')
+
+      // Get current date at midnight in the local timezone
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+      // Reset all hogs that were last fed before today
+      const { data: hogsToReset, error: fetchError } = await supabase
+        .from('hogs')
+        .select('id, last_feeding_date')
+        .or('last_feeding_date.is.null,last_feeding_date.lt.' + today.toISOString())
+
+      if (fetchError) {
+        console.error('Error fetching hogs to reset:', fetchError)
+        throw fetchError
+      }
+
+      if (!hogsToReset || hogsToReset.length === 0) {
+        console.log('No hogs need feeding status reset')
+        return
+      }
+
+      const ids = hogsToReset.map((hog) => hog.id)
+      console.log(`Resetting feeding status for ${ids.length} hogs`)
+
+      // Reset all relevant fields for a new day
+      const { data: updatedHogs, error: updateError } = await supabase
+        .from('hogs')
+        .update({
+          am_feeding: false,
+          pm_feeding: false,
+          feeding_completed: false,
+          updated_at: new Date().toISOString(),
+        })
+        .in('id', ids)
+        .select('*')
+
+      if (updateError) {
+        console.error('Error resetting feeding statuses:', updateError)
+        throw updateError
+      }
+
+      // Update local state
+      if (updatedHogs && updatedHogs.length > 0) {
+        const updatedHogsMap = new Map(updatedHogs.map((hog) => [hog.id, hog]))
+        hogs.value = hogs.value.map((hog) =>
+          updatedHogsMap.has(hog.id)
+            ? {
+                ...hog,
+                amFeeding: false,
+                pmFeeding: false,
+                feedingCompleted: false,
+                lastFeedingDate: null,
+              }
+            : hog,
+        )
+        console.log(`Successfully reset feeding status for ${updatedHogs.length} hogs`)
+      }
+
+      return updatedHogs
+    } catch (err) {
+      console.error('Error in resetDailyFeedingStatus:', err)
+      error.value = err.message
+      throw err
+    } finally {
+      loading.value = false
     }
   }
 
