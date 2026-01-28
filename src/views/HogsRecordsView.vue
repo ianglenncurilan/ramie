@@ -181,6 +181,12 @@
                       >₱{{ Number(record.details?.sale_price || 0).toLocaleString() }}</span
                     >
                   </div>
+                  <div class="detail" v-if="record.details?.price_per_kilo">
+                    <span class="label">Price per Kilo:</span>
+                    <span class="value"
+                      >₱{{ Number(record.details.price_per_kilo).toLocaleString() }}</span
+                    >
+                  </div>
                   <div class="detail">
                     <span class="label">Weight at Sale:</span>
                     <span class="value">{{ record.details?.weight || 'N/A' }} kg</span>
@@ -331,6 +337,18 @@ watch(activeTab, () => {
   applyFilters()
 })
 
+// Watch for records changes to ensure real-time updates
+watch(
+  () => hogsStore.records,
+  (newRecords) => {
+    console.log('Records updated in store:', newRecords.length)
+    // Force reactivity update
+    currentPage.value = 1
+    applyFilters()
+  },
+  { deep: true },
+)
+
 // Format date as YYYY-MM-DD
 const formatDateInput = (date) => {
   const d = new Date(date)
@@ -446,7 +464,10 @@ onMounted(async () => {
 async function fetchRecords() {
   try {
     loading.value = true
+    console.log('Fetching records from store...')
     await hogsStore.fetchRecords()
+    console.log('Records fetched:', hogsStore.records.length)
+    console.log('Sample record:', hogsStore.records[0])
   } catch (error) {
     console.error('Error fetching records:', error)
   } finally {
@@ -608,7 +629,16 @@ function exportToCSV() {
   try {
     const headers =
       activeTab.value === 'sale'
-        ? ['Hog ID', 'Hog Name', 'Sale Date', 'Sale Price', 'Weight (kg)', 'Buyer', 'Notes']
+        ? [
+            'Hog ID',
+            'Hog Name',
+            'Sale Date',
+            'Sale Price',
+            'Price per Kilo',
+            'Weight (kg)',
+            'Buyer',
+            'Notes',
+          ]
         : ['Hog ID', 'Hog Name', 'Date of Death', 'Cause of Death', 'Weight (kg)', 'Notes']
 
     const data = filteredRecords.value.map((record) => {
@@ -619,6 +649,9 @@ function exportToCSV() {
           formatDate(record.event_date),
           record.details?.sale_price
             ? `₱${Number(record.details.sale_price).toLocaleString()}`
+            : 'N/A',
+          record.details?.price_per_kilo
+            ? `₱${Number(record.details.price_per_kilo).toLocaleString()}`
             : 'N/A',
           record.details?.weight || 'N/A',
           record.details?.buyer || 'N/A',

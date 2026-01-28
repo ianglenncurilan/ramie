@@ -23,8 +23,11 @@ const contextGreeting = computed(() => {
 onMounted(async () => {
   try {
     if (!hasSupabaseConfig) return
-    const { data: { user } } = await supabase.auth.getUser()
-    const fullName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email || ''
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    const fullName =
+      user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email || ''
     const first = fullName?.split(/[\s@]/)[0] || ''
     userFirstName.value = first.charAt(0).toUpperCase() + first.slice(1)
     // Build rotating suggestions and pick one each refresh
@@ -63,7 +66,9 @@ const go = (name) => {
             <img src="/leaf.png" alt="RAMIE" class="brand-logo" />
             <div class="title">RAMIE</div>
           </div>
-          <div v-if="userFirstName" class="greet">{{ timeGreeting }}, {{ userFirstName }}! {{ rotatingMessage }}</div>
+          <div v-if="userFirstName" class="greet">
+            {{ timeGreeting }}, {{ userFirstName }}! {{ rotatingMessage }}
+          </div>
         </div>
       </section>
 
@@ -134,7 +139,14 @@ const go = (name) => {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
-.hero .brand-right { position: absolute; top: 10px; right: 12px; display: inline-flex; align-items: center; gap: 8px; }
+.hero .brand-right {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 .hero .brand-logo {
   width: 32px;
   height: 32px;
@@ -144,23 +156,40 @@ const go = (name) => {
   font-weight: 700;
   font-size: 22px;
 }
-.hero .greet { font-weight: 600; font-size: 16px; opacity: 0.95; margin-left: 6px; }
-.hero .subgreet { font-weight: 500; font-size: 13px; opacity: 0.9; margin-left: 6px; }
-.hero .rotating-hint { font-weight: 600; font-size: 13px; opacity: 0.95; margin-left: 6px; margin-top: 4px; }
+.hero .greet {
+  font-weight: 600;
+  font-size: 16px;
+  opacity: 0.95;
+  margin-left: 6px;
+}
+.hero .subgreet {
+  font-weight: 500;
+  font-size: 13px;
+  opacity: 0.9;
+  margin-left: 6px;
+}
+.hero .rotating-hint {
+  font-weight: 600;
+  font-size: 13px;
+  opacity: 0.95;
+  margin-left: 6px;
+  margin-top: 4px;
+}
 .grid {
   margin: 0 16px;
   background: #2f8b60;
   border-radius: 32px;
-  padding: 40px; /* increase overall grid padding */
+  padding: 40px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+
 .card {
   background: #fff;
   border: 0;
   border-radius: 32px;
-  padding: 40px; /* larger card padding */
+  padding: 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -168,19 +197,354 @@ const go = (name) => {
   cursor: pointer;
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
-  min-height: 140px; /* ensure a larger visual footprint */
+  min-height: 140px;
 }
+
 .card:hover {
   transform: scale(1.01);
 }
+
 .card img {
-  width: 56px; /* larger icon */
+  width: 56px;
   height: 56px;
 }
+
 .card div {
-  font-size: 18px; /* larger label text */
+  font-size: 18px;
   font-weight: 600;
   text-align: center;
+}
+
+/* Mobile Small (320px - 374px) */
+@media (max-width: 374px) {
+  .hero {
+    margin: 12px;
+  }
+
+  .hero img {
+    height: 160px;
+  }
+
+  .hero .brand-right {
+    top: 8px;
+    right: 10px;
+  }
+
+  .hero .brand-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .hero .title {
+    font-size: 20px;
+  }
+
+  .hero .greet {
+    font-size: 14px;
+    margin-left: 4px;
+  }
+
+  .grid {
+    margin: 0 12px;
+    padding: 20px;
+    gap: 10px;
+    border-radius: 24px;
+  }
+
+  .card {
+    padding: 24px;
+    min-height: 120px;
+    border-radius: 20px;
+    gap: 8px;
+  }
+
+  .card img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .card div {
+    font-size: 15px;
+  }
+}
+
+/* Mobile Medium (375px - 424px) */
+@media (min-width: 375px) and (max-width: 424px) {
+  .hero img {
+    height: 170px;
+  }
+
+  .grid {
+    padding: 24px;
+    gap: 12px;
+    border-radius: 28px;
+  }
+
+  .card {
+    padding: 28px;
+    min-height: 130px;
+    border-radius: 24px;
+    gap: 10px;
+  }
+
+  .card img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .card div {
+    font-size: 16px;
+  }
+}
+
+/* Mobile Large (425px - 767px) */
+@media (min-width: 425px) and (max-width: 767px) {
+  .hero {
+    margin: 20px;
+  }
+
+  .hero img {
+    height: 200px;
+  }
+
+  .hero .brand-right {
+    top: 12px;
+    right: 16px;
+  }
+
+  .hero .brand-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .hero .title {
+    font-size: 24px;
+  }
+
+  .hero .greet {
+    font-size: 17px;
+    margin-left: 8px;
+  }
+
+  .grid {
+    margin: 0 20px;
+    padding: 32px;
+    gap: 16px;
+    border-radius: 30px;
+  }
+
+  .card {
+    padding: 36px;
+    min-height: 150px;
+    border-radius: 28px;
+    gap: 14px;
+  }
+
+  .card img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .card div {
+    font-size: 19px;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .dashboard-content {
+    max-width: 768px;
+    margin: 0 auto;
+  }
+
+  .hero {
+    margin: 24px;
+  }
+
+  .hero img {
+    height: 240px;
+  }
+
+  .hero .brand-right {
+    top: 16px;
+    right: 20px;
+  }
+
+  .hero .brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .hero .title {
+    font-size: 28px;
+  }
+
+  .hero .greet {
+    font-size: 18px;
+    margin-left: 10px;
+  }
+
+  .grid {
+    margin: 0 24px;
+    padding: 40px;
+    gap: 20px;
+    border-radius: 32px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .card {
+    padding: 32px;
+    min-height: 160px;
+    border-radius: 24px;
+    gap: 12px;
+  }
+
+  .card img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .card div {
+    font-size: 17px;
+  }
+}
+
+/* Small Desktop (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .dashboard-content {
+    max-width: 1024px;
+    margin: 0 auto;
+  }
+
+  .hero {
+    margin: 32px;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .hero img {
+    height: 300px;
+  }
+
+  .hero .overlay {
+    padding: 20px;
+  }
+
+  .hero .brand-right {
+    top: 20px;
+    right: 24px;
+  }
+
+  .hero .brand-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .hero .title {
+    font-size: 32px;
+  }
+
+  .hero .greet {
+    font-size: 20px;
+    margin-left: 12px;
+  }
+
+  .grid {
+    margin: 0 32px;
+    padding: 48px;
+    gap: 24px;
+    border-radius: 40px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .card {
+    padding: 40px;
+    min-height: 180px;
+    border-radius: 28px;
+    gap: 16px;
+  }
+
+  .card:hover {
+    transform: scale(1.02);
+  }
+
+  .card img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .card div {
+    font-size: 18px;
+  }
+}
+
+/* Large Desktop (1440px+) */
+@media (min-width: 1440px) {
+  .dashboard-content {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .hero {
+    margin: 40px;
+    border-radius: 24px;
+    overflow: hidden;
+  }
+
+  .hero img {
+    height: 360px;
+  }
+
+  .hero .overlay {
+    padding: 24px;
+  }
+
+  .hero .brand-right {
+    top: 24px;
+    right: 32px;
+  }
+
+  .hero .brand-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .hero .title {
+    font-size: 36px;
+  }
+
+  .hero .greet {
+    font-size: 22px;
+    margin-left: 16px;
+  }
+
+  .grid {
+    margin: 0 40px;
+    padding: 60px;
+    gap: 32px;
+    border-radius: 48px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .card {
+    padding: 48px;
+    min-height: 200px;
+    border-radius: 32px;
+    gap: 20px;
+  }
+
+  .card:hover {
+    transform: scale(1.03);
+  }
+
+  .card img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .card div {
+    font-size: 20px;
+  }
 }
 .bottombar {
   margin-top: auto;
@@ -225,38 +589,5 @@ const go = (name) => {
   height: 36px; /* Increased from 32px */
   object-fit: contain;
   transition: filter 0.2s ease-in-out;
-}
-
-/* Responsive tweaks for small phones */
-@media (max-width: 400px) {
-  .hero img {
-    height: 170px;
-  }
-  .grid {
-    padding: 24px; /* bigger green background */
-    gap: 14px;
-    border-radius: 28px;
-  }
-  .card {
-    padding: 20px; /* bigger cards */
-    min-height: 130px;
-    border-radius: 24px;
-    gap: 10px;
-  }
-  .card img {
-    width: 48px;
-    height: 48px;
-  }
-  .card div {
-    font-size: 16px;
-  }
-  .bottombar {
-    padding: 16px 20px;
-    gap: 12px;
-  }
-  .bottombar img {
-    width: 28px;
-    height: 28px;
-  }
 }
 </style>

@@ -815,7 +815,7 @@ async function exportMonth() {
 .overlay .receipt-icon {
   position: absolute;
   top: 10px;
-  right: 12px;
+  right: 12px;  
   width: 100px;
   height: 100px;
   object-fit: contain;

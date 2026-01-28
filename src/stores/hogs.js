@@ -827,6 +827,7 @@ export const useHogsStore = defineStore('hogs', () => {
     try {
       loading.value = true
       const now = new Date().toISOString()
+      const eventDate = saleData.date || now
 
       // Update hog status
       const { error: updateError } = await supabase
@@ -844,17 +845,19 @@ export const useHogsStore = defineStore('hogs', () => {
       await createRecord({
         hog_id: hogId,
         record_type: 'sale',
-        event_date: now,
+        event_date: eventDate,
         details: {
           sale_price: saleData.price,
           weight: saleData.weight,
           buyer: saleData.buyer || null,
           notes: saleData.notes || null,
+          price_per_kilo: saleData.price_per_kilo || null, // Store price per kilo as well
         },
       })
 
-      // Refresh hogs list
+      // Refresh both hogs list and records
       await fetchHogs('active')
+      await fetchRecords()
       return true
     } catch (err) {
       console.error('Error marking hog as sold:', err)
@@ -895,8 +898,9 @@ export const useHogsStore = defineStore('hogs', () => {
         },
       })
 
-      // Refresh hogs list
+      // Refresh both hogs list and records
       await fetchHogs('active')
+      await fetchRecords()
       return true
     } catch (err) {
       console.error('Error marking hog as deceased:', err)
