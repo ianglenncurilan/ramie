@@ -150,7 +150,12 @@
                 :class="{ 'tracked-hog': record.is_tracked }"
               >
                 <div class="record-header">
-                  <h4>{{ getHogName(record.hog_id) || `Hog #${record.hog_id?.slice(0, 8)}` }}</h4>
+                  <h4>
+                    {{
+                      getHogName(record.hog_id) ||
+                      `Hog #${record.hog_id ? String(record.hog_id).slice(0, 8) : 'Unknown'}`
+                    }}
+                  </h4>
                   <span class="record-date">{{ formatDate(record.event_date) }}</span>
                 </div>
                 <div v-if="record.hog_details" class="hog-details">

@@ -8,11 +8,17 @@ export const useInventoryStore = defineStore('inventory', () => {
 
   // Computed properties
   const availableIngredients = computed(() =>
-    ingredients.value.filter((ingredient) => ingredient.isAvailable),
+    ingredients.value.filter((ingredient) => {
+      const quantity = Number(ingredient.quantity) || 0
+      return quantity > 0
+    }),
   )
 
   const unavailableIngredients = computed(() =>
-    ingredients.value.filter((ingredient) => !ingredient.isAvailable),
+    ingredients.value.filter((ingredient) => {
+      const quantity = Number(ingredient.quantity) || 0
+      return quantity <= 0
+    }),
   )
 
   const totalValue = computed(() =>
@@ -28,11 +34,15 @@ export const useInventoryStore = defineStore('inventory', () => {
       const { data, error } = await supabase.from('inventory').select('*')
       if (error) throw error
 
-      // Ensure isAvailable is set based on quantity
-      ingredients.value = data.map((item) => ({
-        ...item,
-        isAvailable: (item.quantity || 0) > 0,
-      }))
+      // Ensure isAvailable is set based on quantity with proper numeric conversion
+      ingredients.value = data.map((item) => {
+        const quantity = Number(item.quantity) || 0
+        return {
+          ...item,
+          quantity,
+          isAvailable: quantity > 0,
+        }
+      })
 
       console.log('Fetched ingredients:', ingredients.value)
     } catch (error) {
@@ -41,17 +51,21 @@ export const useInventoryStore = defineStore('inventory', () => {
   }
 
   async function addIngredient(formData) {
-    // Set default unit to 'kg' if not provided
+    // Set default unit to 'kg' if not provided and ensure proper numeric conversion
     const dataWithUnit = {
       ...formData,
       unit: formData.unit || 'kg', // Default to 'kg' if unit not specified
+      quantity: Number(formData.quantity) || 0,
+      cost: Number(formData.cost) || 0,
     }
 
     const { data, error } = await supabase.from('inventory').insert(dataWithUnit).select()
     if (!error && Array.isArray(data) && data.length > 0) {
+      const quantity = Number(data[0].quantity) || 0
       const item = {
         ...data[0],
-        isAvailable: (data[0].quantity || 0) > 0,
+        quantity,
+        isAvailable: quantity > 0,
       }
       ingredients.value = [...ingredients.value, item]
 
@@ -60,7 +74,7 @@ export const useInventoryStore = defineStore('inventory', () => {
           type: 'inventory_added',
           details: {
             name: item.name,
-            quantity: Number(item.quantity) || 0,
+            quantity,
             cost: Number(item.cost) || 0,
             type: item.type || '',
           },
@@ -77,12 +91,11 @@ export const useInventoryStore = defineStore('inventory', () => {
     if (index === -1) return { error: 'Not found' }
 
     const current = ingredients.value[index]
-    const nextQuantity =
-      updates.quantity !== undefined ? Number(updates.quantity) : current.quantity
-    const nextCost = updates.cost !== undefined ? Number(updates.cost) : current.cost
-    const nextName = updates.name !== undefined ? updates.name : current.name
-    const nextType = updates.type !== undefined ? updates.type : current.type
-    const nextUnit = updates.unit !== undefined ? updates.unit : current.unit || 'kg' // Default to 'kg' if unit not set
+    const nextQuantity = Number(updates.quantity) || 0
+    const nextCost = Number(updates.cost) || 0
+    const nextName = updates.name || current.name
+    const nextType = updates.type || current.type
+    const nextUnit = updates.unit || current.unit || 'kg' // Default to 'kg' if unit not set
     const nextAvailable = nextQuantity > 0
     const updated_at = new Date().toISOString()
 
@@ -93,6 +106,7 @@ export const useInventoryStore = defineStore('inventory', () => {
       quantity: nextQuantity,
       cost: nextCost,
       type: nextType,
+      unit: nextUnit,
       isAvailable: nextAvailable,
       updated_at,
     }
@@ -104,7 +118,6 @@ export const useInventoryStore = defineStore('inventory', () => {
         name: nextName,
         quantity: nextQuantity,
         cost: nextCost,
-        available: nextAvailable,
         type: nextType,
         unit: nextUnit,
         updated_at,
@@ -122,9 +135,9 @@ export const useInventoryStore = defineStore('inventory', () => {
         details: {
           name: nextName,
           oldQuantity: Number(current.quantity) || 0,
-          newQuantity: Number(nextQuantity) || 0,
+          newQuantity: nextQuantity,
           oldCost: Number(current.cost) || 0,
-          newCost: Number(nextCost) || 0,
+          newCost: nextCost,
           type: nextType || '',
         },
         referenceType: 'inventory',
@@ -179,7 +192,6 @@ export const useInventoryStore = defineStore('inventory', () => {
         .from('inventory')
         .update({
           quantity: numericQuantity,
-          available: numericQuantity > 0,
           updated_at: updatedIngredient.updated_at,
         })
         .eq('id', id)
@@ -199,14 +211,32 @@ export const useInventoryStore = defineStore('inventory', () => {
 
   async function deductIngredientQuantity(ingredientName, amountKg) {
     try {
+      console.log(`deductIngredientQuantity called with:`, {
+        ingredientName,
+        amountKg,
+        type: typeof ingredientName,
+      })
+
       let ingredientIndex = -1
-      // Support passing an ID or a name
+      // Support passing an ID (number, UUID string, or numeric string) or a name
       if (
         typeof ingredientName === 'number' ||
-        (typeof ingredientName === 'string' && /^\d+$/.test(ingredientName))
+        (typeof ingredientName === 'string' &&
+          (/^\d+$/.test(ingredientName) ||
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+              ingredientName,
+            )))
       ) {
-        const targetId = Number(ingredientName)
-        ingredientIndex = ingredients.value.findIndex((item) => Number(item.id) === targetId)
+        // For numeric IDs, convert to number; for UUIDs, keep as string
+        const targetId = /^\d+$/.test(ingredientName) ? Number(ingredientName) : ingredientName
+        console.log(`Looking for ingredient by ID:`, {
+          targetId,
+          isUUID: !/^\d+$/.test(ingredientName),
+        })
+        ingredientIndex = ingredients.value.findIndex((item) =>
+          /^\d+$/.test(ingredientName) ? Number(item.id) === targetId : item.id === targetId,
+        )
+        console.log(`Found ingredient at index:`, ingredientIndex)
       } else if (typeof ingredientName === 'string') {
         // Clean the ingredient name for better matching
         const cleanName = ingredientName
@@ -284,11 +314,18 @@ export const useInventoryStore = defineStore('inventory', () => {
       }
 
       // Update the database
+      console.log(`Updating database for ingredient:`, {
+        ingredientId: ingredient.id,
+        ingredientName: ingredient.name,
+        currentQuantity,
+        newQuantity,
+        isAvailable,
+      })
+
       const { error } = await supabase
         .from('inventory')
         .update({
           quantity: newQuantity,
-          is_available: isAvailable,
           updated_at: new Date().toISOString(),
         })
         .eq('id', ingredient.id)

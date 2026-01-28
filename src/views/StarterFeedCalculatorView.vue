@@ -13,11 +13,36 @@
           </div>
         </div>
 
-        <div class="intro">
-          Input the exact amount of each ingredients shown in the table.
-          <div class="intro-actions">
-            <div class="auto-populate-info">
-              💡 Costs are automatically populated from your inventory when available
+        <div class="category-totals">
+          <div class="totals-title">Feed Formulation Calculator</div>
+          <div class="formulation-info">
+            <div class="info-text">
+              <strong>Target Ratio:</strong> 60% Protein : 40% Carbohydrates
+            </div>
+            <div class="calculation-breakdown">
+              <div class="calc-row">
+                <span>Current Protein (Anchor):</span>
+                <span class="calc-value">{{ getCurrentProteinTotal().toFixed(2) }}kg</span>
+              </div>
+              <div class="calc-row">
+                <span>Required Carbohydrates:</span>
+                <span class="calc-value required-calc"
+                  >{{ getRequiredCarbohydrates().toFixed(2) }}kg</span
+                >
+              </div>
+              <div class="calc-row">
+                <span>Total Batch Size:</span>
+                <span class="calc-value">{{ getTotalBatchSize().toFixed(2) }}kg</span>
+              </div>
+              <div class="calc-row">
+                <span>Current Carbohydrates:</span>
+                <span
+                  class="calc-value"
+                  :class="{ exceeded: getCurrentCarbsTotal() > getRequiredCarbohydrates() }"
+                >
+                  {{ getCurrentCarbsTotal().toFixed(2) }}kg
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -30,17 +55,25 @@
                 v-if="['carbs', 'protein'].includes(category.key)"
                 class="cat-total"
                 :class="{
-                  exceeded: getCategoryTotal(category) > category.total,
-                  valid: getCategoryTotal(category) === category.total,
+                  exceeded:
+                    category.key === 'carbs' && getCurrentCarbsTotal() > getRequiredCarbohydrates(),
+                  valid: category.key === 'protein' && getCurrentProteinTotal() > 0,
                 }"
               >
-                {{ getCategoryTotal(category) }}/{{ category.total }}
+                <template v-if="category.key === 'protein'">
+                  {{ getCurrentProteinTotal().toFixed(2) }}kg
+                </template>
+                <template v-else-if="category.key === 'carbs'">
+                  {{ getCurrentCarbsTotal().toFixed(2) }}kg /
+                  {{ getRequiredCarbohydrates().toFixed(2) }}kg
+                </template>
               </div>
             </div>
 
             <div class="thead">
               <span></span>
               <span class="th">Amount</span>
+              <span class="th">Cost per kg</span>
             </div>
 
             <div v-for="(item, idx) in category.items" :key="item.id" class="row">
@@ -143,24 +176,22 @@ const uiCategories = computed(() => {
 
   return [
     {
-      key: 'carbs',
-      title: 'Carbohydrates (40%)',
-      total: 40,
-      items: categorizedIngredients.carbs.map((ingredient) => ({
-        id: ingredient.id,
-        label: ingredient.name,
-        base: Math.round(ingredient.quantity * 0.1) || 1, // Use 10% of available quantity as base
-        cost: ingredient.cost,
-      })),
-    },
-    {
       key: 'protein',
-      title: 'Protein (60%)',
-      total: 60,
+      title: 'Protein (Anchor)',
       items: categorizedIngredients.protein.map((ingredient) => ({
         id: ingredient.id,
         label: ingredient.name,
         base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+    {
+      key: 'carbs',
+      title: 'Carbohydrates',
+      items: categorizedIngredients.carbs.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1, // Use 10% of available quantity as base
         cost: ingredient.cost,
       })),
     },
@@ -189,6 +220,47 @@ const uiCategories = computed(() => {
 
 const amounts = reactive({})
 const costs = reactive({})
+const categoryTotals = reactive({})
+
+// Function to calculate similarity between two strings (0-1)
+function stringSimilarity(s1, s2) {
+  // Remove all non-alphanumeric characters and convert to lowercase
+  const cleanStr = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+  // If either string is empty after cleaning, return 0
+  if (!s1 || !s2) return 0
+
+  const str1 = cleanStr(s1)
+  const str2 = cleanStr(s2)
+
+  // If strings are identical after cleaning, return 1
+  if (str1 === str2) return 1
+
+  // If one string is empty after cleaning, return 0
+  if (str1.length === 0 || str2.length === 0) return 0
+
+  // Calculate Levenshtein distance
+  const track = Array(str2.length + 1)
+    .fill(null)
+    .map(() => Array(str1.length + 1).fill(null))
+  for (let i = 0; i <= str1.length; i++) track[0][i] = i
+  for (let j = 0; j <= str2.length; j++) track[j][0] = j
+
+  for (let j = 1; j <= str2.length; j++) {
+    for (let i = 1; i <= str1.length; i++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
+      track[j][i] = Math.min(
+        track[j][i - 1] + 1, // deletion
+        track[j - 1][i] + 1, // insertion
+        track[j - 1][i - 1] + cost, // substitution
+      )
+    }
+  }
+
+  // Calculate similarity ratio (0-1)
+  const maxLen = Math.max(str1.length, str2.length)
+  return 1 - track[str2.length][str1.length] / maxLen
+}
 
 // Function to find matching inventory item for a feed ingredient
 const findInventoryItem = (ingredientId) => {
@@ -252,11 +324,19 @@ const findInventoryItem = (ingredientId) => {
 const findInventoryItemByName = (ingredientName) => {
   if (!ingredientName) return null
 
+  console.log(`findInventoryItemByName called with:`, {
+    ingredientName,
+    totalIngredients: inventoryStore.ingredients.length,
+  })
+
   // First try exact match
   const exactMatch = inventoryStore.ingredients.find(
     (item) => item.name.toLowerCase().trim() === ingredientName.toLowerCase().trim(),
   )
-  if (exactMatch) return exactMatch
+  if (exactMatch) {
+    console.log(`Found exact match:`, exactMatch)
+    return exactMatch
+  }
 
   // If no exact match, find the most similar item
   let bestMatch = null
@@ -270,6 +350,7 @@ const findInventoryItemByName = (ingredientName) => {
     }
   }
 
+  console.log(`Best fuzzy match:`, { bestMatch, score: highestScore })
   return bestMatch
 }
 
@@ -299,6 +380,10 @@ onMounted(() => {
     category.items.forEach((item) => {
       amounts[item.id] = 0
     })
+    // Initialize category totals
+    if (categoryTotals[category.key] === undefined) {
+      categoryTotals[category.key] = category.total || 0
+    }
   })
 })
 
@@ -342,27 +427,75 @@ function autoPopulateCosts() {
   })
 }
 
+// Reverse calculation functions for intelligent feed formulation
+const getCurrentProteinTotal = () => {
+  const proteinCategory = uiCategories.value.find((cat) => cat.key === 'protein')
+  const total = proteinCategory
+    ? proteinCategory.items.reduce((sum, item) => sum + (amounts[item.id] || 0), 0)
+    : 0
+  return Math.round(total * 100) / 100 // Strict 2 decimal places
+}
+
+const getCurrentCarbsTotal = () => {
+  const carbsCategory = uiCategories.value.find((cat) => cat.key === 'carbs')
+  const total = carbsCategory
+    ? carbsCategory.items.reduce((sum, item) => sum + (amounts[item.id] || 0), 0)
+    : 0
+  return Math.round(total * 100) / 100 // Strict 2 decimal places
+}
+
+const getRequiredCarbohydrates = () => {
+  const proteinTotal = getCurrentProteinTotal()
+  if (proteinTotal === 0) return 0
+
+  // If protein is 60%, then carbs must be 40% of total
+  // protein = 0.60 * total_batch_size
+  // total_batch_size = protein / 0.60
+  // required_carbs = 0.40 * total_batch_size = 0.40 * (protein / 0.60) = (0.40/0.60) * protein = (2/3) * protein
+  const required = (2 / 3) * proteinTotal
+  return Math.round(required * 100) / 100 // Strict 2 decimal places, rounds up .666666 to .67
+}
+
+const getTotalBatchSize = () => {
+  const proteinTotal = getCurrentProteinTotal()
+  if (proteinTotal === 0) return 0
+
+  // total_batch_size = protein / 0.60
+  const total = proteinTotal / 0.6
+  return Math.round(total * 100) / 100 // Strict 2 decimal places
+}
+
 function getCategoryTotal(category) {
   const total = category.items.reduce((total, item) => {
     const amount = Number(amounts[item.id]) || 0
     return total + amount
   }, 0)
-  return total
+  return Math.round(total * 100) / 100 // Strict 2 decimal places
 }
 
 // Auto-populate costs when component mounts
 onMounted(async () => {
-  // Ensure inventory is loaded
-  if (inventoryStore.ingredients.length === 0) {
-    await inventoryStore.fetchIngredients()
-  }
+  // Always refresh inventory to ensure we have the latest data
+  await inventoryStore.fetchIngredients()
   autoPopulateCosts()
 })
 
-// Watch for changes in inventory to re-populate costs
+// Watch for changes in inventory to re-populate costs and update UI
 watch(
   () => inventoryStore.ingredients,
   () => {
+    autoPopulateCosts()
+    // Force reactivity update for uiCategories
+    // The computed property will automatically update, but we ensure it triggers
+  },
+  { deep: true },
+)
+
+// Watch availableIngredients to ensure UI updates when quantities change
+watch(
+  () => inventoryStore.availableIngredients,
+  () => {
+    // This ensures the ingredient list updates when inventory changes
     autoPopulateCosts()
   },
   { deep: true },
@@ -376,61 +509,61 @@ const saveFormulation = async () => {
     // No longer require individual fields to be filled
     // Only the totals for Carbs and Protein matter
 
-    // Validate carbs and protein totals
-    const carbsTotal =
-      uiCategories.value
-        .find((cat) => cat.key === 'carbs')
-        ?.items.reduce((sum, item) => sum + (amounts[item.id] || 0), 0) || 0
+    // Reverse calculation validation - Protein is the anchor
+    const proteinTotal = getCurrentProteinTotal()
+    const carbsTotal = getCurrentCarbsTotal()
+    const requiredCarbs = getRequiredCarbohydrates()
 
-    const proteinTotal =
-      uiCategories.value
-        .find((cat) => cat.key === 'protein')
-        ?.items.reduce((sum, item) => sum + (amounts[item.id] || 0), 0) || 0
-
-    if (carbsTotal !== 40) {
-      alert(`Total carbohydrates must be exactly 40%. Current total: ${carbsTotal}%`)
+    if (proteinTotal === 0) {
+      alert('Please input protein ingredients first. Protein is the anchor for the formulation.')
       return
     }
 
-    if (proteinTotal !== 60) {
-      alert(`Total protein must be exactly 60%. Current total: ${proteinTotal}%`)
+    // Strict validation - carbohydrates must exactly match required amount
+    if (Math.abs(carbsTotal - requiredCarbs) > 0.01) {
+      alert(
+        `Carbohydrates must exactly match the required amount for the 60:40 ratio. With ${proteinTotal}kg of protein, you need exactly ${requiredCarbs.toFixed(2)}kg of carbohydrates. Current: ${carbsTotal}kg`,
+      )
       return
     }
 
-    // Prepare items for saving
-    const items = []
-    for (const [ingredientId, amount] of Object.entries(amounts)) {
-      if (amount > 0) {
-        let ingredient = findInventoryItem(ingredientId)
-        let ingredientLabel = ''
+    // For other categories, validate against their custom totals if set
+    for (const category of uiCategories.value) {
+      if (category.key === 'carbs' || category.key === 'protein') continue
 
-        // Find the ingredient's label from uiCategories
-        for (const category of uiCategories.value) {
-          const found = category.items.find((item) => item.id === ingredientId)
-          if (found) {
-            ingredientLabel = found.label || ingredientId
-            break
-          }
-        }
+      const categoryTotal = category.items.reduce((sum, item) => sum + (amounts[item.id] || 0), 0)
+      const targetTotal = categoryTotals[category.key] || 0
 
-        // If we couldn't find the ingredient in inventory but have a label, still allow saving
-        if (!ingredient && ingredientLabel) {
-          items.push({
-            id: ingredientId,
-            label: ingredientLabel,
-            amountKg: parseFloat(amount) || 0,
-            costPerKg: parseFloat(costs[ingredientId]) || 0,
-          })
-        } else if (ingredient) {
-          items.push({
-            id: ingredientId,
-            label: ingredient.label || ingredientLabel || ingredientId,
-            amountKg: parseFloat(amount) || 0,
-            costPerKg: parseFloat(costs[ingredientId]) || 0,
-          })
-        }
+      if (targetTotal > 0 && Math.abs(categoryTotal - targetTotal) > 0.01) {
+        alert(
+          `Total ${category.title.toLowerCase()} must be ${targetTotal}. Current total: ${categoryTotal}`,
+        )
+        return
       }
     }
+
+    // Prepare items for saving - use same pattern as Grower/Finisher views
+    const items = []
+    uiCategories.value.forEach((cat) => {
+      cat.items.forEach((it) => {
+        const amountKg = parseFloat(amounts[it.id]) || 0
+        const costPerKg = parseFloat(costs[it.id]) || 0
+        if (amountKg > 0) {
+          // Find the inventory item using the original label (without notes)
+          const inventoryItem = findInventoryItem(it.id) || findInventoryItemByName(it.label)
+          items.push({
+            id: it.id,
+            label: `${it.label}${it.note ? ' (' + it.note + ')' : ''}`,
+            originalLabel: it.label, // Store original label for inventory matching
+            inventoryItemId: inventoryItem?.id, // Store inventory item ID for direct deduction
+            amountKg,
+            costPerKg,
+          })
+        }
+      })
+    })
+
+    console.log(`Final items for saving:`, items)
 
     // Calculate totals directly from amounts and costs objects
     let totalAmount = 0
@@ -450,7 +583,14 @@ const saveFormulation = async () => {
     const insufficient = []
     for (const item of items) {
       if (item.amountKg > 0) {
-        const invItem = findInventoryItemByName(item.label)
+        // Use inventory item ID if available, otherwise try to find by original label
+        let invItem = null
+        if (item.inventoryItemId) {
+          invItem = inventoryStore.ingredients.find(ing => ing.id === item.inventoryItemId)
+        }
+        if (!invItem) {
+          invItem = findInventoryItemByName(item.originalLabel || item.label)
+        }
         const currentQty = Number(invItem?.quantity) || 0
         if (!invItem || currentQty < Number(item.amountKg)) {
           insufficient.push({ name: item.label, available: currentQty, needed: item.amountKg })
@@ -470,7 +610,15 @@ const saveFormulation = async () => {
     for (const item of items) {
       if (item.amountKg > 0) {
         try {
-          const inventoryItem = findInventoryItemByName(item.label)
+          // Use inventory item ID if available, otherwise try to find by original label
+          let inventoryItem = null
+          if (item.inventoryItemId) {
+            inventoryItem = inventoryStore.ingredients.find(ing => ing.id === item.inventoryItemId)
+          }
+          if (!inventoryItem) {
+            inventoryItem = findInventoryItemByName(item.originalLabel || item.label)
+          }
+          
           if (inventoryItem) {
             const res = await inventoryStore.deductIngredientQuantity(
               inventoryItem.id,
@@ -558,6 +706,9 @@ const saveFormulation = async () => {
     }
 
     alert(successMessage)
+
+    // Refresh inventory to ensure UI is up to date
+    await inventoryStore.fetchIngredients()
 
     // Reset form
     Object.keys(amounts).forEach((key) => {
@@ -678,6 +829,124 @@ const saveFormulation = async () => {
   margin-top: 4px;
 }
 
+.category-totals {
+  background: #f8f9fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.totals-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #2f8b60;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.formulation-info {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.info-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.calculation-breakdown {
+  display: grid;
+  gap: 6px;
+}
+
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.calc-value {
+  font-weight: 600;
+  color: #2f8b60;
+}
+
+.calc-value.required-calc {
+  color: #007500;
+  font-weight: 700;
+}
+
+.calc-value.exceeded {
+  color: #e74c3c;
+  font-weight: 700;
+  background-color: #fdf2f2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fecaca;
+}
+
+.totals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.total-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.total-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  min-width: 80px;
+  flex: 1;
+}
+
+.total-input {
+  width: 70px;
+  padding: 4px 8px;
+  border: 1px solid #007500;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+  font-weight: 600;
+  outline: none;
+  background: white;
+}
+
+.total-input:focus {
+  border-color: #2f8b60;
+  box-shadow: 0 0 0 2px rgba(47, 139, 96, 0.2);
+}
+
+.total-input[readonly] {
+  background: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.fixed-indicator {
+  font-size: 12px;
+  margin-left: 4px;
+}
+
 .table {
   border: 1px solid #e8e8e8;
   border-radius: 14px;
@@ -717,7 +986,7 @@ const saveFormulation = async () => {
 .thead {
   display: grid;
   grid-template-columns: 2fr 80px 90px;
-  padding: 6px 4px;
+  padding: 6px 0px;
   color: #7a8b99;
   font-size: 12px;
 }

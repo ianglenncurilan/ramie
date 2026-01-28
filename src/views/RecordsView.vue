@@ -288,8 +288,8 @@ const updateDateFilter = () => {
       break
   }
 
-  // Trigger filtered recomputation
-  filtered.value = [...filtered.value]
+  // Note: No need to manually trigger filtered recomputation
+  // Computed properties automatically recompute when dependencies change
 }
 
 // Clear all filters

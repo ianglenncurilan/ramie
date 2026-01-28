@@ -43,10 +43,25 @@
             <div class="row" v-for="ingredient in inventory.ingredients" :key="ingredient.id">
               <span class="ingredient-name">{{ ingredient.name }}</span>
               <div class="quantity-cell">
-                <span class="quantity-pill">
-                  {{ formatNumber(ingredient.quantity) }}
+                <div
+                  class="quantity-input-wrapper"
+                  :class="{ updating: updatingQuantity === ingredient.id }"
+                >
+                  <input
+                    type="number"
+                    class="quantity-input"
+                    v-model.number="ingredient.quantity"
+                    @blur="updateIngredientQuantity(ingredient)"
+                    @keyup.enter="updateIngredientQuantity(ingredient)"
+                    min="0"
+                    step="0.1"
+                    :disabled="updatingQuantity === ingredient.id"
+                  />
                   <span class="unit">{{ ingredient.unit }}</span>
-                </span>
+                  <span v-if="updatingQuantity === ingredient.id" class="updating-indicator"
+                    >⏳</span
+                  >
+                </div>
               </div>
               <span class="cost">₱{{ ingredient.cost.toFixed(2) }}</span>
               <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
@@ -175,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated } from 'vue'
 import { useInventoryStore } from '../stores/inventory'
 
 const inventory = useInventoryStore()
@@ -189,6 +204,7 @@ const formatNumber = (num) => {
 // Modal state
 const showModal = ref(false)
 const editingIngredient = ref(null)
+const updatingQuantity = ref(null)
 
 // Form data
 const form = reactive({
@@ -201,6 +217,11 @@ const form = reactive({
 
 // Fetch ingredients when component is mounted
 onMounted(() => {
+  inventory.fetchIngredients()
+})
+
+// Refresh inventory when view is activated (when navigating back to this view)
+onActivated(() => {
   inventory.fetchIngredients()
 })
 
@@ -280,10 +301,40 @@ async function deleteIngredient(id) {
   }
 }
 
-function updateQuantity(id, newQuantity) {
-  // This function is kept for backward compatibility
-  // but direct quantity updates are now disabled
-  console.log('Please use the edit button to update quantities')
+async function updateIngredientQuantity(ingredient) {
+  try {
+    updatingQuantity.value = ingredient.id
+
+    // Validate the quantity
+    const newQuantity = Number(ingredient.quantity)
+    if (isNaN(newQuantity) || newQuantity < 0) {
+      // Revert to original quantity if invalid
+      const originalIngredient = inventory.ingredients.find((ing) => ing.id === ingredient.id)
+      ingredient.quantity = originalIngredient.quantity
+      alert('Please enter a valid quantity (0 or greater)')
+      return
+    }
+
+    // Update the ingredient in the database
+    const { error } = await inventory.updateIngredient(ingredient.id, {
+      quantity: newQuantity,
+    })
+
+    if (error) {
+      console.error('Error updating quantity:', error)
+      // Revert to original quantity on error
+      const originalIngredient = inventory.ingredients.find((ing) => ing.id === ingredient.id)
+      ingredient.quantity = originalIngredient.quantity
+      alert('Failed to update quantity. Please try again.')
+    } else {
+      console.log(`Successfully updated ${ingredient.name} quantity to ${newQuantity}`)
+    }
+  } catch (error) {
+    console.error('Error updating quantity:', error)
+    alert('An error occurred while updating the quantity.')
+  } finally {
+    updatingQuantity.value = null
+  }
 }
 
 // Function to auto-detect ingredient type based on name
@@ -466,7 +517,6 @@ function onNameChange() {
   align-items: center;
   /* ensure horizontal scrolling shows when viewport is narrow */
   min-width: 760px;
-  
 }
 .thead {
   font-weight: 600;
@@ -481,8 +531,6 @@ function onNameChange() {
 .thead span:nth-child(1),
 .row > :nth-child(1) {
   text-align: left;
-  
-
 }
 .thead span:nth-child(2),
 .row > :nth-child(2) {
@@ -520,6 +568,61 @@ function onNameChange() {
   display: flex;
   align-items: center;
   padding: 8px 0;
+}
+
+.quantity-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 4px 8px;
+  min-width: 80px;
+  transition: all 0.2s ease;
+}
+
+.quantity-input-wrapper:focus-within {
+  border-color: #2f8b60;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(47, 139, 96, 0.1);
+}
+
+.quantity-input-wrapper.updating {
+  border-color: #ffa500;
+  background: #fff8dc;
+}
+
+.updating-indicator {
+  font-size: 12px;
+  margin-left: 4px;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.quantity-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #333;
+  width: 50px;
+  text-align: right;
+  min-width: 0;
+}
+
+.quantity-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .quantity-pill {
@@ -755,6 +858,14 @@ button {
   .qty-input {
     width: 50px;
     padding: 2px 4px;
+    font-size: 12px;
+  }
+  .quantity-input-wrapper {
+    min-width: 70px;
+    padding: 2px 6px;
+  }
+  .quantity-input {
+    width: 40px;
     font-size: 12px;
   }
   .actions {
