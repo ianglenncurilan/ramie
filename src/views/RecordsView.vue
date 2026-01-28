@@ -808,14 +808,14 @@ async function exportMonth() {
   display: flex;
   align-items: flex-end;
   padding: 12px;
-  color: #fff;
+  color: #ffffff;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
   border-radius: 14px;
 }
 .overlay .receipt-icon {
   position: absolute;
   top: 10px;
-  right: 12px;  
+  right: 12px;
   width: 100px;
   height: 100px;
   object-fit: contain;
@@ -842,8 +842,8 @@ async function exportMonth() {
   border-radius: 16px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  max-width: 1600px;
-  width: 95%;
+  max-width: 1200px;
+  width: 85%;
   align-self: center;
 }
 

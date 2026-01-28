@@ -416,8 +416,8 @@ const formatDate = (dateString) => {
   max-height: calc(100vh - 140px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.06);
-  max-width: 1600px;
-  width: 95%;
+  max-width: 1200px;
+  width: 85%;
   align-self: center;
 }
 

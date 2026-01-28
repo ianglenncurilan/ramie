@@ -1372,6 +1372,15 @@ textarea.form-input {
   margin: 20px 16px;
   border-radius: 18px;
   padding: 16px;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 1200px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  z-index: 100;
 }
 .panel-header {
   display: grid;

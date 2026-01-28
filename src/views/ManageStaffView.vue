@@ -1418,12 +1418,16 @@ watch([statusFilter, roleFilter], () => {
 
 .panel {
   background: #fff;
-  margin: 16px;
+  margin: 12px;
   border-radius: 18px;
   padding: 20px 16px;
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  max-width: 1200px;
+  width: 85%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .panel-header {

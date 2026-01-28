@@ -124,7 +124,7 @@ const go = (name) => {
 }
 .hero img {
   width: 100%;
-  height: 140px;
+  height: 80px;
   object-fit: cover;
   border-radius: 14px;
 }
@@ -158,13 +158,13 @@ const go = (name) => {
 }
 .hero .greet {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 2px;
   opacity: 0.95;
   margin-left: 6px;
 }
 .hero .subgreet {
   font-weight: 500;
-  font-size: 13px;
+  font-size: 2px;
   opacity: 0.9;
   margin-left: 6px;
 }
@@ -183,6 +183,7 @@ const go = (name) => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  min-height: 400px;
 }
 
 .card {
@@ -197,7 +198,7 @@ const go = (name) => {
   cursor: pointer;
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
-  min-height: 140px;
+  min-height: 180px;
 }
 
 .card:hover {

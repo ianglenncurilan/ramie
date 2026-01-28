@@ -424,6 +424,10 @@ function cancelSignOut() {
 .hero {
   margin: 16px;
   position: relative;
+  max-width: 1200px;
+  width: 85%;
+  margin-left: auto;
+  margin-right: auto;
 }
 .hero img {
   width: 100%;
@@ -467,6 +471,10 @@ function cancelSignOut() {
   flex: 1;
   overflow-y: auto;
   padding-bottom: 16px;
+  max-width: 1200px;
+  width: 85%;
+  margin-left: auto;
+  margin-right: auto;
 }
 .avatar {
   width: 90px;
