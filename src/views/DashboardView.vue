@@ -124,7 +124,7 @@ const go = (name) => {
 }
 .hero img {
   width: 100%;
-  height: 180px;
+  height: 140px;
   object-fit: cover;
   border-radius: 14px;
 }
@@ -222,7 +222,7 @@ const go = (name) => {
   }
 
   .hero img {
-    height: 160px;
+    height: 120px;
   }
 
   .hero .brand-right {
@@ -271,7 +271,7 @@ const go = (name) => {
 /* Mobile Medium (375px - 424px) */
 @media (min-width: 375px) and (max-width: 424px) {
   .hero img {
-    height: 170px;
+    height: 130px;
   }
 
   .grid {
@@ -304,7 +304,7 @@ const go = (name) => {
   }
 
   .hero img {
-    height: 200px;
+    height: 150px;
   }
 
   .hero .brand-right {
@@ -362,7 +362,7 @@ const go = (name) => {
   }
 
   .hero img {
-    height: 240px;
+    height: 180px;
   }
 
   .hero .brand-right {
@@ -423,7 +423,7 @@ const go = (name) => {
   }
 
   .hero img {
-    height: 300px;
+    height: 220px;
   }
 
   .hero .overlay {
@@ -492,7 +492,7 @@ const go = (name) => {
   }
 
   .hero img {
-    height: 360px;
+    height: 260px;
   }
 
   .hero .overlay {

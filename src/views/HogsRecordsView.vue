@@ -9,11 +9,6 @@
             </button>
             <h2>Hog Records</h2>
           </div>
-          <div class="header-actions">
-            <button class="btn export-btn" @click="exportToCSV">
-              <span>📊 Export to CSV</span>
-            </button>
-          </div>
         </div>
 
         <div class="tabs">
@@ -158,22 +153,7 @@
                   </h4>
                   <span class="record-date">{{ formatDate(record.event_date) }}</span>
                 </div>
-                <div v-if="record.hog_details" class="hog-details">
-                  <div class="detail">
-                    <span class="label">Breed:</span>
-                    <span class="value">{{ record.hog_details.breed || 'N/A' }}</span>
-                  </div>
-                  <div class="detail">
-                    <span class="label">Gender:</span>
-                    <span class="value">{{ record.hog_details.gender || 'N/A' }}</span>
-                  </div>
-                  <div class="detail">
-                    <span class="label">Birth Date:</span>
-                    <span class="value">{{
-                      formatDate(record.hog_details.birth_date) || 'N/A'
-                    }}</span>
-                  </div>
-                </div>
+
                 <div class="record-details">
                   <div class="detail">
                     <span class="label">Sale Price:</span>
@@ -191,10 +171,7 @@
                     <span class="label">Weight at Sale:</span>
                     <span class="value">{{ record.details?.weight || 'N/A' }} kg</span>
                   </div>
-                  <div class="detail" v-if="record.details?.buyer">
-                    <span class="label">Buyer:</span>
-                    <span class="value">{{ record.details.buyer }}</span>
-                  </div>
+
                   <div class="detail" v-if="record.details?.notes">
                     <span class="label">Notes:</span>
                     <span class="value">{{ record.details.notes }}</span>
@@ -232,19 +209,17 @@
                   </h4>
                   <span class="record-date">{{ formatDate(record.event_date) }}</span>
                 </div>
-                <div v-if="record.hog_details" class="hog-details">
+                <div v-if="record.hogs || record.hog_details" class="hog-details">
                   <div class="detail">
-                    <span class="label">Breed:</span>
-                    <span class="value">{{ record.hog_details.breed || 'N/A' }}</span>
+                    <span class="label">Weight:</span>
+                    <span class="value"
+                      >{{ record.hogs?.weight || record.hog_details?.weight || 'N/A' }} kg</span
+                    >
                   </div>
                   <div class="detail">
-                    <span class="label">Gender:</span>
-                    <span class="value">{{ record.hog_details.gender || 'N/A' }}</span>
-                  </div>
-                  <div class="detail">
-                    <span class="label">Birth Date:</span>
+                    <span class="label">Days:</span>
                     <span class="value">{{
-                      formatDate(record.hog_details.birth_date) || 'N/A'
+                      record.hogs?.days || record.hog_details?.days || 'N/A'
                     }}</span>
                   </div>
                 </div>
@@ -340,8 +315,11 @@ watch(activeTab, () => {
 // Watch for records changes to ensure real-time updates
 watch(
   () => hogsStore.records,
-  (newRecords) => {
-    console.log('Records updated in store:', newRecords.length)
+  async (newRecords) => {
+    // Ensure we have all hogs data when records change
+    if (newRecords.length > 0) {
+      await hogsStore.fetchHogs('all')
+    }
     // Force reactivity update
     currentPage.value = 1
     applyFilters()
@@ -464,10 +442,18 @@ onMounted(async () => {
 async function fetchRecords() {
   try {
     loading.value = true
-    console.log('Fetching records from store...')
+
+    // Fetch all records
     await hogsStore.fetchRecords()
-    console.log('Records fetched:', hogsStore.records.length)
-    console.log('Sample record:', hogsStore.records[0])
+
+    // Also fetch ALL hogs (including sold and deceased) to get their names
+    await hogsStore.fetchHogs('all')
+
+    // Debug: Check the structure of the first record
+    if (hogsStore.records.length > 0) {
+      console.log('First record structure:', hogsStore.records[0])
+      console.log('Sale price from details:', hogsStore.records[0].details?.sale_price)
+    }
   } catch (error) {
     console.error('Error fetching records:', error)
   } finally {
@@ -475,8 +461,15 @@ async function fetchRecords() {
   }
 }
 
-// Get hog name by ID
+// Get hog name by ID -优先使用记录中的hog详情，回退到store中的hogs
 function getHogName(hogId) {
+  // First try to get from the record's hog details (from the join)
+  const record = hogsStore.records.find((r) => r.hog_id === hogId)
+  if (record?.hogs?.code) {
+    return record.hogs.code
+  }
+
+  // Fallback to store hogs (for backward compatibility)
   const hog = hogsStore.hogs.find((h) => h.id === hogId)
   return hog?.code || null
 }
@@ -624,80 +617,6 @@ function changeTab(tab) {
   }
 }
 
-// Export records to CSV
-function exportToCSV() {
-  try {
-    const headers =
-      activeTab.value === 'sale'
-        ? [
-            'Hog ID',
-            'Hog Name',
-            'Sale Date',
-            'Sale Price',
-            'Price per Kilo',
-            'Weight (kg)',
-            'Buyer',
-            'Notes',
-          ]
-        : ['Hog ID', 'Hog Name', 'Date of Death', 'Cause of Death', 'Weight (kg)', 'Notes']
-
-    const data = filteredRecords.value.map((record) => {
-      if (activeTab.value === 'sale') {
-        return [
-          record.hog_id ? String(record.hog_id).slice(0, 8) : 'N/A',
-          getHogName(record.hog_id) || 'N/A',
-          formatDate(record.event_date),
-          record.details?.sale_price
-            ? `₱${Number(record.details.sale_price).toLocaleString()}`
-            : 'N/A',
-          record.details?.price_per_kilo
-            ? `₱${Number(record.details.price_per_kilo).toLocaleString()}`
-            : 'N/A',
-          record.details?.weight || 'N/A',
-          record.details?.buyer || 'N/A',
-          record.details?.notes || 'N/A',
-        ]
-      } else {
-        return [
-          record.hog_id ? String(record.hog_id).slice(0, 8) : 'N/A',
-          getHogName(record.hog_id) || 'N/A',
-          formatDate(record.event_date),
-          record.details?.cause_of_death || 'Unknown',
-          record.details?.weight || 'N/A',
-          record.details?.notes || 'N/A',
-        ]
-      }
-    })
-
-    // Add headers to the data
-    const csvContent = [
-      headers.join(','),
-      ...data.map((row) =>
-        row.map((field) => `"${String(field || '').replace(/"/g, '""')}"`).join(','),
-      ),
-    ].join('\n')
-
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    const today = new Date()
-    const timestamp = today.toISOString().split('T')[0]
-    const filename = `${activeTab.value === 'sale' ? 'sold' : 'deceased'}_hogs_${timestamp}.csv`
-
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Error exporting to CSV:', error)
-    alert('Failed to export records. Please try again.')
-  }
-}
-
 // Format date for display
 function formatDate(dateString) {
   if (!dateString) return 'N/A'
@@ -836,50 +755,6 @@ function viewHogDetails(hogId) {
   font-weight: 700;
   margin: 0;
   color: #2f8b60;
-}
-
-.header-actions {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.btn {
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 12px;
-  background: #f0f0f0;
-  color: #333;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn:hover {
-  background: #e0e0e0;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.export-btn {
-  background-color: #2f8b60;
-  color: white;
-  padding: 0.7rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(47, 139, 96, 0.2);
-}
-
-.export-btn:hover {
-  background-color: #247a52;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(47, 139, 96, 0.3);
 }
 
 .clear-btn,
@@ -1291,11 +1166,47 @@ function viewHogDetails(hogId) {
   color: #555;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 374px) {
+  .panel {
+    margin: 8px 8px 100px 8px;
+    padding: 12px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .tabs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filters-container {
+    padding: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+@media (min-width: 375px) and (max-width: 424px) {
+  .panel {
+    margin: 10px 10px 100px 10px;
+    padding: 14px;
+  }
+
+  .filters-container {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 425px) and (max-width: 767px) {
   .panel {
     margin: 12px 12px 100px 12px;
     padding: 16px;
-    width: calc(100% - 24px);
   }
 
   .filters-container {
@@ -1304,40 +1215,35 @@ function viewHogDetails(hogId) {
     align-items: stretch;
     gap: 0.75rem;
   }
+}
 
-  .filter-group {
-    width: 100%;
-    justify-content: space-between;
+@media (min-width: 768px) and (max-width: 1023px) {
+  .panel {
+    margin: 16px 16px 100px 16px;
+    padding: 20px;
+    max-width: 768px;
+    margin-left: auto;
+    margin-right: auto;
   }
+}
 
-  .filter-status {
-    margin-left: 0;
-    justify-content: center;
-    text-align: center;
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .panel {
+    margin: 20px 20px 100px 20px;
+    padding: 24px;
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
   }
+}
 
-  .records-list {
-    grid-template-columns: 1fr;
-  }
-
-  .tab {
-    padding: 10px;
-    font-size: 13px;
-  }
-
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .header-actions {
-    width: 100%;
-  }
-
-  .export-btn {
-    width: 100%;
-    justify-content: center;
+@media (min-width: 1440px) {
+  .panel {
+    margin: 24px 24px 100px 24px;
+    padding: 28px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 </style>

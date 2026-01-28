@@ -2015,12 +2015,124 @@ textarea.form-input {
   background: #247a52;
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
+/* Mobile Small (320px - 374px) */
+@media (max-width: 374px) {
   .panel {
-    margin: 12px 12px;
+    margin: 8px 8px;
+    padding: 10px;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+  }
+
+  .panel-illustration {
+    display: none;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1fr;
+    gap: 6px;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+
+  .weight-input {
+    width: 45px;
+    font-size: 10px;
+  }
+
+  .action-btn {
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+  }
+
+  .stats {
+    gap: 6px;
+  }
+
+  .stat-item {
+    font-size: 9px;
+    padding: 2px 4px;
+  }
+
+  .modal {
+    width: 95%;
+    margin: 10px;
+  }
+}
+
+/* Mobile Medium (375px - 424px) */
+@media (min-width: 375px) and (max-width: 424px) {
+  .panel {
+    margin: 10px 10px;
     padding: 12px;
   }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+  }
+
+  .panel-illustration {
+    width: 48px;
+    height: 48px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1fr;
+    gap: 7px;
+    padding: 7px 5px;
+    font-size: 11px;
+  }
+
+  .weight-input {
+    width: 48px;
+    font-size: 10px;
+  }
+
+  .action-btn {
+    width: 23px;
+    height: 23px;
+    font-size: 10px;
+  }
+
+  .stats {
+    gap: 7px;
+  }
+
+  .stat-item {
+    font-size: 10px;
+    padding: 3px 5px;
+  }
+
+  .modal {
+    width: 94%;
+    margin: 15px;
+  }
+}
+
+/* Mobile Large (425px - 767px) */
+@media (min-width: 425px) and (max-width: 767px) {
+  .panel {
+    margin: 12px 12px;
+    padding: 14px;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+  }
+
+  .panel-illustration {
+    width: 56px;
+    height: 56px;
+  }
+
   .thead,
   .row {
     grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1fr;
@@ -2028,25 +2140,192 @@ textarea.form-input {
     padding: 8px 6px;
     font-size: 12px;
   }
+
   .weight-input {
     width: 50px;
     font-size: 11px;
   }
+
   .action-btn {
     width: 24px;
     height: 24px;
     font-size: 10px;
   }
+
   .stats {
     gap: 8px;
   }
+
   .stat-item {
     font-size: 10px;
     padding: 3px 6px;
   }
+
   .modal {
-    width: 95%;
+    width: 92%;
     margin: 20px;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .panel {
+    margin: 16px 16px;
+    padding: 18px;
+    max-width: 768px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+  }
+
+  .panel-illustration {
+    width: 60px;
+    height: 60px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1fr;
+    gap: 10px;
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  .weight-input {
+    width: 55px;
+    font-size: 12px;
+  }
+
+  .action-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+
+  .stats {
+    gap: 10px;
+  }
+
+  .stat-item {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .modal {
+    width: 85%;
+    margin: 30px;
+  }
+}
+
+/* Small Desktop (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .panel {
+    margin: 20px 20px;
+    padding: 22px;
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+  }
+
+  .panel-illustration {
+    width: 64px;
+    height: 64px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1fr;
+    gap: 12px;
+    padding: 12px 10px;
+    font-size: 14px;
+  }
+
+  .weight-input {
+    width: 60px;
+    font-size: 13px;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .stats {
+    gap: 12px;
+  }
+
+  .stat-item {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  .modal {
+    width: 80%;
+    margin: 40px;
+  }
+}
+
+/* Large Desktop (1440px+) */
+@media (min-width: 1440px) {
+  .panel {
+    margin: 24px 24px;
+    padding: 26px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 28px;
+  }
+
+  .panel-illustration {
+    width: 72px;
+    height: 72px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1fr;
+    gap: 14px;
+    padding: 14px 12px;
+    font-size: 15px;
+  }
+
+  .weight-input {
+    width: 65px;
+    font-size: 14px;
+  }
+
+  .action-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+
+  .stats {
+    gap: 14px;
+  }
+
+  .stat-item {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .modal {
+    width: 75%;
+    margin: 50px;
   }
 }
 

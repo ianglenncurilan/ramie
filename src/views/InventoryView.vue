@@ -829,61 +829,485 @@ button {
   filter: brightness(0) invert(1);
 }
 
-/* Mobile responsiveness */
-@media (max-width: 420px) {
+/* Mobile Small (320px - 374px) */
+@media (max-width: 374px) {
+  .panel {
+    margin: 8px 8px 100px 8px;
+    padding: 16px;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+  }
+
+  .panel-illustration {
+    display: none;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .table {
+    padding: 4px;
+    border-radius: 10px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 80px;
+    gap: 6px;
+    padding: 6px 4px;
+    font-size: 11px;
+    min-width: 580px;
+  }
+
+  .qty-input {
+    width: 45px;
+    padding: 2px 3px;
+    font-size: 11px;
+  }
+
+  .quantity-input-wrapper {
+    min-width: 65px;
+    padding: 2px 4px;
+  }
+
+  .quantity-input {
+    width: 35px;
+    font-size: 11px;
+  }
+
+  .actions {
+    gap: 3px;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .modal {
+    margin: 8px;
+    max-height: 96vh;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+/* Mobile Medium (375px - 424px) */
+@media (min-width: 375px) and (max-width: 424px) {
+  .panel {
+    margin: 10px 10px 100px 10px;
+    padding: 17px;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+  }
+
+  .panel-illustration {
+    width: 48px;
+    height: 48px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .stat-card {
+    padding: 13px;
+    border-radius: 11px;
+  }
+
+  .table {
+    padding: 5px;
+    border-radius: 11px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 85px;
+    gap: 7px;
+    padding: 7px 5px;
+    font-size: 11px;
+    min-width: 610px;
+  }
+
+  .qty-input {
+    width: 48px;
+    padding: 2px 3px;
+    font-size: 11px;
+  }
+
+  .quantity-input-wrapper {
+    min-width: 68px;
+    padding: 2px 5px;
+  }
+
+  .quantity-input {
+    width: 38px;
+    font-size: 11px;
+  }
+
+  .actions {
+    gap: 3px;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+  }
+
+  .modal {
+    margin: 9px;
+    max-height: 95vh;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}
+
+/* Mobile Large (425px - 767px) */
+@media (min-width: 425px) and (max-width: 767px) {
   .panel {
     margin: 12px 12px 100px 12px;
-    padding: 18px; /* slightly larger padding for better spacing */
+    padding: 18px;
   }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+  }
+
+  .panel-illustration {
+    width: 56px;
+    height: 56px;
+  }
+
   .stats {
     grid-template-columns: 1fr;
     gap: 10px;
   }
+
   .stat-card {
     padding: 14px;
     border-radius: 12px;
   }
+
   .table {
     padding: 6px;
     border-radius: 12px;
   }
+
   .thead,
   .row {
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 90px; /* tighter to fit mobile */
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 90px;
     gap: 8px;
     padding: 8px 6px;
     font-size: 12px;
-    min-width: 640px; /* allow side scroll on small phones */
+    min-width: 640px;
   }
+
   .qty-input {
     width: 50px;
     padding: 2px 4px;
     font-size: 12px;
   }
+
   .quantity-input-wrapper {
     min-width: 70px;
     padding: 2px 6px;
   }
+
   .quantity-input {
     width: 40px;
     font-size: 12px;
   }
+
   .actions {
     gap: 4px;
   }
+
   .edit-btn,
   .delete-btn {
     width: 28px;
     height: 28px;
     font-size: 14px;
   }
+
   .modal {
     margin: 10px;
     max-height: 95vh;
   }
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .panel {
+    margin: 14px 14px 100px 14px;
+    padding: 20px;
+    max-width: 768px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+  }
+
+  .panel-illustration {
+    width: 60px;
+    height: 60px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .table {
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 100px;
+    gap: 10px;
+    padding: 10px 8px;
+    font-size: 13px;
+    min-width: 700px;
+  }
+
+  .qty-input {
+    width: 55px;
+    padding: 3px 5px;
+    font-size: 13px;
+  }
+
+  .quantity-input-wrapper {
+    min-width: 75px;
+    padding: 3px 8px;
+  }
+
+  .quantity-input {
+    width: 45px;
+    font-size: 13px;
+  }
+
+  .actions {
+    gap: 5px;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  .modal {
+    margin: 15px;
+    max-height: 90vh;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
+/* Small Desktop (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .panel {
+    margin: 16px 16px 100px 16px;
+    padding: 22px;
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+  }
+
+  .panel-illustration {
+    width: 64px;
+    height: 64px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .stat-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .table {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 110px;
+    gap: 12px;
+    padding: 12px 10px;
+    font-size: 14px;
+    min-width: 750px;
+  }
+
+  .qty-input {
+    width: 60px;
+    padding: 4px 6px;
+    font-size: 14px;
+  }
+
+  .quantity-input-wrapper {
+    min-width: 80px;
+    padding: 4px 10px;
+  }
+
+  .quantity-input {
+    width: 50px;
+    font-size: 14px;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .modal {
+    margin: 20px;
+    max-height: 85vh;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+
+/* Large Desktop (1440px+) */
+@media (min-width: 1440px) {
+  .panel {
+    margin: 18px 18px 100px 18px;
+    padding: 24px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .panel-header {
+    grid-template-columns: auto 1fr auto;
+    gap: 28px;
+  }
+
+  .panel-illustration {
+    width: 72px;
+    height: 72px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .stat-card {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .table {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 120px;
+    gap: 14px;
+    padding: 14px 12px;
+    font-size: 15px;
+    min-width: 800px;
+  }
+
+  .qty-input {
+    width: 65px;
+    padding: 5px 8px;
+    font-size: 15px;
+  }
+
+  .quantity-input-wrapper {
+    min-width: 85px;
+    padding: 5px 12px;
+  }
+
+  .quantity-input {
+    width: 55px;
+    font-size: 15px;
+  }
+
+  .actions {
+    gap: 7px;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 17px;
+  }
+
+  .modal {
+    margin: 25px;
+    max-height: 80vh;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
   }
 }
 

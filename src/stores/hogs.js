@@ -806,13 +806,30 @@ export const useHogsStore = defineStore('hogs', () => {
       loading.value = true
       const { data, error: fetchError } = await supabase
         .from('records')
-        .select('*')
+        .select(
+          `
+          *,
+          hogs (
+            id,
+            code,
+            weight,
+            days,
+            status
+          )
+        `,
+        )
         .order('event_date', { ascending: false })
 
       if (fetchError) throw fetchError
 
-      records.value = data || []
-      return records.value
+      // Parse the details column as JSON since it's stored as text
+      const parsedData = (data || []).map((record) => ({
+        ...record,
+        details: typeof record.details === 'string' ? JSON.parse(record.details) : record.details,
+      }))
+
+      records.value = parsedData
+      return parsedData
     } catch (err) {
       console.error('Error fetching records:', err)
       error.value = err.message
