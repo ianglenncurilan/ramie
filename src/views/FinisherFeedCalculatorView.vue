@@ -166,10 +166,17 @@ const uiCategories = computed(() => {
 
   // Categorize ingredients by type
   const categorizedIngredients = {
-    carbs: availableIngredients.filter((ingredient) => ingredient.type === 'carbs'),
+    carbs: availableIngredients.filter(
+      (ingredient) =>
+        ingredient.type === 'carbs' && !ingredient.name.toLowerCase().includes('water'),
+    ),
     protein: availableIngredients.filter((ingredient) => ingredient.type === 'protein'),
     vitamins: availableIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
     minerals: availableIngredients.filter((ingredient) => ingredient.type === 'minerals'),
+    water: availableIngredients.filter(
+      (ingredient) =>
+        ingredient.type === 'carbs' && ingredient.name.toLowerCase().includes('water'),
+    ),
   }
 
   return [
@@ -209,6 +216,17 @@ const uiCategories = computed(() => {
       title: 'Minerals',
       total: 0, // No total validation for minerals
       items: categorizedIngredients.minerals.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+    {
+      key: 'water',
+      title: 'Water',
+      total: 0, // No total validation for water
+      items: categorizedIngredients.water.map((ingredient) => ({
         id: ingredient.id,
         label: ingredient.name,
         base: Math.round(ingredient.quantity * 0.1) || 1,
@@ -562,8 +580,8 @@ async function saveFormulation() {
     for (const item of items) {
       if (item.amountKg > 0) {
         // Use original label or inventory item ID to find the item
-        const invItem = item.inventoryItemId 
-          ? inventoryStore.ingredients.find(ing => ing.id === item.inventoryItemId)
+        const invItem = item.inventoryItemId
+          ? inventoryStore.ingredients.find((ing) => ing.id === item.inventoryItemId)
           : findInventoryItemByName(item.originalLabel || item.label)
         const currentQty = Number(invItem?.quantity) || 0
         if (!invItem || currentQty < Number(item.amountKg)) {
@@ -587,12 +605,14 @@ async function saveFormulation() {
           // Use inventory item ID if available, otherwise try to find by original label
           let inventoryItem = null
           if (item.inventoryItemId) {
-            inventoryItem = inventoryStore.ingredients.find(ing => ing.id === item.inventoryItemId)
+            inventoryItem = inventoryStore.ingredients.find(
+              (ing) => ing.id === item.inventoryItemId,
+            )
           }
           if (!inventoryItem) {
             inventoryItem = findInventoryItemByName(item.originalLabel || item.label)
           }
-          
+
           if (inventoryItem) {
             const res = await inventoryStore.deductIngredientQuantity(
               inventoryItem.id,

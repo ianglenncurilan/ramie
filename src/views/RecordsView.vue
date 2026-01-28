@@ -85,16 +85,6 @@
               />
             </div>
 
-            <!-- Month Selector -->
-            <div class="filter-group" v-if="dateFilterType === 'month'">
-              <label for="month">Month:</label>
-              <select id="month" v-model="selectedMonth" @change="updateDateFilter">
-                <option v-for="month in months" :key="month.value" :value="month.value">
-                  {{ month.label }}
-                </option>
-              </select>
-            </div>
-
             <!-- Last X Months -->
             <div class="filter-group" v-if="dateFilterType === 'months-ago'">
               <label for="months-ago">Last</label>
@@ -113,32 +103,6 @@
             <div class="filter-status" v-if="currentFilterDisplay">
               {{ currentFilterDisplay }}
               <button class="clear-filter" @click="clearFilters">×</button>
-            </div>
-          </div>
-          <div class="export-wrap">
-            <button
-              class="export-btn"
-              @click="exportMonth"
-              :title="`Click to download ${selectedMonthLabel}'s data as an Excel file.`"
-            >
-              {{ exportStatus || `Export ${selectedMonthLabel} Records` }}
-            </button>
-          </div>
-          <div class="month-bar" @wheel.prevent="onWheel">
-            <div class="month-track" ref="monthTrack">
-              <button
-                v-for="m in months"
-                :key="m.value"
-                class="month-chip"
-                :data-month="m.value"
-                :class="{
-                  active: m.value === selectedMonth,
-                  disabled: !monthsWithData.has(m.value),
-                }"
-                @click="selectMonth(m.value)"
-              >
-                {{ m.label }}
-              </button>
             </div>
           </div>
 
@@ -164,8 +128,8 @@
                 </div>
               </div>
               <div v-if="groupedRecords.length === 0" class="empty">
-                No records for {{ selectedMonthLabel }} yet! To add new records, navigate to Home
-                and use the task menus (e.g., Make Feeds, Hogs Tracked).
+                No records yet! To add new records, navigate to Home and use the task menus (e.g.,
+                Make Feeds, Hogs Tracked).
               </div>
             </div>
           </div>
@@ -230,10 +194,6 @@ const currentFilterDisplay = ref('')
 // Initialize dates
 const today = new Date()
 const currentYear = today.getFullYear()
-const currentMonth = today.getMonth()
-
-// Set initial selected month to current month
-const selectedMonth = ref(currentMonth)
 
 // Format date as YYYY-MM-DD
 const formatDate = (date) => {
@@ -277,11 +237,6 @@ const updateDateFilter = () => {
       }
       break
 
-    case 'month':
-      const monthName = months[selectedMonth.value].label
-      currentFilterDisplay.value = `Month: ${monthName} ${currentYear}`
-      break
-
     case 'months-ago':
       const monthsText = monthsAgo.value === 1 ? 'month' : 'months'
       currentFilterDisplay.value = `Last ${monthsAgo.value} ${monthsText}`
@@ -299,7 +254,6 @@ const clearFilters = () => {
   startWeek.value = ''
   endWeek.value = ''
   monthsAgo.value = 1
-  selectedMonth.value = currentMonth
   currentFilterDisplay.value = ''
   updateDateFilter()
 }
@@ -361,64 +315,18 @@ onBeforeMount(() => {
 const selectedPeriod = ref('Month')
 const exportStatus = ref('')
 const now = new Date()
-const months = [
-  { value: 0, label: 'Jan' },
-  { value: 1, label: 'Feb' },
-  { value: 2, label: 'Mar' },
-  { value: 3, label: 'Apr' },
-  { value: 4, label: 'May' },
-  { value: 5, label: 'Jun' },
-  { value: 6, label: 'Jul' },
-  { value: 7, label: 'Aug' },
-  { value: 8, label: 'Sep' },
-  { value: 9, label: 'Oct' },
-  { value: 10, label: 'Nov' },
-  { value: 11, label: 'Dec' },
-]
 const monthTrack = ref(null)
 const wheelLock = ref(false)
 
-const selectedMonthLabel = computed(
-  () => months.find((m) => m.value === selectedMonth.value)?.label || '',
-)
-
-function selectMonth(m) {
-  selectedMonth.value = m
-}
-function prevMonth() {
-  selectedMonth.value = (selectedMonth.value + 11) % 12
-}
-function nextMonth() {
-  selectedMonth.value = (selectedMonth.value + 1) % 12
-}
-
 function scrollSelectedIntoView() {
   try {
-    const el = monthTrack.value?.querySelector(`[data-month='${selectedMonth.value}']`)
-    el?.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' })
+    // Function kept for compatibility but no longer used without months
   } catch {}
-}
-
-function onWheel(e) {
-  if (wheelLock.value) return
-  wheelLock.value = true
-  if (e.deltaY > 0) {
-    nextMonth()
-  } else if (e.deltaY < 0) {
-    prevMonth()
-  }
-  setTimeout(() => {
-    wheelLock.value = false
-  }, 180)
 }
 
 onMounted(() => {
   // Defer to allow rendering
   setTimeout(scrollSelectedIntoView, 0)
-})
-
-watch(selectedMonth, () => {
-  scrollSelectedIntoView()
 })
 
 // Helpers
@@ -477,11 +385,6 @@ const filtered = computed(() => {
         const endDate = new Date(endWeek.value)
         endDate.setDate(endDate.getDate() + 6) // End of week
         return recordDate >= startDate && recordDate <= endDate
-
-      case 'month':
-        return (
-          recordDate.getMonth() === selectedMonth.value && recordDate.getFullYear() === currentYear
-        )
 
       case 'months-ago': {
         const cutoffDate = new Date()
@@ -574,9 +477,6 @@ function typeLabel(rec) {
 async function exportMonth() {
   try {
     const year = now.getFullYear()
-    const monthIdx = selectedMonth.value
-    const monthName =
-      months.find((m) => m.value === monthIdx)?.label || String(monthIdx + 1).padStart(2, '0')
     const data = filtered.value.map((r) => {
       const d = r.created_at ? new Date(r.created_at) : new Date(r.date)
       return {
@@ -592,8 +492,8 @@ async function exportMonth() {
     const XLSX = await import('https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs')
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, `${monthName}-${year}`)
-    const fname = `RAMIE_Records_${year}-${String(monthIdx + 1).padStart(2, '0')}.xlsx`
+    XLSX.utils.book_append_sheet(wb, ws, `Records-${year}`)
+    const fname = `RAMIE_Records_${year}.xlsx`
     XLSX.writeFileXLSX(wb, fname)
     exportStatus.value = '✅ Export Successful!'
     setTimeout(() => {
@@ -842,7 +742,6 @@ async function exportMonth() {
 }
 
 .screen {
-  height: 100vh;
   background: #2f8b60;
   overflow: hidden;
   display: flex;

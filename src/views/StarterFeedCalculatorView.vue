@@ -168,10 +168,17 @@ const uiCategories = computed(() => {
 
   // Categorize ingredients by type
   const categorizedIngredients = {
-    carbs: availableIngredients.filter((ingredient) => ingredient.type === 'carbs'),
+    carbs: availableIngredients.filter(
+      (ingredient) =>
+        ingredient.type === 'carbs' && !ingredient.name.toLowerCase().includes('water'),
+    ),
     protein: availableIngredients.filter((ingredient) => ingredient.type === 'protein'),
     vitamins: availableIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
     minerals: availableIngredients.filter((ingredient) => ingredient.type === 'minerals'),
+    water: availableIngredients.filter(
+      (ingredient) =>
+        ingredient.type === 'carbs' && ingredient.name.toLowerCase().includes('water'),
+    ),
   }
 
   return [
@@ -209,6 +216,16 @@ const uiCategories = computed(() => {
       key: 'minerals',
       title: 'Minerals',
       items: categorizedIngredients.minerals.map((ingredient) => ({
+        id: ingredient.id,
+        label: ingredient.name,
+        base: Math.round(ingredient.quantity * 0.1) || 1,
+        cost: ingredient.cost,
+      })),
+    },
+    {
+      key: 'water',
+      title: 'Water',
+      items: categorizedIngredients.water.map((ingredient) => ({
         id: ingredient.id,
         label: ingredient.name,
         base: Math.round(ingredient.quantity * 0.1) || 1,
@@ -586,7 +603,7 @@ const saveFormulation = async () => {
         // Use inventory item ID if available, otherwise try to find by original label
         let invItem = null
         if (item.inventoryItemId) {
-          invItem = inventoryStore.ingredients.find(ing => ing.id === item.inventoryItemId)
+          invItem = inventoryStore.ingredients.find((ing) => ing.id === item.inventoryItemId)
         }
         if (!invItem) {
           invItem = findInventoryItemByName(item.originalLabel || item.label)
@@ -613,12 +630,14 @@ const saveFormulation = async () => {
           // Use inventory item ID if available, otherwise try to find by original label
           let inventoryItem = null
           if (item.inventoryItemId) {
-            inventoryItem = inventoryStore.ingredients.find(ing => ing.id === item.inventoryItemId)
+            inventoryItem = inventoryStore.ingredients.find(
+              (ing) => ing.id === item.inventoryItemId,
+            )
           }
           if (!inventoryItem) {
             inventoryItem = findInventoryItemByName(item.originalLabel || item.label)
           }
-          
+
           if (inventoryItem) {
             const res = await inventoryStore.deductIngredientQuantity(
               inventoryItem.id,
