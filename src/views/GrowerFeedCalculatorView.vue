@@ -745,6 +745,12 @@ async function saveFormulation() {
   flex: 1;
   overflow-y: auto;
   max-height: calc(100vh - 140px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  max-width: 1200px;
+  width: 85%;
+  margin-left: auto;
+  margin-right: auto;
 }
 .panel-inner {
   display: grid;
@@ -968,7 +974,7 @@ async function saveFormulation() {
   border-radius: 6px;
   padding: 0.3rem;
   min-width: 0;
-  border-color: rgb(19, 183, 1);
+  border-color: #007500;
 }
 .pill.exceeded {
   background-color: #fdf2f2;

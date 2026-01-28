@@ -484,12 +484,12 @@ function onNameChange() {
 .thead,
 .row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 120px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 140px;
   gap: 12px;
   padding: 10px 12px;
   align-items: center;
   /* ensure horizontal scrolling shows when viewport is narrow */
-  min-width: 760px;
+  min-width: 780px;
 }
 .thead {
   font-weight: 600;
@@ -643,9 +643,6 @@ function onNameChange() {
 .delete-btn {
   background: #ffebee;
   color: #d32f2f;
-  pointer-events: auto;
-  z-index: 10;
-  position: relative;
 }
 
 .ok {
@@ -835,11 +832,11 @@ button {
 
   .thead,
   .row {
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 80px;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 100px;
     gap: 6px;
     padding: 6px 4px;
     font-size: 11px;
-    min-width: 580px;
+    min-width: 600px;
   }
 
   .qty-input {
@@ -914,11 +911,11 @@ button {
 
   .thead,
   .row {
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 85px;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 105px;
     gap: 7px;
     padding: 7px 5px;
     font-size: 11px;
-    min-width: 610px;
+    min-width: 630px;
   }
 
   .qty-input {
@@ -993,11 +990,11 @@ button {
 
   .thead,
   .row {
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 90px;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 110px;
     gap: 8px;
     padding: 8px 6px;
     font-size: 12px;
-    min-width: 640px;
+    min-width: 660px;
   }
 
   .qty-input {
@@ -1075,11 +1072,11 @@ button {
 
   .thead,
   .row {
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 100px;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 120px;
     gap: 10px;
     padding: 10px 8px;
     font-size: 13px;
-    min-width: 700px;
+    min-width: 720px;
   }
 
   .qty-input {
@@ -1157,11 +1154,11 @@ button {
 
   .thead,
   .row {
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 110px;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 130px;
     gap: 12px;
     padding: 12px 10px;
     font-size: 14px;
-    min-width: 750px;
+    min-width: 770px;
   }
 
   .qty-input {
@@ -1239,11 +1236,11 @@ button {
 
   .thead,
   .row {
-    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 120px;
+    grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 140px;
     gap: 14px;
     padding: 14px 12px;
     font-size: 15px;
-    min-width: 800px;
+    min-width: 820px;
   }
 
   .qty-input {

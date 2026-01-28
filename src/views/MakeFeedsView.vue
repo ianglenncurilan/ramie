@@ -66,6 +66,10 @@
   padding: 20px;
   flex: 1;
   overflow-y: auto;
+  max-width: 1200px;
+  width: 85%;
+  margin-left: auto;
+  margin-right: auto;
 }
 .panel-header {
   display: grid;
