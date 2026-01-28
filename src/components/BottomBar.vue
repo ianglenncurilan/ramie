@@ -81,7 +81,7 @@ const navigateTo = (routeName) => {
 
 .bottombar button:hover {
   opacity: 1;
-  transform: translateY(-2px) scale(1.06);
+  transform: translateY(-2px) scale(.9);
   background: rgba(47, 139, 96, 0.12);
 }
 
