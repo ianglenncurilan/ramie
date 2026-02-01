@@ -658,7 +658,7 @@ h2 {
   color: var(--text-light);
 }
 .login-link a {
-  color: var(--primary);
+  color: #2c7a4b;
   font-weight: 600;
   text-decoration: none;
   margin-left: 4px;
