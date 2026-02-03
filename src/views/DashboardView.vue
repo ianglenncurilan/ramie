@@ -74,20 +74,28 @@ const go = (name) => {
 
       <section class="grid">
         <button class="card" @click="go('make-feeds')">
-          <img src="/makefeeds.png" alt="Make Feeds" />
-          <div>Make Feeds</div>
+          <div class="card-content">
+            <img src="/makefeeds.png" alt="Make Feeds" />
+            <div class="card-title">Make Feeds</div>
+          </div>
         </button>
         <button class="card" @click="go('manage-staff')">
-          <img src="/staff.png" alt="Manage Staff" />
-          <div>Manage Staff</div>
+          <div class="card-content">
+            <img src="/staff.png" alt="Manage Staff" />
+            <div class="card-title">Manage Staff</div>
+          </div>
         </button>
         <button class="card" @click="go('inventory')">
-          <img src="/inventory.png" alt="Inventory" />
-          <div>Inventory</div>
+          <div class="card-content">
+            <img src="/inventory.png" alt="Inventory" />
+            <div class="card-title">Inventory</div>
+          </div>
         </button>
         <button class="card" @click="go('hogs-tracked')">
-          <img src="/pig2.png" alt="Hogs Tracked" />
-          <div>Hogs Tracked</div>
+          <div class="card-content">
+            <img src="/pig2.png" alt="Hogs Tracked" />
+            <div class="card-title">Hogs Tracked</div>
+          </div>
         </button>
       </section>
     </main>
@@ -194,11 +202,20 @@ const go = (name) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   cursor: pointer;
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
   min-height: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
 }
 
 .card:hover {
@@ -208,12 +225,14 @@ const go = (name) => {
 .card img {
   width: 56px;
   height: 56px;
+  object-fit: contain;
 }
 
-.card div {
+.card-title {
   font-size: 18px;
   font-weight: 600;
-  text-align: center;
+  color: #333;
+  line-height: 1.2;
 }
 
 /* Mobile Small (320px - 374px) */
@@ -256,6 +275,10 @@ const go = (name) => {
     padding: 24px;
     min-height: 120px;
     border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-content {
     gap: 8px;
   }
 
@@ -264,7 +287,7 @@ const go = (name) => {
     height: 44px;
   }
 
-  .card div {
+  .card-title {
     font-size: 15px;
   }
 }
@@ -285,6 +308,10 @@ const go = (name) => {
     padding: 28px;
     min-height: 130px;
     border-radius: 24px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
+  }
+
+  .card-content {
     gap: 10px;
   }
 
@@ -293,7 +320,7 @@ const go = (name) => {
     height: 48px;
   }
 
-  .card div {
+  .card-title {
     font-size: 16px;
   }
 }
@@ -338,6 +365,10 @@ const go = (name) => {
     padding: 36px;
     min-height: 150px;
     border-radius: 28px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-content {
     gap: 14px;
   }
 
@@ -346,7 +377,7 @@ const go = (name) => {
     height: 60px;
   }
 
-  .card div {
+  .card-title {
     font-size: 19px;
   }
 }
@@ -397,6 +428,10 @@ const go = (name) => {
     padding: 32px;
     min-height: 160px;
     border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-content {
     gap: 12px;
   }
 
@@ -405,7 +440,7 @@ const go = (name) => {
     height: 64px;
   }
 
-  .card div {
+  .card-title {
     font-size: 17px;
   }
 }
@@ -462,6 +497,10 @@ const go = (name) => {
     padding: 40px;
     min-height: 180px;
     border-radius: 28px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .card-content {
     gap: 16px;
   }
 
@@ -474,7 +513,7 @@ const go = (name) => {
     height: 72px;
   }
 
-  .card div {
+  .card-title {
     font-size: 18px;
   }
 }
@@ -531,6 +570,10 @@ const go = (name) => {
     padding: 48px;
     min-height: 200px;
     border-radius: 32px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-content {
     gap: 20px;
   }
 
@@ -543,7 +586,7 @@ const go = (name) => {
     height: 80px;
   }
 
-  .card div {
+  .card-title {
     font-size: 20px;
   }
 }

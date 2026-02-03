@@ -17,8 +17,7 @@
   "dependencies": {
     "@capacitor/android": "^7.4.3",
     "@capacitor/app": "7.1.0",
-    "@capacitor/cli": "7.4.3",
-    "@capacitor/core": "^7.4.3",
+    "@capacitor/core": "^8.0.2",
     "@capacitor/haptics": "7.0.2",
     "@capacitor/keyboard": "7.0.3",
     "@capacitor/status-bar": "7.0.3",
@@ -30,6 +29,7 @@
     "vuetify": "^3.9.6"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.0.2",
     "@vitejs/plugin-vue": "^6.0.1",
     "prettier": "3.6.2",
     "vite": "^7.0.6",
