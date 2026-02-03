@@ -737,8 +737,8 @@ const saveFormulation = async () => {
       costs[key] = 0
     })
 
-    // Navigate to records
-    router.replace({ name: 'records' })
+    // Navigate to dashboard
+    router.replace({ name: 'dashboard' })
   } catch (error) {
     console.error('Error saving feed formulation:', error)
     alert(`Error saving feed formulation: ${error.message}`)
@@ -769,7 +769,7 @@ const saveFormulation = async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.06);
   max-width: 1200px;
-  width: 85%;
+  width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -1211,5 +1211,347 @@ const saveFormulation = async () => {
   height: 32px;
   object-fit: contain;
   transition: filter 0.2s ease-in-out;
+}
+
+/* Mobile Small (320px - 374px) */
+@media (max-width: 374px) {
+  .panel {
+    margin: 8px 8px 100px 8px;
+    padding: 12px;
+    width: 100%;
+  }
+  .panel-inner {
+    gap: 12px;
+  }
+  .back {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  .profile {
+    grid-template-columns: 60px 1fr;
+    gap: 12px;
+  }
+  .avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+  }
+  .who .name {
+    font-size: 16px;
+  }
+  .who .stage {
+    font-size: 13px;
+  }
+  .who .days {
+    font-size: 11px;
+  }
+  .category-totals {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .totals-title {
+    font-size: 13px;
+  }
+  .formulation-info {
+    padding: 10px;
+  }
+  .info-text {
+    font-size: 11px;
+  }
+  .calc-row {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  .table {
+    padding: 8px;
+    margin-bottom: 16px;
+  }
+  .cat-head {
+    padding: 4px 2px 6px 2px;
+  }
+  .cat-title {
+    font-size: 14px;
+  }
+  .cat-total {
+    font-size: 14px;
+  }
+  .thead {
+    grid-template-columns: 2fr 70px 80px;
+    padding: 4px 2px;
+    font-size: 10px;
+  }
+  .row {
+    grid-template-columns: 2fr 70px 80px;
+    gap: 4px;
+    padding: 6px 2px;
+  }
+  .item-left {
+    gap: 4px;
+  }
+  .num {
+    font-size: 10px;
+  }
+  .label {
+    font-size: 11px;
+  }
+  .ghost {
+    font-size: 9px;
+  }
+  .pill {
+    padding: 0.2rem;
+    border-radius: 4px;
+  }
+  .pill input {
+    font-size: 10px;
+    padding: 1px;
+  }
+  .pill .unit {
+    font-size: 8px;
+  }
+  .cost-display {
+    font-size: 10px;
+    min-width: 50px;
+  }
+  .auto-indicator {
+    font-size: 8px;
+  }
+  .footer {
+    margin-top: 12px;
+    padding-bottom: 16px;
+  }
+  .save {
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+}
+
+/* Mobile Medium (375px - 424px) */
+@media (min-width: 375px) and (max-width: 424px) {
+  .panel {
+    margin: 10px 10px 100px 10px;
+    padding: 14px;
+    width: 100%;
+  }
+  .panel-inner {
+    gap: 14px;
+  }
+  .back {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+  .profile {
+    grid-template-columns: 68px 1fr;
+    gap: 14px;
+  }
+  .avatar {
+    width: 68px;
+    height: 68px;
+    border-radius: 13px;
+  }
+  .who .name {
+    font-size: 17px;
+  }
+  .who .stage {
+    font-size: 14px;
+  }
+  .who .days {
+    font-size: 12px;
+  }
+  .category-totals {
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .totals-title {
+    font-size: 14px;
+  }
+  .formulation-info {
+    padding: 11px;
+  }
+  .info-text {
+    font-size: 12px;
+  }
+  .calc-row {
+    font-size: 11px;
+    padding: 4px 7px;
+  }
+  .table {
+    padding: 10px;
+    margin-bottom: 18px;
+  }
+  .cat-head {
+    padding: 5px 3px 7px 3px;
+  }
+  .cat-title {
+    font-size: 15px;
+  }
+  .cat-total {
+    font-size: 15px;
+  }
+  .thead {
+    grid-template-columns: 2fr 75px 85px;
+    padding: 5px 3px;
+    font-size: 11px;
+  }
+  .row {
+    grid-template-columns: 2fr 75px 85px;
+    gap: 5px;
+    padding: 7px 3px;
+  }
+  .item-left {
+    gap: 5px;
+  }
+  .num {
+    font-size: 11px;
+  }
+  .label {
+    font-size: 12px;
+  }
+  .ghost {
+    font-size: 10px;
+  }
+  .pill {
+    padding: 0.25rem;
+    border-radius: 5px;
+  }
+  .pill input {
+    font-size: 11px;
+    padding: 1.5px;
+  }
+  .pill .unit {
+    font-size: 9px;
+  }
+  .cost-display {
+    font-size: 11px;
+    min-width: 55px;
+  }
+  .auto-indicator {
+    font-size: 9px;
+  }
+  .footer {
+    margin-top: 14px;
+    padding-bottom: 18px;
+  }
+  .save {
+    padding: 9px 18px;
+    font-size: 15px;
+    border-radius: 11px;
+  }
+}
+
+/* Mobile Large (425px - 767px) */
+@media (min-width: 425px) and (max-width: 767px) {
+  .panel {
+    margin: 12px 12px 100px 12px;
+    padding: 16px;
+    width: 100%;
+  }
+  .panel-inner {
+    gap: 16px;
+  }
+  .back {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  .profile {
+    grid-template-columns: 76px 1fr;
+    gap: 16px;
+  }
+  .avatar {
+    width: 76px;
+    height: 76px;
+    border-radius: 14px;
+  }
+  .who .name {
+    font-size: 18px;
+  }
+  .who .stage {
+    font-size: 15px;
+  }
+  .who .days {
+    font-size: 13px;
+  }
+  .category-totals {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .totals-title {
+    font-size: 15px;
+  }
+  .formulation-info {
+    padding: 12px;
+  }
+  .info-text {
+    font-size: 13px;
+  }
+  .calc-row {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+  .table {
+    padding: 12px;
+    margin-bottom: 20px;
+  }
+  .cat-head {
+    padding: 6px 4px 8px 4px;
+  }
+  .cat-title {
+    font-size: 16px;
+  }
+  .cat-total {
+    font-size: 16px;
+  }
+  .thead {
+    grid-template-columns: 2fr 80px 90px;
+    padding: 6px 4px;
+    font-size: 12px;
+  }
+  .row {
+    grid-template-columns: 2fr 80px 90px;
+    gap: 6px;
+    padding: 8px 4px;
+  }
+  .item-left {
+    gap: 6px;
+  }
+  .num {
+    font-size: 12px;
+  }
+  .label {
+    font-size: 13px;
+  }
+  .ghost {
+    font-size: 11px;
+  }
+  .pill {
+    padding: 0.3rem;
+    border-radius: 6px;
+  }
+  .pill input {
+    font-size: 12px;
+    padding: 2px;
+  }
+  .pill .unit {
+    font-size: 10px;
+  }
+  .cost-display {
+    font-size: 12px;
+    min-width: 60px;
+  }
+  .auto-indicator {
+    font-size: 10px;
+  }
+  .footer {
+    margin-top: 16px;
+    padding-bottom: 20px;
+  }
+  .save {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
 }
 </style>

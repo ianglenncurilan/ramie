@@ -77,6 +77,7 @@ const router = createRouter({
       path: '/records',
       name: 'records',
       component: RecordsView,
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/expenses',
@@ -105,7 +106,7 @@ const router = createRouter({
       path: '/inventory',
       name: 'inventory',
       component: InventoryView,
-      meta: { requiresAuth: true, requiresAdmin: true },
+      meta: { requiresAuth: true },
     },
     {
       path: '/hogs-tracked',

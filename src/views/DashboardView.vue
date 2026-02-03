@@ -73,25 +73,41 @@ const go = (name) => {
       </section>
 
       <section class="grid">
-        <button class="card" @click="go('make-feeds')">
+        <button
+          class="card"
+          @click="go('make-feeds')"
+          title="Create feed formulations for your hogs"
+        >
           <div class="card-content">
             <img src="/makefeeds.png" alt="Make Feeds" />
             <div class="card-title">Make Feeds</div>
           </div>
         </button>
-        <button class="card" @click="go('manage-staff')">
+        <button
+          class="card"
+          @click="go('manage-staff')"
+          title="View staff and their activities"
+        >
           <div class="card-content">
             <img src="/staff.png" alt="Manage Staff" />
             <div class="card-title">Manage Staff</div>
           </div>
         </button>
-        <button class="card" @click="go('inventory')">
+        <button
+          class="card"
+          @click="go('inventory')"
+          title="Track and manage ingredients available for feed formulations"
+        >
           <div class="card-content">
             <img src="/inventory.png" alt="Inventory" />
             <div class="card-title">Inventory</div>
           </div>
         </button>
-        <button class="card" @click="go('hogs-tracked')">
+        <button
+          class="card"
+          @click="go('hogs-tracked')"
+          title="Track and manage your hogs"
+        >
           <div class="card-content">
             <img src="/pig2.png" alt="Hogs Tracked" />
             <div class="card-title">Hogs Tracked</div>
@@ -110,6 +126,8 @@ const go = (name) => {
 
 .dashboard-content {
   min-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
 }
 * {
   font-family: 'Quicksand', sans-serif;
@@ -187,18 +205,20 @@ const go = (name) => {
   margin: 0 16px;
   background: #2f8b60;
   border-radius: 32px;
-  padding: 40px;
+  padding: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  min-height: 400px;
+  flex: 1;
+  align-content: center;
+  min-height: 250px;
 }
 
 .card {
   background: #fff;
   border: 0;
   border-radius: 32px;
-  padding: 40px;
+  padding: 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -206,7 +226,7 @@ const go = (name) => {
   cursor: pointer;
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
-  min-height: 180px;
+  min-height: 200px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -242,7 +262,7 @@ const go = (name) => {
   }
 
   .hero img {
-    height: 120px;
+    height: 160px;
   }
 
   .hero .brand-right {
@@ -266,14 +286,17 @@ const go = (name) => {
 
   .grid {
     margin: 0 12px;
-    padding: 20px;
+    padding: 12px;
     gap: 10px;
     border-radius: 24px;
+    flex: 1;
+    align-content: center;
+    min-height: 180px;
   }
 
   .card {
-    padding: 24px;
-    min-height: 120px;
+    padding: 32px;
+    min-height: 140px;
     border-radius: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
@@ -295,18 +318,21 @@ const go = (name) => {
 /* Mobile Medium (375px - 424px) */
 @media (min-width: 375px) and (max-width: 424px) {
   .hero img {
-    height: 130px;
+    height: 180px;
   }
 
   .grid {
-    padding: 24px;
+    padding: 14px;
     gap: 12px;
     border-radius: 28px;
+    flex: 1;
+    align-content: center;
+    min-height: 200px;
   }
 
   .card {
-    padding: 28px;
-    min-height: 130px;
+    padding: 36px;
+    min-height: 150px;
     border-radius: 24px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
   }
@@ -332,7 +358,7 @@ const go = (name) => {
   }
 
   .hero img {
-    height: 150px;
+    height: 200px;
   }
 
   .hero .brand-right {
@@ -356,14 +382,17 @@ const go = (name) => {
 
   .grid {
     margin: 0 20px;
-    padding: 32px;
+    padding: 16px;
     gap: 16px;
     border-radius: 30px;
+    flex: 1;
+    align-content: center;
+    min-height: 220px;
   }
 
   .card {
-    padding: 36px;
-    min-height: 150px;
+    padding: 44px;
+    min-height: 170px;
     border-radius: 28px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
@@ -418,15 +447,18 @@ const go = (name) => {
 
   .grid {
     margin: 0 24px;
-    padding: 40px;
+    padding: 20px;
     gap: 20px;
     border-radius: 32px;
     grid-template-columns: repeat(4, 1fr);
+    flex: 1;
+    align-content: center;
+    min-height: 250px;
   }
 
   .card {
-    padding: 32px;
-    min-height: 160px;
+    padding: 40px;
+    min-height: 180px;
     border-radius: 24px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
@@ -487,15 +519,18 @@ const go = (name) => {
 
   .grid {
     margin: 0 32px;
-    padding: 48px;
+    padding: 24px;
     gap: 24px;
     border-radius: 40px;
     grid-template-columns: repeat(4, 1fr);
+    flex: 1;
+    align-content: center;
+    min-height: 280px;
   }
 
   .card {
-    padding: 40px;
-    min-height: 180px;
+    padding: 48px;
+    min-height: 200px;
     border-radius: 28px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   }
@@ -560,15 +595,18 @@ const go = (name) => {
 
   .grid {
     margin: 0 40px;
-    padding: 60px;
+    padding: 28px;
     gap: 32px;
     border-radius: 48px;
     grid-template-columns: repeat(4, 1fr);
+    flex: 1;
+    align-content: center;
+    min-height: 320px;
   }
 
   .card {
-    padding: 48px;
-    min-height: 200px;
+    padding: 56px;
+    min-height: 220px;
     border-radius: 32px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   }

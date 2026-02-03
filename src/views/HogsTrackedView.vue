@@ -2027,50 +2027,256 @@ textarea.form-input {
 /* Mobile Small (320px - 374px) */
 @media (max-width: 374px) {
   .panel {
-    margin: 8px 8px;
-    padding: 10px;
+    margin: 6px 6px;
+    padding: 8px;
   }
 
   .panel-header {
     grid-template-columns: auto 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .panel-illustration {
     display: none;
   }
 
-  .thead,
-  .row {
-    grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1fr;
-    gap: 6px;
-    padding: 6px 4px;
-    font-size: 11px;
+  .title-lg {
+    font-size: 18px;
   }
 
-  .weight-input {
-    width: 45px;
-    font-size: 10px;
-  }
-
-  .action-btn {
-    width: 22px;
-    height: 22px;
-    font-size: 9px;
+  .sub {
+    font-size: 12px;
   }
 
   .stats {
-    gap: 6px;
+    gap: 4px;
+    flex-wrap: wrap;
   }
 
   .stat-item {
-    font-size: 9px;
+    font-size: 8px;
     padding: 2px 4px;
+    border-radius: 8px;
+  }
+
+  .add-hog-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .add-icon {
+    font-size: 14px;
+    margin-right: 4px;
+  }
+
+  .table-container {
+    margin-top: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 600px;
+    font-size: 10px;
+  }
+
+  .thead,
+  .row {
+    grid-template-columns: 0.8fr 0.7fr 0.5fr 1.2fr 0.8fr 0.8fr 0.6fr;
+    gap: 4px;
+    padding: 4px 2px;
+    font-size: 9px;
+  }
+
+  .hog-code {
+    font-size: 8px;
+    word-break: break-all;
+  }
+
+  .stage {
+    font-size: 8px;
+  }
+
+  .days {
+    font-size: 8px;
+  }
+
+  .feeding-header {
+    font-size: 8px;
+    text-align: center;
+  }
+
+  .status-header {
+    font-size: 8px;
+    text-align: center;
+  }
+
+  .weight-cell {
+    font-size: 8px;
+  }
+
+  .actions {
+    font-size: 8px;
+  }
+
+  .feeding-toggle-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+  }
+
+  .feeding-toggle {
+    width: 28px;
+    height: 20px;
+    border-radius: 4px;
+  }
+
+  .time-label {
+    font-size: 6px;
+  }
+
+  .icon-wrapper {
+    width: 12px;
+    height: 12px;
+  }
+
+  .check-icon,
+  .x-icon {
+    width: 8px;
+    height: 8px;
+  }
+
+  .undo-btn {
+    width: 18px;
+    height: 18px;
+  }
+
+  .undo-icon {
+    width: 10px;
+    height: 10px;
+  }
+
+  .status-cell span {
+    font-size: 7px;
+    padding: 1px 3px;
+    border-radius: 3px;
+  }
+
+  .weight-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .weight-value {
+    font-size: 8px;
+  }
+
+  .weight-date {
+    font-size: 6px;
+    line-height: 1;
+  }
+
+  .edit-btn {
+    width: 16px;
+    height: 16px;
+    font-size: 8px;
+    padding: 0;
+  }
+
+  .action-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 8px;
+    margin: 1px;
+  }
+
+  .empty-state {
+    padding: 20px;
+  }
+
+  .empty-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .empty-state h3 {
+    font-size: 16px;
+    margin: 12px 0 8px 0;
+  }
+
+  .empty-state p {
+    font-size: 12px;
+  }
+
+  .error-message {
+    font-size: 11px;
   }
 
   .modal {
-    width: 95%;
-    margin: 10px;
+    width: 98%;
+    margin: 8px;
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    padding: 12px;
+  }
+
+  .modal-header h3 {
+    font-size: 16px;
+  }
+
+  .close-btn {
+    font-size: 18px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .modal-body {
+    padding: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-group label {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .form-input {
+    padding: 8px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  .modal-footer {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .btn-cancel,
+  .btn-save {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  .calculation {
+    font-size: 11px;
+    padding: 8px;
+    border-radius: 6px;
+  }
+
+  .tooltip {
+    font-size: 9px;
+    padding: 2px 4px;
+    margin-top: 2px;
   }
 }
 

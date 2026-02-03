@@ -367,8 +367,23 @@ onMounted(() => {
 }
 
 /* Responsive Adjustments */
-@media (max-width: 768px) {
+
+/* Mobile Small (320px - 374px) */
+@media (max-width: 374px) {
+  .staff-management {
+    padding: 0.75rem;
+  }
+
+  .header {
+    margin-bottom: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.4rem;
+  }
+
   .filters {
+    margin-bottom: 1rem;
     flex-direction: column;
     align-items: stretch;
   }
@@ -377,8 +392,376 @@ onMounted(() => {
     max-width: 100%;
   }
 
+  .search-box input {
+    padding: 0.6rem 2rem 0.6rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .search-icon {
+    right: 10px;
+    font-size: 0.9rem;
+  }
+
   .staff-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .staff-card {
+    padding: 0.75rem;
+    gap: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .staff-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .staff-info h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .staff-info .last-login {
+    font-size: 0.75rem;
+  }
+
+  .pagination {
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding: 0.75rem 0;
+    flex-wrap: wrap;
+  }
+
+  .pagination button {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .loading,
+  .error,
+  .no-results {
+    padding: 1.5rem;
+    margin-top: 1rem;
+  }
+}
+
+/* Mobile Medium (375px - 424px) */
+@media (min-width: 375px) and (max-width: 424px) {
+  .staff-management {
+    padding: 1rem;
+  }
+
+  .header {
+    margin-bottom: 1.2rem;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .filters {
+    margin-bottom: 1.2rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .search-box input {
+    padding: 0.65rem 2.2rem 0.65rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .search-icon {
+    right: 11px;
+    font-size: 0.95rem;
+  }
+
+  .staff-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .staff-card {
+    padding: 1rem;
+    gap: 0.8rem;
+    border-radius: 9px;
+  }
+
+  .staff-avatar {
+    width: 45px;
+    height: 45px;
+    font-size: 1rem;
+  }
+
+  .staff-info h3 {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .staff-info .last-login {
+    font-size: 0.8rem;
+  }
+
+  .pagination {
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding: 0.8rem 0;
+  }
+
+  .pagination button {
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .loading,
+  .error,
+  .no-results {
+    padding: 1.75rem;
+    margin-top: 1.2rem;
+  }
+}
+
+/* Mobile Large (425px - 767px) */
+@media (min-width: 425px) and (max-width: 767px) {
+  .staff-management {
+    padding: 1.25rem;
+  }
+
+  .header {
+    margin-bottom: 1.3rem;
+  }
+
+  .header h1 {
+    font-size: 1.6rem;
+  }
+
+  .filters {
+    margin-bottom: 1.3rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .search-box input {
+    padding: 0.7rem 2.3rem 0.7rem 0.95rem;
+    font-size: 0.98rem;
+  }
+
+  .search-icon {
+    right: 11px;
+    font-size: 0.98rem;
+  }
+
+  .staff-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.1rem;
+    margin-top: 1.1rem;
+  }
+
+  .staff-card {
+    padding: 1.1rem;
+    gap: 0.9rem;
+    border-radius: 9px;
+  }
+
+  .staff-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1.05rem;
+  }
+
+  .staff-info h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.22rem;
+  }
+
+  .staff-info .last-login {
+    font-size: 0.82rem;
+  }
+
+  .pagination {
+    gap: 0.9rem;
+    margin-top: 2.2rem;
+    padding: 0.9rem 0;
+  }
+
+  .pagination button {
+    padding: 0.58rem 1.1rem;
+    font-size: 0.88rem;
+  }
+
+  .loading,
+  .error,
+  .no-results {
+    padding: 1.85rem;
+    margin-top: 1.3rem;
+  }
+}
+
+/* Tablet (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .staff-management {
+    padding: 1.4rem;
+  }
+
+  .header {
+    margin-bottom: 1.4rem;
+  }
+
+  .header h1 {
+    font-size: 1.7rem;
+  }
+
+  .filters {
+    margin-bottom: 1.4rem;
+  }
+
+  .search-box {
+    max-width: 450px;
+  }
+
+  .search-box input {
+    padding: 0.7rem 2.4rem 0.7rem 1rem;
+    font-size: 1rem;
+  }
+
+  .search-icon {
+    right: 12px;
+    font-size: 1rem;
+  }
+
+  .staff-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.2rem;
+    margin-top: 1.2rem;
+  }
+
+  .staff-card {
+    padding: 1.2rem;
+    gap: 1rem;
+    border-radius: 10px;
+  }
+
+  .staff-avatar {
+    width: 52px;
+    height: 52px;
+    font-size: 1.08rem;
+  }
+
+  .staff-info h3 {
+    font-size: 1.08rem;
+    margin-bottom: 0.24rem;
+  }
+
+  .staff-info .last-login {
+    font-size: 0.84rem;
+  }
+
+  .pagination {
+    gap: 1rem;
+    margin-top: 2.3rem;
+    padding: 1rem 0;
+  }
+
+  .pagination button {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  .loading,
+  .error,
+  .no-results {
+    padding: 1.9rem;
+    margin-top: 1.4rem;
+  }
+}
+
+/* Small Desktop (1024px - 1439px) */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .staff-management {
+    padding: 1.5rem;
+  }
+
+  .header {
+    margin-bottom: 1.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+  }
+
+  .filters {
+    margin-bottom: 1.5rem;
+  }
+
+  .search-box {
+    max-width: 480px;
+  }
+
+  .search-box input {
+    padding: 0.7rem 2.5rem 0.7rem 1rem;
+    font-size: 1rem;
+  }
+
+  .search-icon {
+    right: 12px;
+    font-size: 1rem;
+  }
+
+  .staff-grid {
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .staff-card {
+    padding: 1.25rem;
+    gap: 1rem;
+    border-radius: 10px;
+  }
+
+  .staff-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 1.1rem;
+  }
+
+  .staff-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .staff-info .last-login {
+    font-size: 0.85rem;
+  }
+
+  .pagination {
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding: 1rem 0;
+  }
+
+  .pagination button {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  .loading,
+  .error,
+  .no-results {
+    padding: 2rem;
+    margin-top: 1.5rem;
   }
 }
 </style>

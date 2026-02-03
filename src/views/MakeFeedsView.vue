@@ -67,7 +67,7 @@
   flex: 1;
   overflow-y: auto;
   max-width: 1200px;
-  width: 85%;
+  width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -109,7 +109,7 @@
   display: grid;
   gap: 20px;
   margin-top: 24px;
-  max-width: 500px;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -217,37 +217,53 @@ button {
     margin: 8px 8px;
     padding: 16px;
     padding-top: 24px;
+    width: 100%;
+  }
+  .panel-header {
+    gap: 8px;
+  }
+  .back {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
   }
   .panel-illustration {
     width: 48px;
     height: 48px;
   }
   .title-lg {
-    font-size: 22px;
+    font-size: 20px;
+  }
+  .sub {
+    font-size: 13px;
   }
   .list {
-    gap: 14px;
+    gap: 12px;
     margin-top: 16px;
     max-width: 100%;
   }
   .row {
-    padding: 20px 16px;
-    gap: 12px;
+    padding: 16px 12px;
+    gap: 10px;
+    border-radius: 14px;
   }
   .thumb {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
   }
   .title {
-    font-size: 15px;
+    font-size: 14px;
+    margin-bottom: 2px;
   }
   .muted {
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.1;
   }
   .chev {
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
   }
 }
 
@@ -257,37 +273,53 @@ button {
     margin: 10px 10px;
     padding: 18px;
     padding-top: 26px;
+    width: 100%;
+  }
+  .panel-header {
+    gap: 10px;
+  }
+  .back {
+    width: 32px;
+    height: 34px;
+    font-size: 18px;
   }
   .panel-illustration {
     width: 52px;
     height: 52px;
   }
   .title-lg {
-    font-size: 23px;
+    font-size: 22px;
+  }
+  .sub {
+    font-size: 14px;
   }
   .list {
-    gap: 15px;
+    gap: 14px;
     margin-top: 18px;
     max-width: 100%;
   }
   .row {
-    padding: 22px 18px;
-    gap: 13px;
+    padding: 18px 16px;
+    gap: 12px;
+    border-radius: 16px;
   }
   .thumb {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
   }
   .title {
     font-size: 15px;
+    margin-bottom: 3px;
   }
   .muted {
     font-size: 12px;
+    line-height: 1.15;
   }
   .chev {
-    width: 34px;
-    height: 34px;
-    font-size: 19px;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
   }
 }
 
@@ -297,6 +329,15 @@ button {
     margin: 12px 12px;
     padding: 20px;
     padding-top: 28px;
+    width: 100%;
+  }
+  .panel-header {
+    gap: 12px;
+  }
+  .back {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
   }
   .panel-illustration {
     width: 56px;
@@ -305,24 +346,31 @@ button {
   .title-lg {
     font-size: 24px;
   }
+  .sub {
+    font-size: 14px;
+  }
   .list {
     gap: 16px;
     margin-top: 20px;
     max-width: 100%;
   }
   .row {
-    padding: 24px 20px;
+    padding: 20px 18px;
     gap: 14px;
+    border-radius: 17px;
   }
   .thumb {
     width: 48px;
     height: 48px;
+    border-radius: 12px;
   }
   .title {
     font-size: 16px;
+    margin-bottom: 4px;
   }
   .muted {
     font-size: 13px;
+    line-height: 1.2;
   }
   .chev {
     width: 36px;
