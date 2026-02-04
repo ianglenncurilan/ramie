@@ -281,7 +281,7 @@ const handleRegister = async () => {
       <form @submit.prevent="handleRegister" class="register-form">
         <div class="name-row">
           <div class="form-group">
-            <label>First Name</label>
+            <label>First Name *</label>
             <div class="input-group">
               <i class="mdi mdi-account-outline"></i>
               <input
@@ -296,7 +296,7 @@ const handleRegister = async () => {
           </div>
 
           <div class="form-group">
-            <label>Last Name</label>
+            <label>Last Name *</label>
             <div class="input-group">
               <i class="mdi mdi-account-outline"></i>
               <input
@@ -312,7 +312,7 @@ const handleRegister = async () => {
         </div>
 
         <div class="form-group">
-          <label>Email</label>
+          <label>Email *</label>
           <div class="input-group">
             <i class="mdi mdi-email-outline"></i>
             <input
@@ -327,7 +327,7 @@ const handleRegister = async () => {
         </div>
 
         <div class="form-group">
-          <label>Password</label>
+          <label>Password *</label>
           <div class="input-group">
             <i class="mdi mdi-lock-outline"></i>
             <input
@@ -353,7 +353,7 @@ const handleRegister = async () => {
         </div>
 
         <div class="form-group">
-          <label>Confirm Password</label>
+          <label>Confirm Password *</label>
           <div class="input-group">
             <i class="mdi mdi-lock-outline"></i>
             <input
@@ -622,7 +622,7 @@ h2 {
 /* error messages */
 .error-message,
 .err {
-  color: red  ;
+  color: red;
   font-size: 12px;
   margin-top: 6px;
   padding-left: 12px;

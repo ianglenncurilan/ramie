@@ -104,9 +104,10 @@ const handleLogin = async () => {
         errors.value.email = 'Please enter a valid email address.'
       } else if (
         error.message.includes('Invalid login credentials') ||
-        error.message.includes('Invalid email or password')
+        error.message.includes('Invalid email or password') ||
+        error.message.includes('Invalid login')
       ) {
-        errors.value.password = 'Incorrect password. Please try again.'
+        errors.value.password = 'Invalid login credentials. Please check your email and password.'
       } else if (error.message.includes('Email not confirmed')) {
         showError(
           'Please verify your email before logging in. Check your inbox for a verification link.',
@@ -248,7 +249,7 @@ const togglePasswordVisibility = () => {
               placeholder="Email Address"
               @input="clearErrors('email')"
               :class="{ 'error-input': errors.email }"
-              H
+              required
             />
           </div>
           <div v-if="errors.email" class="error-container">
@@ -268,6 +269,7 @@ const togglePasswordVisibility = () => {
                 'error-input': errors.password,
                 'success-input': formData.password && !errors.password,
               }"
+              required
             />
             <i
               class="mdi password-toggle"
