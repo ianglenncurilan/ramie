@@ -12,6 +12,7 @@ import AlertNotification from '@/components/layout/commons/AlertNotification.vue
 import AlertModal from '@/components/layout/commons/AlertModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal.js'
 import { supabase, formActionDefault, isAdmin, hasSupabaseConfig } from '@/services/supabase.js'
+import HCaptcha from '@hcaptcha/vue3-hcaptcha'
 
 const router = useRouter()
 
@@ -29,6 +30,12 @@ const errors = ref({
 })
 const showPassword = ref(false)
 const showPasswordConfirmation = ref(false)
+
+// Captcha state
+const captchaToken = ref('')
+const captcha = ref(null)
+const captchaSiteKey =
+  import.meta.env.VITE_SUPABASE_CAPTCHA_SITE_KEY || '8d08eb94-4d16-4412-a3b2-dcd61db6e662'
 
 // Form data
 const formDataDefault = {
@@ -138,12 +145,28 @@ const validate = () => {
     valid = false
   }
 
-  // Validate confirm password
-  const confirmError =
-    requiredValidator(formData.value.password_confirmation) ||
-    confirmedValidator(formData.value.password_confirmation, formData.value.password)
-  if (confirmError !== true) {
-    errors.value.password_confirmation = confirmError
+  // Validate confirm password (only if password is valid)
+  if (!errors.value.password && formData.value.password_confirmation) {
+    const confirmError = confirmedValidator(
+      formData.value.password_confirmation,
+      formData.value.password,
+    )
+    if (confirmError !== true) {
+      errors.value.password_confirmation = confirmError
+      valid = false
+    }
+  } else if (formData.value.password_confirmation) {
+    // If password has errors but confirm password is filled, check if it's required
+    const requiredError = requiredValidator(formData.value.password_confirmation)
+    if (requiredError !== true) {
+      errors.value.password_confirmation = requiredError
+      valid = false
+    }
+  }
+
+  // Validate captcha
+  if (!captchaToken.value) {
+    showError('Please complete the captcha verification.', 'Captcha Required')
     valid = false
   }
 
@@ -169,7 +192,7 @@ const handleRegister = async () => {
   try {
     const fullName = `${formData.value.firstname} ${formData.value.lastname}`.trim()
 
-    // First, sign up the user with Supabase Auth
+    // First, sign up user with Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email: formData.value.email,
       password: formData.value.password,
@@ -180,10 +203,26 @@ const handleRegister = async () => {
           full_name: fullName,
         },
         emailRedirectTo: `${window.location.origin}/login`,
+        captchaToken: captchaToken.value,
       },
     })
 
-    if (error) throw error
+    if (error) {
+      console.error('Supabase signup error:', error)
+
+      // Reset captcha on any error
+      captchaToken.value = ''
+      if (captcha.value) {
+        captcha.value.reset()
+      }
+
+      // Check if it's a captcha-related error
+      if (error.message?.includes('captcha')) {
+        showError('Captcha verification failed. Please try again.', 'Captcha Error')
+      } else {
+        throw error
+      }
+    }
 
     // If user is created successfully
     if (data?.user) {
@@ -229,6 +268,10 @@ const handleRegister = async () => {
 
       // Reset form
       formData.value = { ...formDataDefault }
+      captchaToken.value = ''
+      if (captcha.value) {
+        captcha.value.reset()
+      }
 
       // Redirect to login after a short delay
       setTimeout(() => {
@@ -372,6 +415,29 @@ const handleRegister = async () => {
           <span v-if="errors.password_confirmation" class="error-message">{{
             errors.password_confirmation
           }}</span>
+        </div>
+
+        <!-- hCaptcha -->
+        <div class="form-captcha">
+          <HCaptcha
+            ref="captcha"
+            :sitekey="captchaSiteKey"
+            @verify="
+              (token) => {
+                captchaToken = token
+              }
+            "
+            @expire="
+              () => {
+                captchaToken = ''
+              }
+            "
+            @error="
+              () => {
+                captchaToken = ''
+              }
+            "
+          />
         </div>
 
         <!-- Alert Notifications -->
@@ -554,6 +620,11 @@ h2 {
   color: var(--text); /* dark green */
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.form-captcha {
+  text-align: center;
+  padding-top: 10px;
 }
 
 /* Update the input group styles */

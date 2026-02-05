@@ -22,6 +22,7 @@
     "@capacitor/ios": "^8.0.2",
     "@capacitor/keyboard": "7.0.3",
     "@capacitor/status-bar": "7.0.3",
+    "@hcaptcha/vue3-hcaptcha": "^1.3.0",
     "@supabase/supabase-js": "^2.57.4",
     "bootstrap": "^5.3.8",
     "pinia": "^3.0.3",

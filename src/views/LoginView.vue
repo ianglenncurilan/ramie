@@ -6,6 +6,7 @@ import AlertNotification from '@/components/layout/commons/AlertNotification.vue
 import AlertModal from '@/components/layout/commons/AlertModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal.js'
 import { requiredValidator, emailValidator, passwordValidator } from '@/utils/validators'
+import HCaptcha from '@hcaptcha/vue3-hcaptcha'
 
 const router = useRouter()
 
@@ -27,6 +28,10 @@ const formData = ref({
 })
 
 const errors = ref({ email: '', password: '' })
+
+// Captcha state
+const captchaToken = ref('')
+const captcha = ref(null)
 
 const formAction = ref({
   ...formActionDefault,
@@ -81,6 +86,12 @@ const handleLogin = async () => {
     return
   }
 
+  // Validate captcha
+  if (!captchaToken.value) {
+    showError('Please complete the captcha verification.', 'Captcha Required')
+    return
+  }
+
   // Clear previous messages and start loading
   formAction.value = {
     ...formActionDefault,
@@ -91,6 +102,9 @@ const handleLogin = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: formData.value.email.trim(),
       password: formData.value.password,
+      options: {
+        captchaToken: captchaToken.value,
+      },
     })
 
     if (error) {
@@ -166,6 +180,12 @@ const handleLogin = async () => {
         autoCloseDelay: 2000,
       })
 
+      // Reset captcha
+      captchaToken.value = ''
+      if (captcha.value) {
+        captcha.value.reset()
+      }
+
       // Small delay to show success message before redirect
       setTimeout(() => {
         handleLoginSuccess(userData?.role || 'user')
@@ -173,9 +193,21 @@ const handleLogin = async () => {
     } else {
       showError('Login failed. Please try again.', 'Login Error')
     }
+
+    // Reset captcha on error
+    captchaToken.value = ''
+    if (captcha.value) {
+      captcha.value.reset()
+    }
   } catch (err) {
     console.error('Unexpected error:', err)
     showError('An unexpected error occurred. Please try again.', 'System Error')
+
+    // Reset captcha on error
+    captchaToken.value = ''
+    if (captcha.value) {
+      captcha.value.reset()
+    }
   } finally {
     formAction.value.formProcess = false
   }
@@ -281,6 +313,29 @@ const togglePasswordVisibility = () => {
             <i class="mdi mdi-alert-circle error-icon"></i>
             <span class="error-message">{{ errors.password }}</span>
           </div>
+        </div>
+
+        <!-- hCaptcha -->
+        <div class="form-captcha">
+          <HCaptcha
+            ref="captcha"
+            sitekey="8d08eb94-4d16-4412-a3b2-dcd61db6e662"
+            @verify="
+              (token) => {
+                captchaToken = token
+              }
+            "
+            @expire="
+              () => {
+                captchaToken = ''
+              }
+            "
+            @error="
+              () => {
+                captchaToken = ''
+              }
+            "
+          />
         </div>
 
         <!-- Alert Notifications -->
@@ -641,6 +696,11 @@ h2 {
     radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
     linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
   z-index: 1;
+}
+
+.form-captcha {
+  text-align: center;
+  padding-top: 10px;
 }
 
 .card {
