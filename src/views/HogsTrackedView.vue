@@ -327,9 +327,9 @@
             <label>Cause of Death</label>
             <select v-model="deathData.cause" class="form-input">
               <option value="">Select cause of death</option>
-              <option value="swine">Swine Disease</option>
-              <option value="animal_bite">Animal Bite</option>
-              <option value="diarrhea">Diarrhea</option>
+              <option value="Swine">Swine Disease</option>
+              <option value="Animal Bite">Abite">Animal Bite</option>
+              <option value="Diarrhea">Diarrhea</option>
               <option value="others">Others</option>
             </select>
           </div>
@@ -645,11 +645,7 @@ const markAsSold = async () => {
     })
 
     // Log the hog activity
-    await logHogActivity({
-      hogId: currentHog.value.id,
-      type: 'HOG_SOLD',
-      details: `SOLD A HOG for ₱${totalPrice.toFixed(2)} (${saleData.value.weight}kg × ₱${saleData.value.pricePerKilo}/kg)`,
-    })
+    
 
     // Log staff activity
     const {
@@ -702,7 +698,7 @@ const markAsDied = async () => {
     logHogActivity({
       hogId: currentHog.value.id,
       type: ActivityType.HOG_DIED,
-      details: `Cause: ${cause}${deathData.value.notes ? ` (${deathData.value.notes})` : ''}`,
+      details: `Hog ${currentHog.value.code} deceased - ${cause}${deathData.value.notes ? ` (${deathData.value.notes})` : ''}`,
     })
 
     closeDiedModal()

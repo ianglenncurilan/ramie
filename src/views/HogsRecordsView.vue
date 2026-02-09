@@ -210,23 +210,17 @@
                   <span class="record-date">{{ formatDate(record.event_date) }}</span>
                 </div>
                 <div v-if="record.hogs || record.hog_details" class="hog-details">
-                  <div class="detail">
-                    <span class="label">Weight:</span>
-                    <span class="value"
-                      >{{ record.hogs?.weight || record.hog_details?.weight || 'N/A' }} kg</span
-                    >
-                  </div>
+                  
                   <div class="detail">
                     <span class="label">Days:</span>
                     <span class="value">{{
                       record.hogs?.days || record.hog_details?.days || 'N/A'
                     }}</span>
                   </div>
-                </div>
-                <div class="record-details">
+                  <div class="record-details">
                   <div class="detail">
                     <span class="label">Cause of Death:</span>
-                    <span class="value">{{ record.details?.cause_of_death || 'Unknown' }}</span>
+                    <span class="value">{{ record.details?.cause_of_death }}</span>
                   </div>
                   <div class="detail" v-if="record.details?.weight">
                     <span class="label">Weight at Death:</span>
@@ -237,6 +231,8 @@
                     <span class="value">{{ record.details.notes }}</span>
                   </div>
                 </div>
+                </div>
+                
               </div>
             </div>
           </template>
