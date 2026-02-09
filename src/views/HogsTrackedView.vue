@@ -435,8 +435,10 @@ onUnmounted(() => {
 
 // Computed properties
 const hogs = computed(() => {
-  console.log('Hogs updated in component:', hogsStore.hogs)
-  return hogsStore.hogs || []
+  const allHogs = hogsStore.hogs || []
+  const filteredHogs = allHogs.filter((hog) => hog.status !== 'sold' && hog.status !== 'deceased')
+  console.log('Filtered hogs for display:', filteredHogs)
+  return filteredHogs
 })
 
 const stats = computed(() => {
@@ -704,8 +706,12 @@ const markAsDied = async () => {
     })
 
     closeDiedModal()
+
+    // Refresh the hogs list
+    await loadHogs()
   } catch (error) {
     console.error('Error marking hog as died:', error)
+    alert('Failed to mark hog as deceased. Please try again.')
   }
 }
 
@@ -725,16 +731,12 @@ const loadHogs = async () => {
 
     console.log('All hogs after fetch:', allHogs)
 
-    // Filter to only show active hogs in the table
-    const activeHogs = allHogs.filter((hog) => hog.status === 'active')
-    console.log(`Found ${activeHogs.length} active hogs out of ${allHogs.length} total hogs`)
+    // Display all hogs from database
+    console.log(`Found ${allHogs.length} total hogs`)
 
-    // Only proceed if we have active hogs
-    if (activeHogs.length > 0) {
-      console.log(`Processing ${activeHogs.length} active hogs`)
-
-      // Update the local hogs array with the filtered list
-      hogs.value = activeHogs
+    // Only proceed if we have hogs
+    if (allHogs.length > 0) {
+      console.log(`Processing ${allHogs.length} hogs`)
 
       try {
         // Increment days for all hogs
@@ -766,10 +768,9 @@ const loadHogs = async () => {
 
     // The store already maintains its own error state, no need to set it here
 
-    // If we have any cached hogs, filter to show only active ones
+    // If we have any cached hogs, display them
     if (hogsStore.hogs?.length > 0) {
       console.warn('Using cached hogs due to error')
-      hogs.value = hogsStore.hogs.filter((hog) => hog.status === 'active')
     }
   } finally {
     loading.value = false
@@ -1228,6 +1229,7 @@ function getStatusClass(hog) {
   transition: all 0.2s;
   padding: 2px 4px;
   border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .edit-btn:hover {
@@ -1378,7 +1380,7 @@ textarea.form-input {
   transform: translateX(-50%);
   width: 90%;
   max-width: 1200px;
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
   z-index: 100;
 }
@@ -1395,6 +1397,7 @@ textarea.form-input {
   border: 1px solid #e6e6e6;
   background: #fff;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .panel-illustration {
   width: 64px;
@@ -1446,6 +1449,7 @@ textarea.form-input {
 }
 .add-hog-btn {
   background: #2f8b60;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   color: white;
   border: none;
   padding: 12px 16px;
@@ -1470,6 +1474,8 @@ textarea.form-input {
   width: 100%;
   margin-top: 16px;
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
   -webkit-overflow-scrolling: touch;
   border-radius: 8px;
   border: 1px solid #f1f3f5;
@@ -1853,6 +1859,7 @@ textarea.form-input {
   justify-content: center;
   font-size: 12px;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 .complete-btn {
   background: #2f8b60;
@@ -2074,6 +2081,8 @@ textarea.form-input {
   .table-container {
     margin-top: 12px;
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 320px);
     -webkit-overflow-scrolling: touch;
   }
 

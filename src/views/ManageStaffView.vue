@@ -1447,6 +1447,7 @@ watch([statusFilter, roleFilter], () => {
   border-radius: 10px;
   border: 1px solid #e6e6e6;
   background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .panel-illustration {
   width: 64px;

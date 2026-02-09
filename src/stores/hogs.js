@@ -766,12 +766,15 @@ export const useHogsStore = defineStore('hogs', () => {
 
   // Get statistics
   function getStats() {
-    const totalHogs = hogs.value.length
-    const completedToday = hogs.value.filter((hog) => hog.feedingCompleted).length
+    const activeHogs = hogs.value.filter(
+      (hog) => hog.status !== 'sold' && hog.status !== 'deceased',
+    )
+    const totalHogs = activeHogs.length
+    const completedToday = activeHogs.filter((hog) => hog.feedingCompleted).length
     const averageWeight =
-      totalHogs > 0 ? hogs.value.reduce((sum, hog) => sum + hog.weight, 0) / totalHogs : 0
+      totalHogs > 0 ? activeHogs.reduce((sum, hog) => sum + hog.weight, 0) / totalHogs : 0
     const averageDays =
-      totalHogs > 0 ? hogs.value.reduce((sum, hog) => sum + hog.days, 0) / totalHogs : 0
+      totalHogs > 0 ? activeHogs.reduce((sum, hog) => sum + hog.days, 0) / totalHogs : 0
 
     return {
       totalHogs,

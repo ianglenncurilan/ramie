@@ -783,6 +783,7 @@ const saveFormulation = async () => {
   border-radius: 10px;
   border: 1px solid #e6e6e6;
   background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .profile {
   display: grid;
@@ -1043,18 +1044,18 @@ const saveFormulation = async () => {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  border: 1px solid #007500;
+  border: 1px solid #afb5af;
   border-radius: 6px;
   padding: 0.3rem;
   min-width: 0;
-  border-color: #007500;
+  border-color: #535353;
 }
 .pill.exceeded {
-  background-color: #fdf2f2;
+  background-color: #851717;
 }
 .pill.auto-populated {
-  background-color: #f0f9ff;
-  border-color: grey;
+  background-color: #d0f5c8;
+  border-color: rgb(78, 78, 78);
 }
 
 .cost-display {

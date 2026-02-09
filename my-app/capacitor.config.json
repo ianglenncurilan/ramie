@@ -1,0 +1,10 @@
+{
+  "appId": "com.ramie.app",
+  "appName": "ramie",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
+  }
+}

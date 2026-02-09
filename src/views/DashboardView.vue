@@ -83,11 +83,7 @@ const go = (name) => {
             <div class="card-title">Make Feeds</div>
           </div>
         </button>
-        <button
-          class="card"
-          @click="go('manage-staff')"
-          title="View staff and their activities"
-        >
+        <button class="card" @click="go('manage-staff')" title="View staff and their activities">
           <div class="card-content">
             <img src="/staff.png" alt="Manage Staff" />
             <div class="card-title">Manage Staff</div>
@@ -103,11 +99,7 @@ const go = (name) => {
             <div class="card-title">Inventory</div>
           </div>
         </button>
-        <button
-          class="card"
-          @click="go('hogs-tracked')"
-          title="Track and manage your hogs"
-        >
+        <button class="card" @click="go('hogs-tracked')" title="Track and manage your hogs">
           <div class="card-content">
             <img src="/pig2.png" alt="Hogs Tracked" />
             <div class="card-title">Hogs Tracked</div>
@@ -227,7 +219,6 @@ const go = (name) => {
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
   min-height: 200px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-content {

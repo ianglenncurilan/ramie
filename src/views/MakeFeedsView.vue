@@ -84,6 +84,7 @@
   border: 1px solid #e6e6e6;
   background: #fff;
   margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .panel-illustration {
   width: 72px;
@@ -226,6 +227,7 @@ button {
     width: 32px;
     height: 32px;
     font-size: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   .panel-illustration {
     width: 48px;

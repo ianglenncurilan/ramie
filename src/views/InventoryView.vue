@@ -9,9 +9,6 @@
             <p class="sub">Manage your ingredients</p>
           </div>
           <div class="header-actions">
-            <button class="add-btn" @click="openModal">
-              <span>+</span>
-            </button>
             <img class="panel-illustration" src="/inventory.png" alt="icon" />
           </div>
         </div>
@@ -30,7 +27,11 @@
             <span class="stat-label">Total Value</span>
           </div>
         </div>
-
+        <div class="add-button-container">
+          <button class="add-btn" @click="openModal">
+            <span>+ Add</span>
+          </button>
+        </div>
         <div class="table">
           <div class="tbody">
             <div class="thead">
@@ -99,12 +100,46 @@
           <form @submit.prevent="saveIngredient" class="modal-form">
             <div class="form-group">
               <label>Ingredient Name</label>
+              <select v-model="form.name" @change="onNameChange" required>
+                <option value="">Select an ingredient</option>
+
+                <!-- Carbs -->
+                <option value="Rice Bran D1">Rice Bran D1</option>
+                <option value="Rice Bran D2">Rice Bran D2</option>
+                <option value="Rice Hull">Rice Hull</option>
+                <option value="Ramie">Ramie</option>
+
+                <!-- Protein -->
+                <option value="Camote Tops">Camote Tops</option>
+                <option value="Moringa">Moringa</option>
+                <option value="Azolla">Azolla</option>
+                <option value="Madre de Agua">Madre de Agua</option>
+                <option value="Water Hyacinth">Water Hyacinth</option>
+                <option value="Cadamba">Cadamba</option>
+                <option value="Banana Leaves">Banana Leaves</option>
+                <option value="Fish Meal">Fish Meal</option>
+                <option value="Soybean Meal">Soybean Meal</option>
+                <option value="Palm Kernel Meal">Palm Kernel Meal</option>
+
+                <!-- Minerals -->
+                <option value="Salt">Salt</option>
+                <option value="Carbonized Rice Hulls">Carbonized Rice Hulls</option>
+
+                <!-- Vitamins -->
+                <option value="Molasses">Molasses</option>
+
+                <!-- Water -->
+                <option value="Water">Water</option>
+
+                <option value="Other">Other (Specify)</option>
+              </select>
               <input
-                v-model="form.name"
-                @input="onNameChange"
+                v-if="form.name === 'Other'"
+                v-model="form.customName"
                 type="text"
                 placeholder="Enter ingredient name"
-                required
+                class="form-input"
+                style="margin-top: 8px"
               />
             </div>
 
@@ -182,6 +217,7 @@ const updatingQuantity = ref(null)
 // Form data
 const form = reactive({
   name: '',
+  customName: '',
   quantity: '',
   cost: '',
   unit: '',
@@ -213,6 +249,7 @@ function closeModal() {
 
 function resetForm() {
   form.name = ''
+  form.customName = ''
   form.quantity = ''
   form.cost = ''
   form.unit = 'kg'
@@ -233,7 +270,7 @@ async function saveIngredient() {
   try {
     // Normalize numeric fields
     const payload = {
-      name: String(form.name).trim(),
+      name: form.name === 'Other' ? String(form.customName).trim() : String(form.name).trim(),
       quantity: Number(form.quantity) || 0,
       cost: Number(form.cost) || 0,
       unit: form.unit || 'kg',
@@ -371,7 +408,7 @@ function onNameChange() {
 }
 
 .screen {
-  height: 100vh;
+  height: 130vh;
   background: #2f8b60;
   display: flex;
   flex-direction: column;
@@ -405,19 +442,29 @@ function onNameChange() {
   border: 1px solid #e6e6e6;
   background: #fff;
   margin-bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+.add-button-container {
+  display: flex;
+  justify-content: flex-start;
+  margin: 16px 0;
+}
+
 .add-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  padding: 8px 16px;
+  border-radius: 12px;
   background: #2f8b60;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   color: white;
   border: none;
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
+  width: auto;
+  min-width: 150px;
 }
 .panel-illustration {
   width: 64px;
@@ -446,6 +493,7 @@ function onNameChange() {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin: 16px 0;
+  
 }
 .stat-card {
   background: #f8f9fa;
@@ -453,6 +501,7 @@ function onNameChange() {
   padding: 16px;
   text-align: center;
   border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 .stat-value {
   display: block;
@@ -635,6 +684,7 @@ function onNameChange() {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 .edit-btn {
   background: #e3f2fd;
