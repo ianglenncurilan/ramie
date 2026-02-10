@@ -49,16 +49,12 @@
                   :class="{ updating: updatingQuantity === ingredient.id }"
                 >
                   <input
-                    type="number"
+                    type="text"
                     class="quantity-input"
-                    v-model.number="ingredient.quantity"
-                    @blur="updateIngredientQuantity(ingredient)"
-                    @keyup.enter="updateIngredientQuantity(ingredient)"
-                    min="0"
-                    step="0.1"
+                    :value="`${ingredient.quantity} ${ingredient.unit}`"
+                    readonly
                     :disabled="updatingQuantity === ingredient.id"
                   />
-                  <span class="unit">{{ ingredient.unit }}</span>
                   <span v-if="updatingQuantity === ingredient.id" class="updating-indicator"
                     >⏳</span
                   >
@@ -193,6 +189,51 @@
           </form>
         </div>
       </div>
+
+      <!-- Quantity Edit Modal -->
+      <div v-if="showQuantityModal" class="modal-overlay" @click="closeQuantityModal">
+        <div class="modal" @click.stop>
+          <div class="modal-header">
+            <h3>Edit Quantity</h3>
+            <button class="close-btn" @click="closeQuantityModal">×</button>
+          </div>
+
+          <form @submit.prevent="saveQuantity" class="modal-form">
+            <div class="form-group">
+              <label>Ingredient</label>
+              <input
+                type="text"
+                :value="editingQuantityIngredient?.name"
+                disabled
+                class="disabled-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Quantity</label>
+              <div class="quantity-input-group">
+                <input
+                  type="number"
+                  v-model.number="quantityForm.quantity"
+                  min="0"
+                  step="0.1"
+                  required
+                  class="quantity-field"
+                  ref="quantityInput"
+                />
+                <span class="unit">{{ editingQuantityIngredient?.unit }}</span>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-cancel" @click="closeQuantityModal">Cancel</button>
+              <button type="submit" class="btn-save" :disabled="updatingQuantity">
+                {{ updatingQuantity ? 'Updating...' : 'Save' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -211,8 +252,11 @@ const formatNumber = (num) => {
 
 // Modal state
 const showModal = ref(false)
+const showQuantityModal = ref(false)
 const editingIngredient = ref(null)
+const editingQuantityIngredient = ref(null)
 const updatingQuantity = ref(null)
+const quantityInput = ref(null)
 
 // Form data
 const form = reactive({
@@ -222,6 +266,11 @@ const form = reactive({
   cost: '',
   unit: '',
   type: 'carbs',
+})
+
+// Quantity edit form
+const quantityForm = reactive({
+  quantity: '',
 })
 
 // Fetch ingredients when component is mounted
@@ -245,6 +294,62 @@ function closeModal() {
   showModal.value = false
   editingIngredient.value = null
   resetForm()
+}
+
+// Quantity modal functions
+function openQuantityModal(ingredient) {
+  editingQuantityIngredient.value = ingredient
+  quantityForm.quantity = ingredient.quantity
+  showQuantityModal.value = true
+
+  // Focus on the quantity input after modal opens
+  setTimeout(() => {
+    if (quantityInput.value) {
+      quantityInput.value.focus()
+      quantityInput.value.select()
+    }
+  }, 100)
+}
+
+function closeQuantityModal() {
+  showQuantityModal.value = false
+  editingQuantityIngredient.value = null
+  quantityForm.quantity = ''
+}
+
+async function saveQuantity() {
+  if (!editingQuantityIngredient.value) return
+
+  try {
+    updatingQuantity.value = editingQuantityIngredient.value.id
+
+    // Validate the quantity
+    const newQuantity = Number(quantityForm.quantity)
+    if (isNaN(newQuantity) || newQuantity < 0) {
+      alert('Please enter a valid quantity (0 or greater)')
+      return
+    }
+
+    // Update the ingredient in the database
+    const { error } = await inventory.updateIngredient(editingQuantityIngredient.value.id, {
+      quantity: newQuantity,
+    })
+
+    if (error) {
+      console.error('Error updating quantity:', error)
+      alert('Failed to update quantity. Please try again.')
+    } else {
+      console.log(
+        `Successfully updated ${editingQuantityIngredient.value.name} quantity to ${newQuantity}`,
+      )
+      closeQuantityModal()
+    }
+  } catch (error) {
+    console.error('Error updating quantity:', error)
+    alert('An error occurred while updating the quantity.')
+  } finally {
+    updatingQuantity.value = null
+  }
 }
 
 function resetForm() {
@@ -493,7 +598,6 @@ function onNameChange() {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin: 16px 0;
-  
 }
 .stat-card {
   background: #f8f9fa;
@@ -1329,6 +1433,75 @@ button {
     grid-template-columns: 1fr 1fr;
     gap: 14px;
   }
+}
+
+/* Quantity Modal Styles */
+.quantity-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-field {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.quantity-field:focus {
+  outline: none;
+  border-color: #2f8b60;
+  box-shadow: 0 0 0 2px rgba(47, 139, 96, 0.2);
+}
+
+.quantity-input-group .unit {
+  font-weight: 600;
+  color: #666;
+  min-width: 30px;
+}
+
+.disabled-input {
+  background: #f8f9fa;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #e0e0e0;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #e0e0e0;
+}
+
+.btn-save {
+  background: #2f8b60;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #247a52;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Removed PIN styles */

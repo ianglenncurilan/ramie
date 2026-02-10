@@ -400,6 +400,12 @@ const getActivityMessage = (activity) => {
       return `Added a new hog (${details.code || 'Unknown'})`
     case 'hog_updated':
       return `Updated hog ${details.code || ''}`
+    case 'hog_edited': {
+      const field = details.field || 'information'
+      const oldValue = details.old_value !== undefined ? details.old_value : 'previous value'
+      const newValue = details.new_value !== undefined ? details.new_value : 'new value'
+      return `Edited ${details.hog_code || ''} ${field}: ${oldValue} → ${newValue}`
+    }
     case 'hog_deleted':
       return `Deleted hog ${details.code || ''}`
     case 'hog_weight_updated': {
@@ -457,6 +463,21 @@ const getActivityMessage = (activity) => {
       return `Updated staff: ${details.staff_name || 'User'}`
     case 'hog_unsold':
       return `Reinstated hog ${details.hog_code || ''} (previously sold)`
+    case 'hog_sold': {
+      const price =
+        typeof details.sale_price === 'number'
+          ? details.sale_price
+          : Number(details.sale_price) || 0
+      const weight =
+        typeof details.weight === 'number' ? details.weight : Number(details.weight) || 0
+      const buyer = details.buyer || 'Unknown buyer'
+      return `Sold hog ${details.hog_code || ''} for ₱${price.toFixed(2)} (${weight}kg) to ${buyer}`
+    }
+    case 'hog_died': {
+      const cause = details.cause || 'Unknown cause'
+      const notes = details.notes ? ` (${details.notes})` : ''
+      return `Marked hog ${details.hog_code || ''} as deceased - ${cause}${notes}`
+    }
     default: {
       const base = String(activity.activity_type || 'action')
         .replace(/_/g, ' ')
@@ -471,13 +492,22 @@ const getActivityClass = (type) => ({
   'activity-logout': type === 'logout',
   'activity-hog-feed': type === 'hog_fed',
   'activity-hog-undo': type === 'hog_feeding_undone',
+  'activity-hog-sold': type === 'hog_sold',
+  'activity-hog-died': type === 'hog_died',
+  'activity-hog-edited': type === 'hog_edited',
   'activity-update':
-    type === 'staff_updated' || type === 'staff_added' || type === 'staff_deactivated',
+    type === 'staff_updated' ||
+    type === 'staff_added' ||
+    type === 'staff_deactivated' ||
+    type === 'hog_edited',
   'activity-other': ![
     'login',
     'logout',
     'hog_fed',
     'hog_feeding_undone',
+    'hog_sold',
+    'hog_died',
+    'hog_edited',
     'staff_updated',
     'staff_added',
     'staff_deactivated',

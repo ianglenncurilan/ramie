@@ -3,9 +3,12 @@ import { supabase } from '@/services/supabase'
 export const ActivityType = {
   HOG_ADDED: 'hog_added',
   HOG_UPDATED: 'hog_updated',
+  HOG_EDITED: 'hog_edited',
   HOG_DELETED: 'hog_deleted',
   HOG_FED: 'hog_fed',
   HOG_WEIGHT_UPDATED: 'hog_weight_updated',
+  HOG_SOLD: 'hog_sold',
+  HOG_DIED: 'hog_died',
   FEEDING_COMPLETED: 'feeding_completed',
   FEEDING_INCOMPLETE: 'feeding_incomplete',
 }

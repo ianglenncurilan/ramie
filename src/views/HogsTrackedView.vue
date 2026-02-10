@@ -645,7 +645,13 @@ const markAsSold = async () => {
     })
 
     // Log the hog activity
-    
+    logHogActivity(ActivityType.HOG_SOLD, currentHog.value.id, {
+      hog_code: currentHog.value.code,
+      sale_price: totalPrice,
+      weight: saleData.value.weight,
+      price_per_kilo: saleData.value.pricePerKilo,
+      buyer: saleData.value.buyer || '',
+    })
 
     // Log staff activity
     const {
@@ -695,10 +701,10 @@ const markAsDied = async () => {
       dateOfDeath: deathData.value.date || new Date().toISOString(),
     })
 
-    logHogActivity({
-      hogId: currentHog.value.id,
-      type: ActivityType.HOG_DIED,
-      details: `Hog ${currentHog.value.code} deceased - ${cause}${deathData.value.notes ? ` (${deathData.value.notes})` : ''}`,
+    logHogActivity(ActivityType.HOG_DIED, currentHog.value.id, {
+      hog_code: currentHog.value.code,
+      cause: cause,
+      notes: deathData.value.notes || '',
     })
 
     closeDiedModal()

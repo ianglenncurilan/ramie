@@ -124,7 +124,7 @@
   background: #fff;
   border: 1px solid #e8e8e8;
   border-radius: 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease-in-out;
 }
 .thumb {
