@@ -244,10 +244,6 @@ const onFormSubmit = () => {
   handleLogin()
 }
 
-const navigateToRegister = () => {
-  router.push({ name: 'register' })
-}
-
 // Clear specific error when user starts typing
 const clearErrors = (field) => {
   if (field in errors.value) {
@@ -356,10 +352,6 @@ const togglePasswordVisibility = () => {
           {{ formAction.formProcess ? 'Logging in...' : 'Login' }}
         </button>
       </form>
-
-      <div class="register-prompt">
-        <p>Don't have an account? <a href="#" @click.prevent="navigateToRegister">Sign up</a></p>
-      </div>
     </div>
 
     <!-- Alert Modal -->

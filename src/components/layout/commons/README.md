@@ -196,7 +196,6 @@ showInfo('Data has been loaded successfully.', 'Ready')
 The alert modal system is already integrated into:
 
 - LoginView.vue
-- RegisterView.vue
 - Can be easily added to any other component
 
 ## Best Practices

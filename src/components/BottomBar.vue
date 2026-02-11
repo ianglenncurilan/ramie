@@ -13,21 +13,38 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { isAdmin } from '@/services/supabase'
 
 const route = useRoute()
 const router = useRouter()
 
-const menuItems = [
+const isUserAdmin = ref(false)
+
+// Base menu items for all users
+const baseMenuItems = [
   { name: 'dashboard', label: 'Home', icon: '/home.png', disabled: false },
   { name: 'records', label: 'Records', icon: '/record.png', disabled: false },
   { name: 'expenses', label: 'Expenses', icon: '/expensesicon.png', disabled: false },
   { name: 'profile', label: 'Profile', icon: '/profile.png', disabled: false },
 ]
 
+// Admin-only menu items
+const adminMenuItems = [
+  { name: 'user-management', label: 'Users', icon: '/staff.png', disabled: false },
+]
+
+// Combined menu items based on admin status
+const menuItems = computed(() => {
+  if (isUserAdmin.value) {
+    return [...baseMenuItems, ...adminMenuItems]
+  }
+  return baseMenuItems
+})
+
 // Define routes where bottom bar should be hidden
-const hiddenRoutes = ['splash', 'login', 'register', 'onboarding-1']
+const hiddenRoutes = ['splash', 'login', 'onboarding-1']
 
 const showBottomBar = computed(() => {
   return !hiddenRoutes.includes(route.name)
@@ -40,6 +57,16 @@ const isActive = (item) => {
 const navigateTo = (routeName) => {
   router.push({ name: routeName })
 }
+
+// Check admin status on component mount
+onMounted(async () => {
+  try {
+    isUserAdmin.value = await isAdmin()
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    isUserAdmin.value = false
+  }
+})
 </script>
 
 <style scoped>
@@ -81,7 +108,7 @@ const navigateTo = (routeName) => {
 
 .bottombar button:hover {
   opacity: 1;
-  transform: translateY(-2px) scale(.9);
+  transform: translateY(-2px) scale(0.9);
   background: rgba(47, 139, 96, 0.12);
 }
 

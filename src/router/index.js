@@ -3,13 +3,13 @@ import { isAuthenticated, isAdmin } from '../services/supabase'
 import SplashView from '../views/SplashView.vue'
 import OnboardingView from '../views/OnboardingView.vue'
 import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import RecordsView from '../views/RecordsView.vue'
 import ExpensesView from '../views/ExpensesView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import MakeFeedsView from '../views/MakeFeedsView.vue'
 import ManageStaffView from '../views/ManageStaffView.vue'
+import UserManagementView from '../views/UserManagementView.vue'
 import InventoryView from '../views/InventoryView.vue'
 import HogsTrackedView from '../views/HogsTrackedView.vue'
 import HogsRecordsView from '../views/HogsRecordsView.vue'
@@ -63,11 +63,6 @@ const router = createRouter({
       component: LoginView,
     },
     {
-      path: '/register',
-      name: 'register',
-      component: RegisterView,
-    },
-    {
       path: '/dashboard',
       name: 'dashboard',
       component: DashboardView,
@@ -100,6 +95,12 @@ const router = createRouter({
       path: '/manage-staff',
       name: 'manage-staff',
       component: ManageStaffView,
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/user-management',
+      name: 'user-management',
+      component: UserManagementView,
       meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
