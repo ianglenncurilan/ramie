@@ -1447,6 +1447,8 @@ textarea.form-input {
 
 /* Add Hog Section */
 .add-hog-section {
+  display: flex;
+  justify-content: flex-end;
   margin: 16px 0;
 }
 .add-hog-btn {

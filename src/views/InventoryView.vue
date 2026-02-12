@@ -22,7 +22,7 @@
             <span class="stat-value">{{ inventory.availableIngredients.length }}</span>
             <span class="stat-label">Available</span>
           </div>
-          <div class="stat-card">
+          <div class="stat-card" v-if="isUserAdmin">
             <span class="stat-value">₱{{ inventory.totalValue.toFixed(2) }}</span>
             <span class="stat-label">Total Value</span>
           </div>
@@ -67,6 +67,7 @@
               <div class="actions">
                 <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
                 <button
+                  v-if="isUserAdmin"
                   class="delete-btn"
                   @click="() => deleteIngredient(ingredient.id)"
                   @mousedown="console.log('Delete button mousedown')"
@@ -241,8 +242,10 @@
 <script setup>
 import { ref, reactive, onMounted, onActivated } from 'vue'
 import { useInventoryStore } from '../stores/inventory'
+import { isAdmin } from '../services/supabase'
 
 const inventory = useInventoryStore()
+const isUserAdmin = ref(false)
 
 // Format number with commas
 const formatNumber = (num) => {
@@ -274,8 +277,9 @@ const quantityForm = reactive({
 })
 
 // Fetch ingredients when component is mounted
-onMounted(() => {
-  inventory.fetchIngredients()
+onMounted(async () => {
+  await inventory.fetchIngredients()
+  isUserAdmin.value = await isAdmin()
 })
 
 // Refresh inventory when view is activated (when navigating back to this view)

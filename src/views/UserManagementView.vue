@@ -4,7 +4,7 @@
       <div class="panel-header">
         <button class="back" @click="$router.back()">←</button>
         <div class="title-wrap">
-          <h2 class="title-lg">Staff Management</h2>
+          <h2 class="title-lg">User Management</h2>
           <p class="sub">Manage staff accounts and roles</p>
         </div>
         <div class="header-actions">
@@ -507,7 +507,7 @@ onMounted(async () => {
 
 .add-button-container {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   margin: 16px 0;
 }
 
@@ -527,6 +527,7 @@ onMounted(async () => {
   width: auto;
   min-width: 150px;
   cursor: pointer;
+  padding-left: 20px
 }
 
 .table {
