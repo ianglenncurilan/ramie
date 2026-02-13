@@ -11,6 +11,7 @@ import MakeFeedsView from '../views/MakeFeedsView.vue'
 import ManageStaffView from '../views/ManageStaffView.vue'
 import UserManagementView from '../views/UserManagementView.vue'
 import InventoryView from '../views/InventoryView.vue'
+import FeedInventoryView from '../views/FeedInventoryView.vue'
 import HogsTrackedView from '../views/HogsTrackedView.vue'
 import HogsRecordsView from '../views/HogsRecordsView.vue'
 import HogDetailsView from '../views/HogDetailsView.vue'
@@ -108,6 +109,12 @@ const router = createRouter({
       name: 'inventory',
       component: InventoryView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/feed-inventory',
+      name: 'feed-inventory',
+      component: FeedInventoryView,
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/hogs-tracked',

@@ -48,6 +48,7 @@ export const useHogsStore = defineStore('hogs', () => {
         code: hog.code || 'N/A',
         weight: Number(hog.weight) || 0,
         days: Number(hog.days) || 0,
+        stage: hog.stage || 'Starter',
         amFeeding: Boolean(hog.am_feeding),
         pmFeeding: Boolean(hog.pm_feeding),
         feedingCompleted: Boolean(hog.feeding_completed),
@@ -132,11 +133,19 @@ export const useHogsStore = defineStore('hogs', () => {
         throw new Error('A hog with this code already exists')
       }
 
+      // Calculate hog stage based on days (matching feed inventory logic)
+      const getHogStage = (days) => {
+        if (days <= 84) return 'Starter'
+        if (days <= 112) return 'Grower'
+        return 'Finisher'
+      }
+
       // Prepare the new hog data
       const newHogData = {
         code: hogCode,
         weight: Number(hogData.weight) || 0,
         days: Number(hogData.days) || 0,
+        stage: getHogStage(Number(hogData.days) || 0),
         am_feeding: false,
         pm_feeding: false,
         feeding_completed: false,
@@ -165,6 +174,7 @@ export const useHogsStore = defineStore('hogs', () => {
         code: addedHog.code,
         weight: Number(addedHog.weight) || 0,
         days: Number(addedHog.days) || 0,
+        stage: addedHog.stage || 'Starter',
         amFeeding: Boolean(addedHog.am_feeding),
         pmFeeding: Boolean(addedHog.pm_feeding),
         feedingCompleted: Boolean(addedHog.feeding_completed),
@@ -327,6 +337,7 @@ export const useHogsStore = defineStore('hogs', () => {
         status: 'status',
         weight: 'weight',
         days: 'days',
+        stage: 'stage',
       }
 
       // Map the updates to database column names
@@ -338,6 +349,16 @@ export const useHogsStore = defineStore('hogs', () => {
           dbUpdates[key] = value
         }
       })
+
+      // Auto-calculate and update stage if days are being updated
+      if ('days' in dbUpdates) {
+        const getHogStage = (days) => {
+          if (days <= 84) return 'Starter'
+          if (days <= 112) return 'Grower'
+          return 'Finisher'
+        }
+        dbUpdates.stage = getHogStage(Number(dbUpdates.days) || 0)
+      }
 
       // Always update the updated_at timestamp
       dbUpdates.updated_at = new Date().toISOString()
@@ -355,6 +376,8 @@ export const useHogsStore = defineStore('hogs', () => {
         throw updateError
       }
 
+      console.log('Database update response:', data)
+
       // Update local state
       const hogIndex = hogs.value.findIndex((hog) => hog.id === hogId)
       if (hogIndex !== -1 && data && data[0]) {
@@ -366,11 +389,14 @@ export const useHogsStore = defineStore('hogs', () => {
           ...updates, // Keep the original updates for any unmapped fields
           feedingCompleted: updatedHog.feeding_completed,
           lastFeedingDate: updatedHog.last_feeding_date,
-          totalFeedingDays: updatedHog.total_feeding_days,
+          totalFeedingDays: Number(updatedHog.total_feeding_days) || 0,
           lastDayIncrement: updatedHog.last_day_increment,
-          amFeeding: updatedHog.am_feeding,
-          pmFeeding: updatedHog.pm_feeding,
+          amFeeding: Boolean(updatedHog.am_feeding),
+          pmFeeding: Boolean(updatedHog.pm_feeding),
           status: updatedHog.status,
+          weight: Number(updatedHog.weight) || 0,
+          days: Number(updatedHog.days) || 0,
+          stage: updatedHog.stage || 'Starter',
           updated_at: updatedHog.updated_at,
         }
 
@@ -586,17 +612,50 @@ export const useHogsStore = defineStore('hogs', () => {
   }
 
   // Auto-increment days for all hogs (call this daily)
-  function incrementDaysForAllHogs() {
+  async function incrementDaysForAllHogs() {
     const now = new Date()
+    const updates = []
+
     hogs.value.forEach((hog) => {
       const lastDayIncrement = new Date(hog.lastDayIncrement || hog.createdAt)
       const daysSinceLastIncrement = Math.floor((now - lastDayIncrement) / (1000 * 60 * 60 * 24))
 
       if (daysSinceLastIncrement >= 1) {
-        hog.days += daysSinceLastIncrement
-        hog.lastDayIncrement = now.toISOString()
+        const newDays = hog.days + daysSinceLastIncrement
+
+        // Calculate new stage (matching feed inventory logic)
+        const getHogStage = (days) => {
+          if (days <= 84) return 'Starter'
+          if (days <= 112) return 'Grower'
+          return 'Finisher'
+        }
+        const newStage = getHogStage(newDays)
+
+        updates.push({
+          id: hog.id,
+          days: newDays,
+          stage: newStage,
+          lastDayIncrement: now.toISOString(),
+        })
       }
     })
+
+    // Update all hogs in database
+    if (updates.length > 0) {
+      console.log(`Updating ${updates.length} hogs with new days and stages`)
+
+      for (const update of updates) {
+        await updateHog(
+          update.id,
+          {
+            days: update.days,
+            stage: update.stage,
+            lastDayIncrement: update.lastDayIncrement,
+          },
+          false,
+        ) // Don't update timestamp for day increment
+      }
+    }
   }
 
   // Reset all feeding statuses (call this daily to reset for new day)

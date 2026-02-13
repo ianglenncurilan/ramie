@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/services/supabase'
 import { useFeedsStore } from './feeds'
+import { useFeedInventoryStore } from './feedInventory'
 
 export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
   const formulations = ref([])
@@ -32,47 +33,74 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
   // Save a new feed formulation
   async function saveFormulation(formulation) {
     const feedsStore = useFeedsStore()
-    
+    const feedInventoryStore = useFeedInventoryStore()
+
     try {
       loading.value = true
-      
-      // Get the current user's UUID
-      const { data: { user } } = await supabase.auth.getUser()
+
+      // Get current user's UUID
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
-      
-      // Insert the feed formulation directly
+
+      // Insert feed formulation directly
       const { data, error: saveError } = await supabase
         .from('feed_formulations')
-        .insert([{
-          feed_type: formulation.feedType,
-          name: formulation.name,
-          ingredients: formulation.ingredients,
-          total_kg: formulation.totalKg,
-          total_cost: formulation.totalCost,
-          cost_per_kg: formulation.costPerKg,
-          notes: formulation.notes,
-          created_by: user.id  // Use the authenticated user's UUID
-        }])
+        .insert([
+          {
+            feed_type: formulation.feedType,
+            name: formulation.name,
+            ingredients: formulation.ingredients,
+            total_kg: formulation.totalKg,
+            total_cost: formulation.totalCost,
+            cost_per_kg: formulation.costPerKg,
+            notes: formulation.notes,
+            created_by: user.id, // Use the authenticated user's UUID
+          },
+        ])
         .select()
 
       if (saveError) throw saveError
-      
-      // Create expense record; do not create a separate 'production' record here to avoid duplicates
+
+      // Update feed inventory stock levels
       if (data && data[0]) {
+        // Map feed type to inventory category
+        const categoryMap = {
+          Starter: 'starter',
+          Grower: 'grower',
+          Finisher: 'finisher',
+        }
+
+        const category = categoryMap[formulation.feedType]
+        if (category) {
+          console.log(`📦 Updating ${category} feed inventory by +${formulation.totalKg}kg`)
+          console.log(`📦 Formulation data:`, formulation)
+          console.log(`📦 Category: ${category}`)
+
+          // Update inventory
+          await feedInventoryStore.updateFeedInventory({
+            [category]: formulation.totalKg,
+          })
+
+          console.log(`✅ Feed inventory updated successfully!`)
+        }
+
+        // Create expense record; do not create a separate 'production' record here to avoid duplicates
         await feedsStore.addExpense({
           label: `Feed Formulation: ${formulation.name}`,
           amount: formulation.totalCost,
           date: new Date().toISOString(),
           reference_id: data[0].id,
-          reference_type: 'feed_formulation'
+          reference_type: 'feed_formulation',
         })
       }
-      
+
       // Add to local state
       if (data && data.length > 0) {
         formulations.value.unshift(data[0])
       }
-      
+
       return data?.[0]
     } catch (err) {
       console.error('Error saving feed formulation:', err)
@@ -91,21 +119,21 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
         .from('feed_formulations')
         .update({
           ...updates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', id)
         .select()
 
       if (updateError) throw updateError
-      
+
       // Update local state
       if (data && data.length > 0) {
-        const index = formulations.value.findIndex(f => f.id === id)
+        const index = formulations.value.findIndex((f) => f.id === id)
         if (index !== -1) {
           formulations.value[index] = { ...formulations.value[index], ...updates }
         }
       }
-      
+
       return data?.[0]
     } catch (err) {
       console.error('Error updating feed formulation:', err)
@@ -120,16 +148,13 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
   async function deleteFormulation(id) {
     try {
       loading.value = true
-      const { error: deleteError } = await supabase
-        .from('feed_formulations')
-        .delete()
-        .eq('id', id)
+      const { error: deleteError } = await supabase.from('feed_formulations').delete().eq('id', id)
 
       if (deleteError) throw deleteError
-      
+
       // Remove from local state
-      formulations.value = formulations.value.filter(f => f.id !== id)
-      
+      formulations.value = formulations.value.filter((f) => f.id !== id)
+
       return true
     } catch (err) {
       console.error('Error deleting feed formulation:', err)
@@ -142,12 +167,12 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
 
   // Get formulations by feed type
   const getFormulationsByType = (feedType) => {
-    return formulations.value.filter(f => f.feed_type === feedType)
+    return formulations.value.filter((f) => f.feed_type === feedType)
   }
 
   // Get a single formulation by ID
   const getFormulationById = (id) => {
-    return formulations.value.find(f => f.id === id)
+    return formulations.value.find((f) => f.id === id)
   }
 
   return {
@@ -159,6 +184,6 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
     updateFormulation,
     deleteFormulation,
     getFormulationsByType,
-    getFormulationById
+    getFormulationById,
   }
 })

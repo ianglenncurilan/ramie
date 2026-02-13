@@ -392,6 +392,14 @@ import { useActivityLogger } from '@/composables/useActivityLogger'
 
 import { useHogsStore } from '../stores/hogs'
 
+// Make test function available globally for debugging
+if (typeof window !== 'undefined') {
+  import('../utils/testStageStorage').then((module) => {
+    window.testHogStageStorage = module.testHogStageStorage
+    console.log('🧪 Test function available: window.testHogStageStorage()')
+  })
+}
+
 const router = useRouter()
 const hogsStore = useHogsStore()
 const { logHogActivity, ActivityType } = useActivityLogger()
@@ -457,10 +465,10 @@ const isUndoing = ref(null)
 const showUndoTooltip = ref(null)
 let undoTimeout = null
 
-// Determine hog stage based on days
+// Determine hog stage based on days (matching feed inventory logic)
 const getHogStage = (days) => {
-  if (days < 30) return 'Starter'
-  if (days < 60) return 'Grower'
+  if (days <= 84) return 'Starter'
+  if (days <= 112) return 'Grower'
   return 'Finisher'
 }
 

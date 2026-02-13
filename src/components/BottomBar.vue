@@ -1,13 +1,15 @@
 <template>
-  <nav class="bottombar" v-if="showBottomBar">
+  <nav class="sidebar" v-if="showBottomBar">
     <button
       v-for="item in menuItems"
       :key="item.name"
       @click="navigateTo(item.name)"
       :class="{ active: isActive(item) }"
       :disabled="item.disabled"
+      :title="item.label"
     >
       <img :src="item.icon" :alt="item.label" />
+      <span class="menu-label">{{ item.label }}</span>
     </button>
   </nav>
 </template>
@@ -33,6 +35,7 @@ const baseMenuItems = [
 // Admin-only menu items
 const adminMenuItems = [
   { name: 'user-management', label: 'Users', icon: '/staff.png', disabled: false },
+  { name: 'feed-inventory', label: 'Feed', icon: '/inventory.png', disabled: false },
 ]
 
 // Combined menu items based on admin status
@@ -70,183 +73,210 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.bottombar {
+.sidebar {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
-  right: 0;
+  bottom: 0;
+  width: 80px;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: saturate(180%) blur(8px);
   -webkit-backdrop-filter: saturate(180%) blur(8px);
   display: flex;
-  justify-content: space-around;
-  padding: 14px 0;
-  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.15);
-  border-top: 1px solid #e5e7eb;
+  flex-direction: column;
+  padding: 20px 0;
+  box-shadow: 6px 0 20px rgba(0, 0, 0, 0.15);
+  border-right: 1px solid #e5e7eb;
   z-index: 1000;
+  overflow-y: auto;
 }
 
-.bottombar button {
+.sidebar button {
   background: none;
   border: none;
-  padding: 12px 18px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   color: #334155;
-  font-size: 12px;
+  font-size: 11px;
   text-decoration: none;
   cursor: pointer;
   transition:
     transform 0.18s ease,
     opacity 0.18s ease;
-  flex: 1;
-  max-width: 25%;
+  width: 100%;
   opacity: 0.9;
-  border-radius: 12px;
+  border-radius: 0;
+  gap: 6px;
 }
 
-.bottombar button:hover {
+.sidebar button:hover {
   opacity: 1;
-  transform: translateY(-2px) scale(0.9);
+  transform: translateX(2px);
   background: rgba(47, 139, 96, 0.12);
 }
 
-.bottombar button:disabled {
+.sidebar button:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
 
-.bottombar button img {
+.sidebar button img {
   width: 28px;
   height: 28px;
-  margin-bottom: 0;
   transition:
     transform 0.18s ease,
     filter 0.18s ease;
 }
 
-.bottombar button.active {
+.sidebar button.active {
   color: #2f8b60;
   opacity: 1;
+  background: rgba(47, 139, 96, 0.15);
+  border-left: 3px solid #2f8b60;
 }
 
-.bottombar button.active img {
+.sidebar button.active img {
   filter: brightness(0) saturate(100%) invert(42%) sepia(65%) saturate(441%) hue-rotate(112deg)
     brightness(90%) contrast(85%);
 }
 
+.menu-label {
+  text-align: center;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
 /* Mobile Small (320px - 374px) */
 @media (max-width: 374px) {
-  .bottombar {
-    padding: 10px 0;
+  .sidebar {
+    width: 60px;
+    padding: 12px 0;
   }
 
-  .bottombar button {
-    padding: 8px 12px;
-    font-size: 10px;
+  .sidebar button {
+    padding: 12px 8px;
+    font-size: 9px;
   }
 
-  .bottombar button img {
-    width: 24px;
-    height: 24px;
+  .sidebar button img {
+    width: 22px;
+    height: 22px;
+  }
+
+  .menu-label {
+    display: none;
   }
 }
 
 /* Mobile Medium (375px - 424px) */
 @media (min-width: 375px) and (max-width: 424px) {
-  .bottombar {
-    padding: 12px 0;
+  .sidebar {
+    width: 65px;
+    padding: 14px 0;
   }
 
-  .bottombar button {
-    padding: 10px 14px;
-    font-size: 11px;
+  .sidebar button {
+    padding: 14px 10px;
+    font-size: 10px;
   }
 
-  .bottombar button img {
-    width: 26px;
-    height: 26px;
+  .sidebar button img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .menu-label {
+    display: none;
   }
 }
 
 /* Mobile Large (425px - 767px) */
 @media (min-width: 425px) and (max-width: 767px) {
-  .bottombar {
-    padding: 14px 0;
+  .sidebar {
+    width: 70px;
+    padding: 16px 0;
   }
 
-  .bottombar button {
-    padding: 12px 16px;
-    font-size: 12px;
+  .sidebar button {
+    padding: 16px 12px;
+    font-size: 11px;
   }
 
-  .bottombar button img {
-    width: 28px;
-    height: 28px;
+  .sidebar button img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .menu-label {
+    display: none;
   }
 }
 
 /* Tablet (768px - 1023px) */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .bottombar {
-    max-width: 768px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 20px 20px 0 0;
-    padding: 16px 0;
+  .sidebar {
+    width: 80px;
+    padding: 20px 0;
   }
 
-  .bottombar button {
-    padding: 14px 20px;
-    font-size: 13px;
+  .sidebar button {
+    padding: 18px 14px;
+    font-size: 12px;
   }
 
-  .bottombar button img {
+  .sidebar button img {
     width: 30px;
     height: 30px;
+  }
+
+  .menu-label {
+    display: block;
   }
 }
 
 /* Small Desktop (1024px - 1439px) */
 @media (min-width: 1024px) and (max-width: 1439px) {
-  .bottombar {
-    max-width: 1024px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 24px 24px 0 0;
-    padding: 18px 0;
+  .sidebar {
+    width: 90px;
+    padding: 22px 0;
   }
 
-  .bottombar button {
-    padding: 16px 24px;
-    font-size: 14px;
+  .sidebar button {
+    padding: 20px 16px;
+    font-size: 13px;
   }
 
-  .bottombar button img {
+  .sidebar button img {
     width: 32px;
     height: 32px;
+  }
+
+  .menu-label {
+    display: block;
   }
 }
 
 /* Large Desktop (1440px+) */
 @media (min-width: 1440px) {
-  .bottombar {
-    max-width: 1200px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 28px 28px 0 0;
-    padding: 20px 0;
+  .sidebar {
+    width: 100px;
+    padding: 24px 0;
   }
 
-  .bottombar button {
-    padding: 18px 28px;
-    font-size: 15px;
+  .sidebar button {
+    padding: 22px 18px;
+    font-size: 14px;
   }
 
-  .bottombar button img {
+  .sidebar button img {
     width: 34px;
     height: 34px;
+  }
+
+  .menu-label {
+    display: block;
   }
 }
 </style>

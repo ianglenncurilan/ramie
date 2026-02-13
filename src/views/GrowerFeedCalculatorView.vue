@@ -646,16 +646,18 @@ async function saveFormulation() {
 
     // Also persist a formulation entry in feed_formulations
     const record = {
-      stage: 'Grower',
+      feedType: 'Grower', // Changed from 'stage' to 'feedType'
+      name: `Grower Feed - ${totalAmount.toFixed(1)}kg`,
       items: items.map((item) => ({
         id: item.id,
         label: item.label,
         amountKg: item.amountKg,
         costPerKg: item.costPerKg,
       })),
-      totalAmount,
+      totalKg: totalAmount, // Changed from 'totalAmount' to 'totalKg'
       totalCost,
-      date: new Date().toISOString(),
+      costPerKg: totalCost / totalAmount, // Added cost per kg
+      notes: `Formulated on ${new Date().toLocaleDateString()}`,
       inventoryDeductions: deductionResults,
     }
 
