@@ -216,6 +216,18 @@
               class="form-input"
             />
           </div>
+          <div class="form-group">
+            <label for="hogPurchasePrice">Purchase Price (₱)</label>
+            <input
+              type="number"
+              id="hogPurchasePrice"
+              v-model.number="newHog.purchase_price"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              class="form-input"
+            />
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-cancel" @click="closeAddHogModal">Cancel</button>
@@ -414,6 +426,7 @@ const newHog = ref({
   code: '',
   weight: 0,
   days: 0,
+  purchase_price: 0,
   amFeeding: false,
   pmFeeding: false,
   status: 'active', // 'active', 'sold', or 'died'
@@ -834,6 +847,11 @@ async function addNewHog() {
     return
   }
 
+  if (newHog.value.purchase_price < 0) {
+    alert('Purchase price cannot be negative')
+    return
+  }
+
   try {
     loading.value = true
     error.value = null
@@ -843,6 +861,7 @@ async function addNewHog() {
       code: newHog.value.code.trim(),
       weight: Number(newHog.value.weight),
       days: Number(newHog.value.days),
+      purchase_price: Number(newHog.value.purchase_price),
     })
 
     if (!hog) {
@@ -883,7 +902,7 @@ async function addNewHog() {
 
 function closeAddHogModal() {
   showAddHogModal.value = false
-  newHog.value = { code: '', weight: 0, days: 0 }
+  newHog.value = { code: '', weight: 0, days: 0, purchase_price: 0 }
 }
 
 function capturePrevWeight(hogId, weight) {

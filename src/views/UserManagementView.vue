@@ -527,7 +527,7 @@ onMounted(async () => {
   width: auto;
   min-width: 150px;
   cursor: pointer;
-  padding-left: 20px
+  padding-left: 20px;
 }
 
 .table {

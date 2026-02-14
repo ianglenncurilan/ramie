@@ -20,6 +20,7 @@ import StarterFeedCalculatorView from '../views/StarterFeedCalculatorView.vue'
 import GrowerFeedCalculatorView from '../views/GrowerFeedCalculatorView.vue'
 import FinisherFeedCalculatorView from '../views/FinisherFeedCalculatorView.vue'
 import ForbiddenView from '../views/ForbiddenView.vue'
+import CostSummaryView from '../views/CostSummaryView.vue'
 
 // Route guard function to check authentication
 const requireAuth = async (to, from, next) => {
@@ -160,6 +161,12 @@ const router = createRouter({
       path: '/forbidden',
       name: 'forbidden',
       component: ForbiddenView,
+    },
+    {
+      path: '/cost-summary',
+      name: 'cost-summary',
+      component: CostSummaryView,
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
   ],
 })

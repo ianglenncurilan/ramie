@@ -17,11 +17,11 @@
 
       <!-- Stock Status Cards -->
       <div class="stock-overview">
-        <div class="days-remaining-card" :class="feedInventory.stockStatus">
-          <div class="days-number">{{ Math.floor(feedInventory.daysRemaining) }}</div>
-          <div class="days-label">Days Remaining</div>
-          <div class="depletion-date" v-if="feedInventory.depletionDate">
-            Depletes: {{ formatDate(feedInventory.depletionDate) }}
+        <div class="total-hogs-card">
+          <div class="hogs-icon">🐷</div>
+          <div class="hogs-info">
+            <div class="hogs-number">{{ totalHogs }}</div>
+            <div class="hogs-label">Total Active Hogs</div>
           </div>
         </div>
 
@@ -49,98 +49,134 @@
         </div>
       </div>
 
-      <!-- Total Hogs Display -->
-      <div class="total-hogs-section">
-        <div class="total-hogs-card">
-          <div class="hogs-icon">🐷</div>
-          <div class="hogs-info">
-            <div class="hogs-number">{{ totalHogs }}</div>
-            <div class="hogs-label">Total Active Hogs</div>
+      <!-- Total Hogs Display & Notifications -->
+      <div class="top-row-section">
+        <div class="left-column">
+          <div class="consumption-card">
+            <h3>Daily Consumption</h3>
+            <div class="consumption-total">
+              {{ feedInventory.dailyConsumption.toFixed(2) }} kg/day
+            </div>
+
+            <div class="category-breakdown">
+              <div
+                v-for="(data, category) in feedInventory.categoryBreakdown"
+                :key="category"
+                class="breakdown-item"
+              >
+                <div class="category-label">{{ capitalizeFirst(category) }}</div>
+                <div class="category-data">
+                  <span class="count">{{ data.count }} hogs</span>
+                  <span class="consumption">{{ data.dailyKg.toFixed(2) }} kg/day</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="right-column">
+          <div class="notifications-section">
+            <h3>Notifications & Alerts</h3>
+            <div class="notifications-list">
+              <!-- Low Stock Alerts -->
+              <div
+                v-for="(alert, index) in stockAlerts"
+                :key="'stock-' + index"
+                class="notification-item stock-alert"
+                :class="{ critical: alert.type === 'critical' }"
+              >
+                <div class="notification-icon">⚠️</div>
+                <div class="notification-content">
+                  <div class="notification-title">{{ alert.title }}</div>
+                  <div class="notification-message">{{ alert.message }}</div>
+                  <div class="notification-time">{{ alert.time }}</div>
+                </div>
+                <div class="notification-actions">
+                  <button
+                    v-if="alert.category"
+                    @click="goToFeedCalculator(alert.category)"
+                    class="action-btn primary"
+                  >
+                    Make Feed
+                  </button>
+                  <button @click="dismissNotification('stock', index)" class="action-btn secondary">
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+
+              <!-- System Notifications -->
+              <div
+                v-for="(notification, index) in systemNotifications"
+                :key="'system-' + index"
+                class="notification-item system-notification"
+              >
+                <div class="notification-icon">📢</div>
+                <div class="notification-content">
+                  <div class="notification-title">{{ notification.title }}</div>
+                  <div class="notification-message">{{ notification.message }}</div>
+                  <div class="notification-time">{{ notification.time }}</div>
+                </div>
+                <div class="notification-actions">
+                  <button
+                    @click="dismissNotification('system', index)"
+                    class="action-btn secondary"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+
+              <!-- No Notifications State -->
+              <div
+                v-if="stockAlerts.length === 0 && systemNotifications.length === 0"
+                class="no-notifications"
+              >
+                <div class="no-notifications-icon">✅</div>
+                <div class="no-notifications-text">All systems operational</div>
+                <div class="no-notifications-subtext">No alerts or notifications at this time</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Daily Consumption & Category Breakdown -->
-      <div class="analytics-section">
-        <div class="consumption-card">
-          <h3>Daily Consumption</h3>
-          <div class="consumption-total">
-            {{ feedInventory.dailyConsumption.toFixed(2) }} kg/day
-          </div>
 
-          <div class="category-breakdown">
-            <div
-              v-for="(data, category) in feedInventory.categoryBreakdown"
-              :key="category"
-              class="breakdown-item"
-            >
-              <div class="category-label">{{ capitalizeFirst(category) }}</div>
-              <div class="category-data">
-                <span class="count">{{ data.count }} hogs</span>
-                <span class="consumption">{{ data.dailyKg.toFixed(2) }} kg/day</span>
+      <!-- Feed Forecast Section -->
+      <div class="forecast-section">
+        <h3>Feed Forecast by Stage</h3>
+        <div class="forecast-grid">
+          <div
+            v-for="(stock, category) in feedInventory.feedStock"
+            :key="category"
+            class="forecast-item"
+            :class="getForecastClass(category)"
+          >
+            <div class="forecast-header">
+              <div class="forecast-icon">{{ getFeedIcon(category) }}</div>
+              <div class="forecast-title">{{ capitalizeFirst(category) }} Feed</div>
+            </div>
+            <div class="forecast-details">
+              <div class="stock-amount">
+                <span class="stock-value">{{ stock.toFixed(1) }}</span>
+                <span class="stock-unit">kg remaining</span>
+              </div>
+              <div class="days-remaining">
+                <span class="days-value">{{ getDaysRemainingForCategory(category) }}</span>
+                <span class="days-unit">days</span>
+              </div>
+              <div class="consumption-rate">
+                <span class="rate-value">{{ getCategoryConsumptionRate(category) }}</span>
+                <span class="rate-unit">kg/day</span>
+              </div>
+              <div class="depletion-date">
+                <span class="date-label">Depletion:</span>
+                <span class="date-value">{{ getDepletionDateForCategory(category) }}</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Notifications/Alerts Section -->
-        <div class="notifications-section">
-          <h3>Notifications & Alerts</h3>
-          <div class="notifications-list">
-            <!-- Low Stock Alerts -->
-            <div
-              v-for="(alert, index) in stockAlerts"
-              :key="'stock-' + index"
-              class="notification-item stock-alert"
-              :class="{ critical: alert.type === 'critical' }"
-            >
-              <div class="notification-icon">⚠️</div>
-              <div class="notification-content">
-                <div class="notification-title">{{ alert.title }}</div>
-                <div class="notification-message">{{ alert.message }}</div>
-                <div class="notification-time">{{ alert.time }}</div>
-              </div>
-              <div class="notification-actions">
-                <button
-                  v-if="alert.category"
-                  @click="goToFeedCalculator(alert.category)"
-                  class="action-btn primary"
-                >
-                  Make Feed
-                </button>
-                <button @click="dismissNotification('stock', index)" class="action-btn secondary">
-                  Dismiss
-                </button>
-              </div>
-            </div>
-
-            <!-- System Notifications -->
-            <div
-              v-for="(notification, index) in systemNotifications"
-              :key="'system-' + index"
-              class="notification-item system-notification"
-            >
-              <div class="notification-icon">📢</div>
-              <div class="notification-content">
-                <div class="notification-title">{{ notification.title }}</div>
-                <div class="notification-message">{{ notification.message }}</div>
-                <div class="notification-time">{{ notification.time }}</div>
-              </div>
-              <div class="notification-actions">
-                <button @click="dismissNotification('system', index)" class="action-btn secondary">
-                  Dismiss
-                </button>
-              </div>
-            </div>
-
-            <!-- No Notifications State -->
-            <div
-              v-if="stockAlerts.length === 0 && systemNotifications.length === 0"
-              class="no-notifications"
-            >
-              <div class="no-notifications-icon">✅</div>
-              <div class="no-notifications-text">All systems operational</div>
-              <div class="no-notifications-subtext">No alerts or notifications at this time</div>
+            <div class="forecast-status" :class="getForecastClass(category)">
+              {{ getForecastStatus(category) }}
             </div>
           </div>
         </div>
@@ -369,6 +405,54 @@ const formatTime = (date) => {
   return `${Math.floor(diffMins / 1440)} days ago`
 }
 
+// Forecast calculation methods
+const getDaysRemainingForCategory = (category) => {
+  const stock = feedInventory.feedStock[category] || 0
+  const dailyConsumption = feedInventory.categoryBreakdown[category]?.dailyKg || 0
+  if (dailyConsumption <= 0) return '∞'
+  return Math.floor(stock / dailyConsumption)
+}
+
+const getCategoryConsumptionRate = (category) => {
+  return (feedInventory.categoryBreakdown[category]?.dailyKg || 0).toFixed(2)
+}
+
+const getDepletionDateForCategory = (category) => {
+  const daysRemaining = getDaysRemainingForCategory(category)
+  if (daysRemaining === '∞') return 'Never'
+
+  const depletionDate = new Date()
+  depletionDate.setDate(depletionDate.getDate() + parseInt(daysRemaining))
+  return depletionDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+const getForecastStatus = (category) => {
+  const daysRemaining = getDaysRemainingForCategory(category)
+  if (daysRemaining === '∞') return 'No Consumption'
+  if (daysRemaining <= 3) return 'Critical'
+  if (daysRemaining <= 7) return 'Low'
+  if (daysRemaining <= 14) return 'Moderate'
+  return 'Good'
+}
+
+const getForecastClass = (category) => {
+  const status = getForecastStatus(category)
+  return `forecast-${status.toLowerCase()}`
+}
+
+const getFeedIcon = (category) => {
+  const icons = {
+    starter: '🌱',
+    grower: '🌾',
+    finisher: '🌾',
+  }
+  return icons[category] || '🌾'
+}
+
 // Update notifications
 const updateNotifications = () => {
   stockAlerts.value = generateStockAlerts()
@@ -529,6 +613,126 @@ onMounted(async () => {
   object-fit: contain;
 }
 
+/* Top Row Section - Two Column Layout */
+.top-row-section {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  margin-bottom: 24px;
+  align-items: start;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Daily Consumption Card in Left Column */
+.left-column .consumption-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.left-column .consumption-card h3 {
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  border-bottom: 1px solid #f1f3f4;
+  padding-bottom: 8px;
+}
+
+.left-column .consumption-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2f8b60;
+  text-align: center;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.left-column .category-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.left-column .breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.left-column .category-label {
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: capitalize;
+}
+
+.left-column .category-data {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.left-column .category-data .count {
+  color: #6c757d;
+  font-size: 12px;
+}
+
+.left-column .category-data .consumption {
+  font-weight: 600;
+  color: #2f8b60;
+  font-size: 12px;
+}
+.total-hogs-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.total-hogs-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Notifications Section in Right Column */
+.right-column .notifications-section {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.right-column .notifications-section h3 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  border-bottom: 1px solid #f1f3f4;
+  padding-bottom: 8px;
+}
+
 /* Stock Overview */
 .stock-overview {
   display: grid;
@@ -657,8 +861,8 @@ onMounted(async () => {
 }
 
 .total-hogs-card {
-  background: rgb(237, 237, 237) ;
-  color:#2f8b60;
+  background: rgb(237, 237, 237);
+  color: #2f8b60;
   padding: 20px;
   border-radius: 12px;
   display: flex;
@@ -873,6 +1077,194 @@ onMounted(async () => {
   color: #495057;
 }
 
+/* Feed Forecast Section */
+.forecast-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.forecast-section h3 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.forecast-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.forecast-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.forecast-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.forecast-icon {
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.forecast-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.forecast-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stock-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.stock-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  line-height: 1;
+}
+
+.stock-unit {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+.days-remaining {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #fff3cd;
+  border-radius: 6px;
+}
+
+.days-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #856404;
+  line-height: 1;
+}
+
+.days-unit {
+  font-size: 12px;
+  color: #856404;
+  margin-top: 2px;
+}
+
+.consumption-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #d1ecf1;
+  border-radius: 6px;
+}
+
+.rate-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0c5460;
+  line-height: 1;
+}
+
+.rate-unit {
+  font-size: 12px;
+  color: #0c5460;
+  margin-top: 2px;
+}
+
+.depletion-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #f8d7da;
+  border-radius: 6px;
+}
+
+.date-label {
+  font-size: 11px;
+  color: #721c24;
+  margin-bottom: 2px;
+}
+
+.date-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #721c24;
+}
+
+.forecast-status {
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.forecast-critical {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.forecast-low {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.forecast-moderate {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.forecast-good {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.forecast-no-consumption {
+  background: #e2e3f2;
+  color: #6c757d;
+  border: 1px solid #d6d9dc;
+}
+
 .no-notifications {
   text-align: center;
   padding: 32px 16px;
@@ -1040,6 +1432,34 @@ onMounted(async () => {
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .top-row-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .right-column .notifications-section {
+    max-height: 250px;
+  }
+
+  .forecast-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .forecast-details {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stock-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .status-breakdown {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -155,6 +155,7 @@ export const useHogsStore = defineStore('hogs', () => {
         last_feeding_date: null,
         total_feeding_days: 0,
         last_day_increment: now,
+        purchase_price: Number(hogData.purchase_price) || 0,
       }
 
       console.log('Adding new hog to database:', newHogData)
@@ -184,6 +185,7 @@ export const useHogsStore = defineStore('hogs', () => {
         lastFeedingDate: addedHog.last_feeding_date,
         totalFeedingDays: Number(addedHog.total_feeding_days) || 0,
         lastDayIncrement: addedHog.last_day_increment,
+        purchasePrice: Number(addedHog.purchase_price) || 0,
       }
 
       console.log('Successfully added hog:', transformedHog)

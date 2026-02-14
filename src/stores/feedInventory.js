@@ -280,20 +280,37 @@ export const useFeedInventoryStore = defineStore('feedInventory', {
       try {
         // Import hogs store dynamically to avoid circular dependency
         const { useHogsStore } = await import('./hogs')
+        const { logDailyFeedCost, calculateDailyFeedCost } = await import(
+          '../services/hogCostService.js'
+        )
         const hogsStore = useHogsStore()
 
-        // Get current active hogs from the hogs store
-        // Use the same criteria as getStats() for consistency
+        // Get active hogs (exclude sold and deceased)
         const activeHogs = hogsStore.hogs.filter(
           (hog) => hog.status !== 'sold' && hog.status !== 'deceased',
         )
+
+        console.log(
+          '🐷 Active hogs for deduction:',
+          activeHogs.length,
+          activeHogs.map((h) => ({ id: h.id, status: h.status, days: h.days })),
+        )
+
         const breakdown = getCategoryBreakdown(activeHogs)
+        console.log('📊 Category breakdown:', breakdown)
 
         // Calculate deductions for each category
         const deductions = {
           starter: -breakdown.starter.dailyKg,
           grower: -breakdown.grower.dailyKg,
           finisher: -breakdown.finisher.dailyKg,
+        }
+
+        // Log feed costs for each active hog
+        const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+        for (const hog of activeHogs) {
+          const feedData = calculateDailyFeedCost(hog)
+          await logDailyFeedCost(hog.id, today, feedData)
         }
 
         // Update inventory with deductions

@@ -72,7 +72,8 @@ export const getCategoryBreakdown = (hogs) => {
   }
 
   hogs.forEach((hog) => {
-    if (hog.status !== 'active') return
+    // Use the same criteria as hogs store getStats() for consistency
+    if (hog.status === 'sold' || hog.status === 'deceased') return
 
     const ageInDays = hog.days || 0
     const rate = getConsumptionRate(ageInDays)

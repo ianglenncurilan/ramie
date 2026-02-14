@@ -4,85 +4,14 @@
       <div class="panel-header">
         <button class="back" @click="$router.back()">←</button>
         <div class="title-wrap">
-          <h2 class="title-lg">Staff Management</h2>
-          <p class="sub">Manage your team and track activities</p>
+          <h2 class="title-lg">Activity Log</h2>
+          <p class="sub">Track system activities and events</p>
         </div>
         <img class="panel-illustration" src="/staff.png" alt="icon" />
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab" :class="{ active: activeTab === 'staff' }" @click="activeTab = 'staff'">
-          Staff Members
-        </button>
-        <button
-          class="tab"
-          :class="{ active: activeTab === 'activity' }"
-          @click="activeTab = 'activity'"
-        >
-          Activity Log
-        </button>
-      </div>
-
-      <!-- Staff Management View -->
-      <div v-if="activeTab === 'staff'" class="staff-management">
-        <div class="search-box">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search staff..."
-            @input="handleSearch"
-          />
-          <span class="search-icon">🔍</span>
-        </div>
-
-        <div class="filters">
-          <div class="filter-group"></div>
-        </div>
-
-        <div v-if="loading" class="loading">Loading staff members...</div>
-        <div v-else-if="staffError" class="error">{{ staffError }}</div>
-
-        <div v-else class="staff-list">
-          <div v-if="filteredStaff.length === 0" class="no-results">
-            No staff members found matching your criteria.
-          </div>
-
-          <div v-else>
-            <div class="staff-grid">
-              <div v-for="staff in paginatedStaff" :key="staff.id" class="staff-card">
-                <div class="staff-avatar">
-                  {{ getInitials(staff.first_name, staff.last_name) }}
-                  <span
-                    class="status-badge"
-                    :class="{ online: staff.is_online, offline: !staff.is_online }"
-                    :title="
-                      staff.is_online ? 'Online' : 'Last seen: ' + formatLastSeen(staff.last_seen)
-                    "
-                  ></span>
-                </div>
-                <div class="staff-info">
-                  <h3>{{ staff.first_name }} {{ staff.last_name }}</h3>
-                  <p class="role"></p>
-                  <p class="email">{{ staff.email }}</p>
-                  <p class="last-login" v-if="staff.last_login">
-                    Last active: {{ formatDate(staff.last_login) }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="totalPages > 1" class="pagination">
-              <button :disabled="currentPage === 1" @click="currentPage--">Previous</button>
-              <span>Page {{ currentPage }} of {{ totalPages }}</span>
-              <button :disabled="currentPage >= totalPages" @click="currentPage++">Next</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Activity Log View -->
-      <div v-else class="activity-log">
+      <div class="activity-log">
         <div class="activity-filters">
           <button
             v-for="filter in activityFilters"
@@ -144,26 +73,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Confirmation Dialog -->
-    <div v-if="showConfirmDialog" class="modal">
-      <div class="modal-content confirm-dialog">
-        <h3>Confirm Action</h3>
-        <p>
-          Are you sure you want to {{ staffToDeactivate.is_active ? 'deactivate' : 'activate' }}
-          {{ staffToDeactivate.first_name }} {{ staffToDeactivate.last_name }}?
-        </p>
-        <div class="dialog-actions">
-          <button class="btn btn-secondary" @click="showConfirmDialog = false">Cancel</button>
-          <button
-            class="btn btn-danger"
-            @click="staffToDeactivate.is_active ? deactivateStaff() : activateStaff()"
-          >
-            {{ staffToDeactivate.is_active ? 'Deactivate' : 'Activate' }}
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -172,25 +81,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useActivityStore } from '@/stores/activityStore'
 import { supabase } from '@/supabase'
-import { useStaffStore } from '@/stores/staff'
-import { getStaffActivities } from '@/services/staffService'
 
 const router = useRouter()
-const staffStore = useStaffStore()
-
-// Tabs
-const activeTab = ref('staff')
-
-// Staff Management State
-const loading = ref(false)
-const staffError = ref(null)
-const searchQuery = ref('')
-const statusFilter = ref('active')
-const roleFilter = ref('all')
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
-const showConfirmDialog = ref(false)
-const staffToDeactivate = ref(null)
 
 // Activity Log State
 const activityStore = useActivityStore()
@@ -205,36 +97,6 @@ const activityFilters = [
   { label: 'Weight Updated', value: 'hog_weight_updated' },
 ]
 
-// Computed Properties
-const filteredStaff = computed(() => {
-  return staffStore.staffMembers.filter((staff) => {
-    const matchesSearch =
-      !searchQuery.value ||
-      staff.first_name?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      staff.last_name?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      staff.email?.toLowerCase().includes(searchQuery.value.toLowerCase())
-
-    const matchesStatus =
-      statusFilter.value === 'all' ||
-      (statusFilter.value === 'active' && staff.is_active) ||
-      (statusFilter.value === 'inactive' && !staff.is_active)
-
-    const matchesRole = roleFilter.value === 'all' || staff.role === roleFilter.value
-
-    return matchesSearch && matchesStatus && matchesRole
-  })
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(filteredStaff.value.length / itemsPerPage.value)
-})
-
-const paginatedStaff = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return filteredStaff.value.slice(start, end)
-})
-
 const filteredActivities = computed(() => {
   if (currentFilter.value === 'all') {
     return activityStore.activities
@@ -243,96 +105,6 @@ const filteredActivities = computed(() => {
     (activity) => activity.activity_type === currentFilter.value,
   )
 })
-
-// Methods
-// Staff Management Methods
-async function fetchStaff() {
-  loading.value = true
-  try {
-    // Query the 'users' table from Supabase
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('last_name', { ascending: true })
-
-    if (error) throw error
-
-    // Get current timestamp for online status comparison
-    const now = new Date()
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
-
-    // Map the data with online status
-    staffStore.staffMembers = data.map((user) => {
-      const lastSeen = user.last_seen_at ? new Date(user.last_seen_at) : null
-      const isOnline = lastSeen ? lastSeen > fiveMinutesAgo : false
-
-      return {
-        id: user.id,
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        email: user.email || '',
-        role: user.role || 'staff',
-        is_active: user.is_active !== false, // Default to true if not set
-        is_online: isOnline,
-        last_seen: user.last_seen_at || null,
-        last_login: user.last_sign_in_at || null,
-      }
-    })
-
-    staffError.value = null
-  } catch (err) {
-    console.error('Error fetching staff:', err)
-    staffError.value = 'Failed to load staff members. ' + (err.message || 'Please try again.')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleSearch = () => {
-  currentPage.value = 1 // Reset to first page when searching
-}
-
-const editStaff = (id) => {
-  editingStaff.value = id
-  showStaffForm.value = true
-}
-
-const confirmDeactivate = (staff) => {
-  staffToDeactivate.value = { ...staff }
-  showConfirmDialog.value = true
-}
-
-const deactivateStaff = async () => {
-  if (!staffToDeactivate.value) return
-
-  try {
-    await staffStore.deactivateStaff(staffToDeactivate.value.id)
-    showConfirmDialog.value = false
-    staffToDeactivate.value = null
-  } catch (err) {
-    console.error('Error deactivating staff:', err)
-  }
-}
-
-const activateStaff = async (id) => {
-  const staffId = id || staffToDeactivate.value?.id
-  if (!staffId) return
-
-  try {
-    await staffStore.updateStaff(staffId, { is_active: true })
-    if (staffToDeactivate.value) {
-      showConfirmDialog.value = false
-      staffToDeactivate.value = null
-    }
-  } catch (err) {
-    console.error('Error activating staff:', err)
-  }
-}
-
-const closeModal = () => {
-  showConfirmDialog.value = false
-  staffToDeactivate.value = null
-}
 
 // Activity Log Methods
 const fetchActivities = async () => {
@@ -514,55 +286,17 @@ const getActivityClass = (type) => ({
   ].includes(type),
 })
 
-// Lifecycle Hooks
 onMounted(async () => {
   // Initial fetch
-  await Promise.all([fetchStaff(), fetchActivities()])
+  await fetchActivities()
 
   // Set up realtime subscription
   const unsubscribe = activityStore.subscribeToActivities()
 
-  // Update online status every minute
-  const interval = setInterval(fetchStaff, 60000) // 60 seconds
-
   // Clean up on unmount
   onUnmounted(() => {
-    clearInterval(interval)
     if (unsubscribe) unsubscribe()
   })
-
-  // Clean up subscription on unmount
-  onUnmounted(() => {
-    if (unsubscribe) unsubscribe()
-  })
-
-  // Set up realtime subscription to user changes
-  const userSubscription = supabase
-    .channel('users-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'users',
-      },
-      (payload) => {
-        console.log('User change detected:', payload)
-        fetchStaff() // Refresh staff list on any user change
-      },
-    )
-    .subscribe()
-
-  // Clean up subscription on component unmount
-  onUnmounted(() => {
-    supabase.removeChannel(userSubscription)
-  })
-})
-
-// Watch for filter changes
-watch([statusFilter, roleFilter], () => {
-  currentPage.value = 1
-  fetchStaff()
 })
 </script>
 
@@ -572,320 +306,6 @@ watch([statusFilter, roleFilter], () => {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 1.5rem;
-}
-
-.tab {
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tab:hover {
-  color: #2f8b60;
-}
-
-.tab.active {
-  color: #2f8b60;
-  border-bottom-color: #2f8b60;
-}
-
-/* Staff Management */
-.staff-management {
-  padding: 1rem 0;
-}
-
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.search-box {
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-  max-width: 400px;
-}
-
-.search-box input {
-  width: 100%;
-  padding: 0.5rem 2rem 0.5rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.search-icon {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-  pointer-events: none;
-}
-
-.filters {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-group label {
-  font-size: 0.9rem;
-  color: #555;
-  white-space: nowrap;
-}
-
-.filter-group select {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 0.9rem;
-  min-width: 120px;
-}
-
-/* Staff Grid */
-.staff-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-
-.staff-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  display: flex;
-  gap: 1rem;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  position: relative;
-  border: 1px solid #eee;
-}
-
-.staff-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.staff-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background-color: #4a90e2;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.status-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid white;
-}
-
-.status-badge.online {
-  background-color: #2ecc71;
-}
-
-.status-badge.offline {
-  background-color: #95a5a6;
-}
-
-.staff-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.staff-info h3 {
-  margin: 0 0 0.25rem;
-  color: #2c3e50;
-  font-size: 1.1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.role {
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
-  color: #7f8c8d;
-  font-weight: 500;
-}
-
-.email,
-.last-login {
-  margin: 0.25rem 0;
-  font-size: 0.8rem;
-  color: #7f8c8d;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.staff-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-/* Status badge styles */
-.status-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid white;
-  box-sizing: content-box;
-}
-
-.status-badge.online {
-  background-color: #4caf50; /* Green for online */
-}
-
-.status-badge.offline {
-  background-color: #9e9e9e; /* Grey for offline */
-}
-
-/* Add a pulse animation for online status */
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-}
-
-.status-badge.online::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-radius: 50%;
-  border: 2px solid #4caf50;
-  animation: pulse 2s infinite;
-  z-index: -1;
-}
-
-/* Staff avatar styles */
-.staff-avatar {
-  position: relative;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
-  color: #555;
-  margin-right: 15px;
-  flex-shrink: 0;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-icon:hover {
-  background-color: #f5f5f5;
-}
-
-.btn-icon.danger {
-  color: #e74c3c;
-}
-
-.btn-icon.success {
-  color: #2ecc71;
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #eee;
-}
-
-.pagination button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination button:not(:disabled):hover {
-  background: #f5f5f5;
 }
 
 /* Activity Log */
@@ -1115,31 +535,6 @@ watch([statusFilter, roleFilter], () => {
   padding: 1.5rem;
 }
 
-/* Confirm Dialog */
-.confirm-dialog {
-  padding: 1.5rem;
-  text-align: center;
-}
-
-.confirm-dialog h3 {
-  margin: 0 0 1rem;
-  color: #2c3e50;
-  font-size: 1.25rem;
-}
-
-.confirm-dialog p {
-  margin: 0 0 1.5rem;
-  color: #555;
-  line-height: 1.5;
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
 /* Buttons */
 .btn {
   padding: 0.5rem 1rem;
@@ -1225,37 +620,6 @@ watch([statusFilter, roleFilter], () => {
 
 .retry-btn:hover {
   background: #e0e0e0;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .staff-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .header-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-box {
-    max-width: 100%;
-  }
-
-  .filters {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .filter-group {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .modal-content {
-    max-width: 100%;
-    margin: 0 1rem;
-  }
 }
 
 /* Scrollbar Styling */

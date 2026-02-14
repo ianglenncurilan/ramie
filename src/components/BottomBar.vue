@@ -36,6 +36,7 @@ const baseMenuItems = [
 const adminMenuItems = [
   { name: 'user-management', label: 'Users', icon: '/staff.png', disabled: false },
   { name: 'feed-inventory', label: 'Feed', icon: '/inventory.png', disabled: false },
+  { name: 'cost-summary', label: 'Costs', icon: '/budget.png', disabled: false },
 ]
 
 // Combined menu items based on admin status

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { supabase } from '@/services/supabase'
 import { logActivity } from '@/services/activityService'
 
@@ -333,11 +333,16 @@ export const useFeedsStore = defineStore('feeds', () => {
 
   const netProfit = computed(() => totalIncome.value - totalExpense.value)
 
-  // Initialize store
-  onMounted(async () => {
+  // Initialize store data
+  const initializeStore = async () => {
     await fetchExpenses()
     await fetchRecords()
-  })
+  }
+
+  // Auto-initialize when store is first used
+  if (!records.value.length && !expenses.value.length) {
+    initializeStore()
+  }
 
   return {
     records,
