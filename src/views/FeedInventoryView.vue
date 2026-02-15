@@ -8,8 +8,17 @@
           <p class="sub">Intelligent feed management & analytics</p>
         </div>
         <div class="header-actions">
-          <button @click="refreshInventory" class="refresh-btn" title="Refresh inventory">
-            🔄
+          <div v-if="isSyncing" class="syncing-indicator" title="Syncing data...">
+            <div class="sync-spinner"></div>
+            <span class="sync-text">Syncing...</span>
+          </div>
+          <button 
+            @click="refreshInventory" 
+            class="refresh-btn" 
+            title="Refresh inventory"
+            :disabled="isSyncing"
+          >
+            {{ isSyncing ? '⏳' : '🔄' }}
           </button>
           <img class="panel-illustration" src="/inventory.png" alt="icon" />
         </div>
@@ -52,39 +61,14 @@
       <!-- Feed Cost Analysis Section -->
       <div class="feed-cost-section">
         <h3>💰 Feed Cost Analysis</h3>
-        <div class="cost-cards">
-          <div class="cost-card total-cost">
-            <div class="cost-icon">📊</div>
-            <div class="cost-info">
-              <div class="cost-amount">{{ formatCurrency(feedCostAnalysis.totalFeedCost) }}</div>
-              <div class="cost-label">Total Feed Investment</div>
-              <div class="cost-subtitle">{{ feedCostAnalysis.totalBatches }} batches</div>
-            </div>
-          </div>
-
-          <div class="cost-card cost-per-kg">
-            <div class="cost-icon">⚖️</div>
-            <div class="cost-info">
-              <div class="cost-amount">
-                {{ formatCurrency(feedCostAnalysis.averageCostPerKg) }}/kg
-              </div>
-              <div class="cost-label">Average Cost per kg</div>
-              <div class="cost-subtitle">Based on actual batches</div>
-            </div>
-          </div>
-
-          <div class="cost-card daily-cost">
-            <div class="cost-icon">📅</div>
-            <div class="cost-info">
-              <div class="cost-amount">{{ formatCurrency(feedCostAnalysis.dailyFeedCost) }}</div>
-              <div class="cost-label">Daily Feed Cost</div>
-              <div class="cost-subtitle">{{ totalHogs }} hogs</div>
-            </div>
-          </div>
-        </div>
-
+        
         <div class="cost-breakdown">
           <div class="breakdown-title">Cost Breakdown by Feed Type</div>
+
+          <!-- Daily Cost Analysis Cards -->
+         
+
+          <!-- Original Cost Breakdown Grid -->
           <div class="breakdown-grid">
             <div
               v-for="(cost, category) in feedCostAnalysis.costByCategory"
@@ -105,7 +89,11 @@
                 </div>
                 <div class="detail-row">
                   <span>Daily cost:</span>
-                  <span>{{ formatCurrency(cost.dailyCost) }}</span>
+                  <span class="daily-cost"
+                    >{{
+                      formatCurrency(dailyConsumptionCostByCategory[category]?.dailyCost || 0)
+                    }}/day</span
+                  >
                 </div>
               </div>
             </div>
@@ -116,11 +104,8 @@
       <!-- Total Hogs Display & Notifications -->
       <div class="top-row-section">
         <div class="left-column">
-          <div class="consumption-card">
+          <div class="consumpdivn-card">
             <h3>Daily Consumption</h3>
-            <div class="consumption-total">
-              {{ feedInventory.dailyConsumption.toFixed(2) }} kg/day
-            </div>
 
             <div class="category-breakdown">
               <div
@@ -132,6 +117,11 @@
                 <div class="category-data">
                   <span class="count">{{ data.count }} hogs</span>
                   <span class="consumption">{{ data.dailyKg.toFixed(2) }} kg/day</span>
+                  <span class="daily-cost"
+                    >{{
+                      formatCurrency(dailyConsumptionCostByCategory[category]?.dailyCost || 0)
+                    }}/day</span
+                  >
                 </div>
               </div>
             </div>
@@ -287,12 +277,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFeedInventoryStore } from '../stores/feedInventory'
 import { useHogsStore } from '../stores/hogs'
 import { useFeedsStore } from '../stores/feeds'
 import { useAlertModal } from '../composables/useAlertModal'
+import { useFarmData } from '../composables/useFarmData'
 import {
   getConsumptionRate,
   getCategoryBreakdown,
@@ -305,6 +296,18 @@ const hogsStore = useHogsStore()
 const feedsStore = useFeedsStore()
 const { showSuccess, showWarning, showError } = useAlertModal()
 
+// Use farm data composable for shared state and sync
+const {
+  isSyncing,
+  lastSyncTime,
+  syncError,
+  refreshAllData,
+  setupRealtimeSubscriptions,
+} = useFarmData()
+
+// Store cleanup function for realtime subscriptions
+let cleanupRealtime = null
+
 // Notification state
 const stockAlerts = ref([])
 const systemNotifications = ref([])
@@ -314,10 +317,16 @@ const showAlert = ref(false)
 const alertMessage = ref('')
 const alertCategory = ref('')
 
-// Refresh inventory manually
+// Refresh inventory manually - uses shared refresh function
 const refreshInventory = async () => {
   console.log('🔄 Manual refresh triggered')
-  await feedInventory.fetchFeedInventory()
+  try {
+    await refreshAllData()
+    showSuccess('Inventory refreshed successfully')
+  } catch (error) {
+    console.error('Error refreshing inventory:', error)
+    showError('Failed to refresh inventory')
+  }
 }
 
 // Computed properties
@@ -327,7 +336,150 @@ const totalHogs = computed(() => hogsStore.getStats().totalHogs)
 // Reactive stock levels to ensure UI updates
 const stockLevels = computed(() => feedInventory.feedStock)
 
-// Feed Cost Analysis - Now using simplified single total_cost
+// Calculate Daily Feed Cost using Vue 3 Composition API
+const calculateDailyFeedCost = computed(() => {
+  // Get category breakdown for consumption
+  const categoryBreakdown = getCategoryBreakdown(
+    hogsStore.hogs?.filter((hog) => hog.status === 'active') || [],
+  )
+
+  const dailyCostByCategory = {}
+
+  Object.keys(categoryBreakdown).forEach((category) => {
+    // Data Structure from feed_inventory
+    const totalKgRemaining = feedInventory.feedStock[category] || 0
+
+    // Fix division by zero - use safe calculation
+    const totalCost = feedInventory.totalCost || 0
+    const totalStock = feedInventory.totalStock || 1 // Prevent division by zero
+    const costPerKg = totalStock > 0 ? totalCost / totalStock : 0
+
+    const totalCostRemaining = totalKgRemaining * costPerKg
+    const activeHogCount = categoryBreakdown[category]?.count || 0
+    const totalDailyKg = categoryBreakdown[category]?.dailyKg || 0
+
+    // Calculate daily consumption per hog
+    const dailyConsumptionPerHog = activeHogCount > 0 ? totalDailyKg / activeHogCount : 0
+
+    // Edge Case: Handle DivisionByZero if consumption is 0
+    if (totalDailyKg === 0 || activeHogCount === 0) {
+      dailyCostByCategory[category] = {
+        daysRemaining: 0,
+        dailyCost: 0,
+        totalDailyKg: 0,
+        isDepleted: totalKgRemaining === 0,
+        totalKgRemaining,
+        totalCostRemaining,
+        dailyConsumptionPerHog,
+        activeHogCount,
+      }
+      return
+    }
+
+    // Days Until Depletion: days_remaining = (total_kg_remaining / total_daily_kg)
+    const daysRemaining = totalKgRemaining / totalDailyKg
+
+    // Daily Burn Rate: daily_cost = (total_cost_remaining / days_remaining)
+    // This ensures the cost hits 0 exactly on the depletion day
+    let dailyCost = 0
+
+    if (daysRemaining < 1 && daysRemaining > 0) {
+      // Edge Case: If days_remaining is less than 1, daily_cost reflects the final remaining balance
+      dailyCost = totalCostRemaining
+    } else if (daysRemaining >= 1) {
+      dailyCost = totalCostRemaining / daysRemaining
+    }
+
+    const isDepleted = daysRemaining <= 0
+
+    dailyCostByCategory[category] = {
+      daysRemaining: Math.max(0, daysRemaining),
+      dailyCost: isDepleted ? 0 : dailyCost,
+      totalDailyKg,
+      isDepleted,
+      totalKgRemaining,
+      totalCostRemaining,
+      dailyConsumptionPerHog,
+      activeHogCount,
+      // Additional calculated values for UI
+      costPerHogPerDay: activeHogCount > 0 ? (isDepleted ? 0 : dailyCost) / activeHogCount : 0,
+    }
+  })
+
+  return dailyCostByCategory
+})
+
+// Daily Consumption Cost - Reactive computed property for Daily Consumption section
+// Uses feedInventory.categoryBreakdown directly (same data displayed in UI)
+const dailyConsumptionCostByCategory = computed(() => {
+  const categoryBreakdown = feedInventory.categoryBreakdown || {}
+  const dailyCostByCategory = {}
+
+  // Get cost per kg from feed inventory
+  const totalFeedCost = feedInventory.totalCost || 0
+  const totalStock = feedInventory.totalStock || 1 // Prevent division by zero
+  const costPerKg = totalStock > 0 ? totalFeedCost / totalStock : 0
+
+  // Calculate daily cost for each category
+  Object.keys(categoryBreakdown).forEach((category) => {
+    const data = categoryBreakdown[category]
+    
+    // Data Structure from feed_inventory
+    const totalKgRemaining = feedInventory.feedStock[category] || 0
+    const totalCostRemaining = totalKgRemaining * costPerKg
+    const activeHogCount = data?.count || 0
+    const totalDailyKg = data?.dailyKg || 0
+
+    // Calculate daily consumption per hog
+    const dailyConsumptionPerHog = activeHogCount > 0 ? totalDailyKg / activeHogCount : 0
+
+    // Edge Case: Handle DivisionByZero if consumption is 0
+    if (totalDailyKg === 0 || activeHogCount === 0) {
+      dailyCostByCategory[category] = {
+        dailyCost: 0,
+        daysRemaining: 0,
+        totalDailyKg: 0,
+        isDepleted: totalKgRemaining === 0,
+        totalKgRemaining,
+        totalCostRemaining,
+        dailyConsumptionPerHog,
+        activeHogCount,
+      }
+      return
+    }
+
+    // Days Until Depletion: days_remaining = (total_kg_remaining / total_daily_kg)
+    const daysRemaining = totalKgRemaining / totalDailyKg
+
+    // Daily Burn Rate: daily_cost = (total_cost_remaining / days_remaining)
+    // This ensures the cost hits 0 exactly on the depletion day
+    let dailyCost = 0
+
+    if (daysRemaining < 1 && daysRemaining > 0) {
+      // Edge Case: If days_remaining is less than 1, daily_cost reflects the final remaining balance
+      dailyCost = totalCostRemaining
+    } else if (daysRemaining >= 1) {
+      dailyCost = totalCostRemaining / daysRemaining
+    }
+
+    const isDepleted = daysRemaining <= 0
+
+    dailyCostByCategory[category] = {
+      dailyCost: isDepleted ? 0 : dailyCost,
+      daysRemaining: Math.max(0, daysRemaining),
+      totalDailyKg,
+      isDepleted,
+      totalKgRemaining,
+      totalCostRemaining,
+      dailyConsumptionPerHog,
+      activeHogCount,
+    }
+  })
+
+  return dailyCostByCategory
+})
+
+// Feed Cost Analysis - Enhanced with daily cost calculation
 const feedCostAnalysis = computed(() => {
   // Use the store's simplified cost tracking data
   const totalFeedCost = feedInventory.totalCost || 0
@@ -380,6 +532,8 @@ const feedCostAnalysis = computed(() => {
     dailyFeedCost,
     totalBatches,
     costByCategory,
+    // Add the new daily cost calculation
+    dailyCostByCategory: calculateDailyFeedCost.value,
   }
 })
 
@@ -696,13 +850,8 @@ watch(
 
 // Lifecycle
 onMounted(async () => {
-  // First fetch hogs, then calculate feed analytics
-  await hogsStore.fetchHogs('all') // Fetch all hogs to include active and in-progress
-
-  // Wait a moment to ensure hogs are fully loaded
-  await new Promise((resolve) => setTimeout(resolve, 100))
-
-  await feedInventory.fetchFeedInventory()
+  // Use shared refresh function to load all data
+  await refreshAllData()
 
   // Fetch feeds records for cost analysis
   await feedsStore.fetchRecords()
@@ -713,11 +862,22 @@ onMounted(async () => {
   // Check notifications every 5 minutes
   setInterval(updateNotifications, 5 * 60 * 1000)
 
-  // Listen for feed inventory changes
+  // Setup real-time subscriptions for automatic updates
+  cleanupRealtime = setupRealtimeSubscriptions()
+
+  // Listen for farm data refresh events
+  const handleFarmDataRefreshed = () => {
+    console.log('📊 Farm data refreshed, updating notifications...')
+    updateNotifications()
+  }
+
+  window.addEventListener('farmDataRefreshed', handleFarmDataRefreshed)
+
+  // Listen for feed inventory changes (legacy support)
   const handleStorageChange = (e) => {
     if (e.key === 'feed-inventory-updated') {
-      console.log(' Feed inventory updated, refreshing...')
-      feedInventory.fetchFeedInventory()
+      console.log('📦 Feed inventory updated, refreshing...')
+      refreshAllData(false) // Refresh without showing loading
     }
   }
 
@@ -725,15 +885,15 @@ onMounted(async () => {
 
   // Custom event listener for same-tab updates
   window.addEventListener('feedInventoryUpdated', () => {
-    console.log(' Feed inventory updated via custom event, refreshing...')
-    feedInventory.fetchFeedInventory()
+    console.log('📦 Feed inventory updated via custom event, refreshing...')
+    refreshAllData(false)
   })
 
   // Listen for feed formulation saved events
   const handleFeedFormulationSaved = () => {
-    console.log(' Feed formulation saved, refreshing feeds records...')
+    console.log('📋 Feed formulation saved, refreshing...')
     feedsStore.fetchRecords()
-    feedInventory.fetchFeedInventory()
+    refreshAllData(false)
   }
 
   window.addEventListener('feedFormulationSaved', handleFeedFormulationSaved)
@@ -741,13 +901,22 @@ onMounted(async () => {
   // Listen for feed formulation updates via storage (cross-tab)
   const handleFeedFormulationUpdate = (e) => {
     if (e.key === 'feed-formulation-updated') {
-      console.log(' Feed formulation updated via storage, refreshing...')
+      console.log('📋 Feed formulation updated via storage, refreshing...')
       feedsStore.fetchRecords()
-      feedInventory.fetchFeedInventory()
+      refreshAllData(false)
     }
   }
 
   window.addEventListener('storage', handleFeedFormulationUpdate)
+})
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (cleanupRealtime) {
+    cleanupRealtime()
+  }
+  // Note: Event listeners are automatically cleaned up when component unmounts
+  // but we can explicitly remove them if needed
 })
 </script>
 
@@ -1184,8 +1353,19 @@ onMounted(async () => {
 }
 
 .consumption {
-  font-weight: 600;
+  font-size: 14px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.daily-cost {
+  font-size: 14px;
   color: #2f8b60;
+  font-weight: 600;
+  background: #e6f7ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-align: center;
 }
 
 /* Notifications Section */
@@ -1876,5 +2056,134 @@ onMounted(async () => {
   .stock-cards {
     grid-template-columns: 1fr;
   }
+}
+/* Daily Cost Analysis Styles */
+.daily-cost-summary {
+  margin-bottom: 20px;
+}
+
+.cost-summary-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.cost-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cost-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.cost-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.cost-card.depleted {
+  background: #fff5f5;
+  border-color: #feb2b2;
+  opacity: 0.8;
+}
+
+.cost-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.cost-card-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.depleted-badge {
+  background: #e53e3e;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cost-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cost-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.cost-row.highlight {
+  background: #e6f7ff;
+  padding: 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #0066cc;
+}
+
+.cost-row span:first-child {
+  color: #6c757d;
+}
+
+.cost-row span:last-child {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.cost-card.depleted .cost-row.highlight {
+  background: #ffe6e6;
+  color: #cc0000;
+}
+
+/* Syncing Indicator Styles */
+.syncing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #1976d2;
+  font-weight: 500;
+}
+
+.sync-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e3f2fd;
+  border-top: 2px solid #1976d2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.sync-text {
+  font-size: 12px;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
