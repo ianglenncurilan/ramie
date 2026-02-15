@@ -70,84 +70,76 @@
       <div class="hog-costs-section">
         <h3>Hog Cost Breakdown</h3>
         <div class="hog-costs-list">
-          <div
-            v-for="hog in hogCosts"
-            :key="hog.id"
-            class="hog-cost-item"
-            :class="{ sold: hog.status === 'sold' }"
-          >
-            <div class="hog-info">
-              <div class="hog-code">{{ hog.code }}</div>
-              <div class="hog-details">
-                <span class="hog-weight">{{ hog.weight }}kg</span>
-                <span class="hog-days">{{ hog.days }} days</span>
-                <span class="hog-stage">{{ hog.stage }}</span>
-                <span class="hog-status" :class="hog.status">{{ hog.status }}</span>
+          <template v-for="hog in hogCosts" :key="hog.id">
+            <div class="hog-cost-item" :class="{ sold: hog.status === 'sold' }">
+              <div class="hog-info">
+                <div class="hog-code">{{ hog.code }}</div>
+                <div class="hog-details">
+                  <span class="hog-weight">{{ hog.weight }}kg</span>
+                  <span class="hog-days">{{ hog.days }} days</span>
+                  <span class="hog-stage">{{ hog.stage }}</span>
+                  <span class="hog-status" :class="hog.status">{{ hog.status }}</span>
+                </div>
+              </div>
+              <div class="hog-costs">
+                <div class="cost-item">
+                  <span class="cost-type">Purchase:</span>
+                  <span class="cost-value">{{ formatCurrency(hog.purchase_price) }}</span>
+                </div>
+                <div class="cost-item">
+                  <span class="cost-type">Feed:</span>
+                  <span class="cost-value">{{ formatCurrency(hog.total_feed_cost) }}</span>
+                </div>
+                <div class="cost-item total">
+                  <span class="cost-type">Total:</span>
+                  <span class="cost-value">{{ formatCurrency(hog.total_cost) }}</span>
+                </div>
+                <button
+                  @click="toggleDailyDetails(hog.id)"
+                  class="daily-details-btn"
+                  :class="{ active: expandedHogs.includes(hog.id) }"
+                >
+                  {{ expandedHogs.includes(hog.id) ? 'Hide' : 'Show' }} Daily Feed Costs
+                </button>
               </div>
             </div>
-            <div class="hog-costs">
-              <div class="cost-item">
-                <span class="cost-type">Purchase:</span>
-                <span class="cost-value">{{ formatCurrency(hog.purchase_price) }}</span>
-              </div>
-              <div class="cost-item">
-                <span class="cost-type">Feed:</span>
-                <span class="cost-value">{{ formatCurrency(hog.total_feed_cost) }}</span>
-              </div>
-              <div class="cost-item total">
-                <span class="cost-type">Total:</span>
-                <span class="cost-value">{{ formatCurrency(hog.total_cost) }}</span>
-              </div>
-              <button
-                @click="toggleDailyDetails(hog.id)"
-                class="daily-details-btn"
-                :class="{ active: expandedHogs.includes(hog.id) }"
-              >
-                {{ expandedHogs.includes(hog.id) ? 'Hide' : 'Show' }} Daily Feed Costs
-              </button>
-            </div>
-          </div>
 
-          <!-- Daily Feed Cost Details -->
-          <div
-            v-for="hog in hogCosts"
-            v-show="expandedHogs.includes(hog.id)"
-            :key="'details-' + hog.id"
-            class="daily-feed-details"
-          >
-            <div class="daily-details-header">
-              <h4>{{ hog.code }} - Daily Feed Consumption</h4>
-              <div class="daily-summary">
-                <span class="summary-item">
-                  <strong>Daily Average:</strong>
-                  {{ calculateDailyAverage(hog) }} kg/day
-                </span>
-                <span class="summary-item">
-                  <strong>Total Days Tracked:</strong>
-                  {{ dailyFeedCosts[hog.id]?.length || 0 }} days
-                </span>
+            <!-- Daily Feed Cost Details - Immediately after each hog card -->
+            <div v-show="expandedHogs.includes(hog.id)" class="daily-feed-details">
+              <div class="daily-details-header">
+                <h4>{{ hog.code }} - Daily Feed Consumption</h4>
+                <div class="daily-summary">
+                  <span class="summary-item">
+                    <strong>Daily Average:</strong>
+                    {{ calculateDailyAverage(hog) }} kg/day
+                  </span>
+                  <span class="summary-item">
+                    <strong>Total Days Tracked:</strong>
+                    {{ dailyFeedCosts[hog.id]?.length || 0 }} days
+                  </span>
+                </div>
+              </div>
+              <div class="daily-feed-list">
+                <div
+                  v-for="(cost, index) in dailyFeedCosts[hog.id] || []"
+                  :key="hog.id + '-' + index"
+                  class="daily-feed-item"
+                >
+                  <div class="feed-date">{{ formatDate(cost.date) }}</div>
+                  <div class="feed-category">{{ cost.feed_category }}</div>
+                  <div class="feed-amount">{{ cost.amount_kg }} kg</div>
+                  <div class="feed-price">{{ formatCurrency(cost.unit_price) }}/kg</div>
+                  <div class="feed-total">{{ formatCurrency(cost.total_cost) }}</div>
+                </div>
+                <div
+                  v-if="!dailyFeedCosts[hog.id] || dailyFeedCosts[hog.id].length === 0"
+                  class="no-daily-data"
+                >
+                  No daily feed consumption data available yet.
+                </div>
               </div>
             </div>
-            <div class="daily-feed-list">
-              <div
-                v-for="(cost, index) in dailyFeedCosts[hog.id] || []"
-                :key="hog.id + '-' + index"
-                class="daily-feed-item"
-              >
-                <div class="feed-date">{{ formatDate(cost.date) }}</div>
-                <div class="feed-category">{{ cost.feed_category }}</div>
-                <div class="feed-amount">{{ cost.amount_kg }} kg</div>
-                <div class="feed-price">{{ formatCurrency(cost.unit_price) }}/kg</div>
-                <div class="feed-total">{{ formatCurrency(cost.total_cost) }}</div>
-              </div>
-              <div
-                v-if="!dailyFeedCosts[hog.id] || dailyFeedCosts[hog.id].length === 0"
-                class="no-daily-data"
-              >
-                No daily feed consumption data available yet.
-              </div>
-            </div>
-          </div>
+          </template>
         </div>
       </div>
 

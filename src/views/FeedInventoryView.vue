@@ -49,6 +49,70 @@
         </div>
       </div>
 
+      <!-- Feed Cost Analysis Section -->
+      <div class="feed-cost-section">
+        <h3>💰 Feed Cost Analysis</h3>
+        <div class="cost-cards">
+          <div class="cost-card total-cost">
+            <div class="cost-icon">📊</div>
+            <div class="cost-info">
+              <div class="cost-amount">{{ formatCurrency(feedCostAnalysis.totalFeedCost) }}</div>
+              <div class="cost-label">Total Feed Investment</div>
+              <div class="cost-subtitle">{{ feedCostAnalysis.totalBatches }} batches</div>
+            </div>
+          </div>
+
+          <div class="cost-card cost-per-kg">
+            <div class="cost-icon">⚖️</div>
+            <div class="cost-info">
+              <div class="cost-amount">
+                {{ formatCurrency(feedCostAnalysis.averageCostPerKg) }}/kg
+              </div>
+              <div class="cost-label">Average Cost per kg</div>
+              <div class="cost-subtitle">Based on actual batches</div>
+            </div>
+          </div>
+
+          <div class="cost-card daily-cost">
+            <div class="cost-icon">📅</div>
+            <div class="cost-info">
+              <div class="cost-amount">{{ formatCurrency(feedCostAnalysis.dailyFeedCost) }}</div>
+              <div class="cost-label">Daily Feed Cost</div>
+              <div class="cost-subtitle">{{ totalHogs }} hogs</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cost-breakdown">
+          <div class="breakdown-title">Cost Breakdown by Feed Type</div>
+          <div class="breakdown-grid">
+            <div
+              v-for="(cost, category) in feedCostAnalysis.costByCategory"
+              :key="category"
+              class="breakdown-item"
+            >
+              <div class="category-header">
+                <div class="category-name">{{ capitalizeFirst(category) }}</div>
+              </div>
+              <div class="category-details">
+                <div class="detail-row">
+                  <span>Total kg:</span>
+                  <span>{{ cost.totalKg.toFixed(1) }} kg</span>
+                </div>
+                <div class="detail-row">
+                  <span>Total cost:</span>
+                  <span>{{ formatCurrency(cost.totalCost) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span>Daily cost:</span>
+                  <span>{{ formatCurrency(cost.dailyCost) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Total Hogs Display & Notifications -->
       <div class="top-row-section">
         <div class="left-column">
@@ -227,10 +291,19 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFeedInventoryStore } from '../stores/feedInventory'
 import { useHogsStore } from '../stores/hogs'
+import { useFeedsStore } from '../stores/feeds'
+import { useAlertModal } from '../composables/useAlertModal'
+import {
+  getConsumptionRate,
+  getCategoryBreakdown,
+  predictDepletionDate,
+} from '../services/feedInventoryService'
 
 const router = useRouter()
 const feedInventory = useFeedInventoryStore()
 const hogsStore = useHogsStore()
+const feedsStore = useFeedsStore()
+const { showSuccess, showWarning, showError } = useAlertModal()
 
 // Notification state
 const stockAlerts = ref([])
@@ -253,6 +326,70 @@ const totalHogs = computed(() => hogsStore.getStats().totalHogs)
 
 // Reactive stock levels to ensure UI updates
 const stockLevels = computed(() => feedInventory.feedStock)
+
+// Feed Cost Analysis - Now using simplified single total_cost
+const feedCostAnalysis = computed(() => {
+  // Use the store's simplified cost tracking data
+  const totalFeedCost = feedInventory.totalCost || 0
+  const totalBatches = feedsStore.records?.length || 0
+
+  // Get active hogs for daily consumption calculation
+  const activeHogs = hogsStore.hogs?.filter((hog) => hog.status === 'active') || []
+
+  // Calculate cost per kg for each category based on total cost distributed
+  const totalStock = feedInventory.totalStock || 1
+  const costPerKg = totalStock > 0 ? totalFeedCost / totalStock : 0
+
+  // Cost by category using distributed cost approach
+  const costByCategory = {
+    starter: {
+      totalCost: feedInventory.feedStock.starter * costPerKg,
+      totalKg: feedInventory.feedStock.starter || 0,
+      costPerKg: costPerKg,
+      dailyCost: 0,
+    },
+    grower: {
+      totalCost: feedInventory.feedStock.grower * costPerKg,
+      totalKg: feedInventory.feedStock.grower || 0,
+      costPerKg: costPerKg,
+      dailyCost: 0,
+    },
+    finisher: {
+      totalCost: feedInventory.feedStock.finisher * costPerKg,
+      totalKg: feedInventory.feedStock.finisher || 0,
+      costPerKg: costPerKg,
+      dailyCost: 0,
+    },
+  }
+
+  // Calculate daily cost per category based on current consumption
+  const categoryBreakdown = getCategoryBreakdown(activeHogs)
+  Object.keys(costByCategory).forEach((category) => {
+    const categoryData = costByCategory[category]
+    const consumption = categoryBreakdown[category]?.dailyKg || 0
+    categoryData.dailyCost = consumption * categoryData.costPerKg
+  })
+
+  // Calculate totals
+  const averageCostPerKg = feedInventory.averageCostPerKg || costPerKg
+  const dailyFeedCost = Object.values(costByCategory).reduce((sum, cat) => sum + cat.dailyCost, 0)
+
+  return {
+    totalFeedCost,
+    averageCostPerKg,
+    dailyFeedCost,
+    totalBatches,
+    costByCategory,
+  }
+})
+
+// Format currency
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+  }).format(amount || 0)
+}
 
 // Check for low stock alerts
 const checkLowStockAlerts = () => {
@@ -377,6 +514,7 @@ const generateStockAlerts = () => {
 // Generate system notifications
 const generateSystemNotifications = () => {
   const notifications = []
+  const today = new Date()
 
   // Add success notification when inventory is updated
   if (feedInventory.lastUpdated) {
@@ -386,6 +524,64 @@ const generateSystemNotifications = () => {
       time: formatTime(feedInventory.lastUpdated),
       type: 'info',
     })
+  }
+
+  // Check for starter feed transitions and new hogs
+  const allHogs = hogsStore.hogs || []
+  const activeHogs = allHogs.filter((hog) => hog.status === 'active')
+
+  // Starter feed transition alerts
+  activeHogs.forEach((hog) => {
+    const ageInDays = hog.days || 0
+    const currentRate = getConsumptionRate(ageInDays)
+
+    // Check if approaching next feed category transition
+    if (currentRate.category === 'starter' && ageInDays >= 70) {
+      const daysToTransition = 84 - ageInDays
+      if (daysToTransition <= 7 && daysToTransition > 0) {
+        notifications.push({
+          title: '🌾 Starter Feed Transition Soon',
+          message: `${hog.code} will transition to grower feed in ${daysToTransition} days. Prepare grower feed inventory.`,
+          time: 'Just now',
+          type: 'warning',
+        })
+      }
+    }
+
+    // Check for new hogs needing starter feed
+    if (ageInDays <= 7) {
+      notifications.push({
+        title: '🐷 New Hog on Starter Feed',
+        message: `${hog.code} (${ageInDays} days old) requires ${currentRate.dailyKg}kg of starter feed daily.`,
+        time: 'Just now',
+        type: 'info',
+      })
+    }
+
+    // Check for high feed consumption alerts
+    if (currentRate.dailyKg >= 2.0) {
+      notifications.push({
+        title: '⚠️ High Feed Consumption',
+        message: `${hog.code} is consuming ${currentRate.dailyKg}kg/day. Monitor feed inventory closely.`,
+        time: 'Just now',
+        type: 'warning',
+      })
+    }
+  })
+
+  // Check overall feed inventory status
+  if (activeHogs.length > 0) {
+    const categoryBreakdown = getCategoryBreakdown(activeHogs)
+
+    // Alert if many hogs on starter feed (high consumption phase)
+    if (categoryBreakdown.starter.count >= 5) {
+      notifications.push({
+        title: '📊 High Starter Feed Demand',
+        message: `${categoryBreakdown.starter.count} hogs on starter feed consuming ${categoryBreakdown.starter.dailyKg.toFixed(1)}kg daily. Ensure adequate starter feed inventory.`,
+        time: 'Just now',
+        type: 'info',
+      })
+    }
   }
 
   return notifications
@@ -457,6 +653,14 @@ const getFeedIcon = (category) => {
 const updateNotifications = () => {
   stockAlerts.value = generateStockAlerts()
   systemNotifications.value = generateSystemNotifications()
+
+  // Show critical alerts as modal
+  const criticalNotifications = [...stockAlerts.value, ...systemNotifications.value].filter(
+    (n) => n.type === 'critical' || n.type === 'error',
+  )
+  if (criticalNotifications.length > 0) {
+    showError(criticalNotifications[0].message, criticalNotifications[0].title)
+  }
 }
 
 // Dismiss notification
@@ -500,8 +704,14 @@ onMounted(async () => {
 
   await feedInventory.fetchFeedInventory()
 
+  // Fetch feeds records for cost analysis
+  await feedsStore.fetchRecords()
+
   // Update notifications after loading
   updateNotifications()
+
+  // Check notifications every 5 minutes
+  setInterval(updateNotifications, 5 * 60 * 1000)
 
   // Listen for feed inventory changes
   const handleStorageChange = (e) => {
@@ -518,6 +728,26 @@ onMounted(async () => {
     console.log(' Feed inventory updated via custom event, refreshing...')
     feedInventory.fetchFeedInventory()
   })
+
+  // Listen for feed formulation saved events
+  const handleFeedFormulationSaved = () => {
+    console.log(' Feed formulation saved, refreshing feeds records...')
+    feedsStore.fetchRecords()
+    feedInventory.fetchFeedInventory()
+  }
+
+  window.addEventListener('feedFormulationSaved', handleFeedFormulationSaved)
+
+  // Listen for feed formulation updates via storage (cross-tab)
+  const handleFeedFormulationUpdate = (e) => {
+    if (e.key === 'feed-formulation-updated') {
+      console.log(' Feed formulation updated via storage, refreshing...')
+      feedsStore.fetchRecords()
+      feedInventory.fetchFeedInventory()
+    }
+  }
+
+  window.addEventListener('storage', handleFeedFormulationUpdate)
 })
 </script>
 
@@ -1435,8 +1665,178 @@ onMounted(async () => {
   }
 }
 
+/* Feed Cost Analysis Section */
+.feed-cost-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.feed-cost-section h3 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cost-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cost-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.cost-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.cost-card.total-cost {
+  border-left: 4px solid #667eea;
+}
+
+.cost-card.cost-per-kg {
+  border-left: 4px solid #f093fb;
+}
+
+.cost-card.daily-cost {
+  border-left: 4px solid #4facfe;
+}
+
+.cost-icon {
+  font-size: 24px;
+  opacity: 0.8;
+}
+
+.cost-info {
+  flex: 1;
+}
+
+.cost-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.cost-label {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+.cost-subtitle {
+  font-size: 12px;
+  color: #adb5bd;
+  font-style: italic;
+}
+
+.cost-breakdown {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.breakdown-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.breakdown-item {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.category-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: capitalize;
+}
+
+.category-cost {
+  font-size: 14px;
+  font-weight: 700;
+  color: #2f8b60;
+}
+
+.category-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.detail-row span:first-child {
+  color: #6c757d;
+}
+
+.detail-row span:last-child {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .feed-cost-section {
+    padding: 16px;
+  }
+
+  .cost-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .cost-amount {
+    font-size: 18px;
+  }
+
+  .breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+
   .top-row-section {
     grid-template-columns: 1fr;
     gap: 16px;

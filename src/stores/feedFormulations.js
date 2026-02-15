@@ -44,7 +44,7 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
       } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
 
-      // Insert feed formulation directly
+      // Insert feed formulation directly (no inventory_id needed with simple approach)
       const { data, error: saveError } = await supabase
         .from('feed_formulations')
         .insert([
@@ -63,30 +63,19 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
 
       if (saveError) throw saveError
 
-      // Update feed inventory stock levels
+      console.log('✅ Feed formulation saved successfully:', data[0])
+
+      // The trigger will automatically update the feed inventory
+      // But we'll also refresh the inventory to ensure UI is updated
       if (data && data[0]) {
-        // Map feed type to inventory category
-        const categoryMap = {
-          Starter: 'starter',
-          Grower: 'grower',
-          Finisher: 'finisher',
-        }
+        console.log(
+          `📦 Feed formulation saved for ${formulation.feedType}, refreshing inventory...`,
+        )
 
-        const category = categoryMap[formulation.feedType]
-        if (category) {
-          console.log(`📦 Updating ${category} feed inventory by +${formulation.totalKg}kg`)
-          console.log(`📦 Formulation data:`, formulation)
-          console.log(`📦 Category: ${category}`)
+        // Refresh inventory to get the updated values
+        await feedInventoryStore.fetchFeedInventory()
 
-          // Update inventory
-          await feedInventoryStore.updateFeedInventory({
-            [category]: formulation.totalKg,
-          })
-
-          console.log(`✅ Feed inventory updated successfully!`)
-        }
-
-        // Create expense record; do not create a separate 'production' record here to avoid duplicates
+        // Create expense record
         await feedsStore.addExpense({
           label: `Feed Formulation: ${formulation.name}`,
           amount: formulation.totalCost,
@@ -94,6 +83,8 @@ export const useFeedFormulationsStore = defineStore('feedFormulations', () => {
           reference_id: data[0].id,
           reference_type: 'feed_formulation',
         })
+
+        console.log(`✅ Feed inventory updated and expense recorded!`)
       }
 
       // Add to local state

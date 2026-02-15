@@ -697,6 +697,42 @@ const saveFormulation = async () => {
     const result = await feedFormulationsStore.saveFormulation(record)
     console.log('Save result:', result)
 
+    // Dispatch events to notify other components
+    window.dispatchEvent(
+      new CustomEvent('feedFormulationSaved', {
+        detail: {
+          type: 'starter',
+          totalAmount,
+          totalCost,
+          timestamp: new Date().toISOString(),
+        },
+      }),
+    )
+
+    // Also dispatch feed inventory updated event
+    window.dispatchEvent(
+      new CustomEvent('feedInventoryUpdated', {
+        detail: {
+          action: 'formulation_saved',
+          category: 'starter',
+          amount: totalAmount,
+          cost: totalCost,
+        },
+      }),
+    )
+
+    // Trigger storage event for cross-tab communication
+    localStorage.setItem(
+      'feed-formulation-updated',
+      JSON.stringify({
+        type: 'starter',
+        totalAmount,
+        totalCost,
+        timestamp: new Date().toISOString(),
+      }),
+    )
+    localStorage.removeItem('feed-formulation-updated')
+
     await feedsStore.addRecord(record)
 
     // Add expense for the total cost

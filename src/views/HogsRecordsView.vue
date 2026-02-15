@@ -644,7 +644,7 @@ function viewHogDetails(hogId) {
 
 .screen {
   height: 100vh;
-  background: #2f8b60;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   overflow: hidden;

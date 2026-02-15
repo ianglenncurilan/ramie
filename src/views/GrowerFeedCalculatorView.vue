@@ -665,6 +665,42 @@ async function saveFormulation() {
     try {
       const result = await feedFormulationsStore.saveFormulation(record)
       console.log('Save result:', result)
+
+      // Dispatch events to notify other components
+      window.dispatchEvent(
+        new CustomEvent('feedFormulationSaved', {
+          detail: {
+            type: 'grower',
+            totalAmount,
+            totalCost,
+            timestamp: new Date().toISOString(),
+          },
+        }),
+      )
+
+      // Also dispatch feed inventory updated event
+      window.dispatchEvent(
+        new CustomEvent('feedInventoryUpdated', {
+          detail: {
+            action: 'formulation_saved',
+            category: 'grower',
+            amount: totalAmount,
+            cost: totalCost,
+          },
+        }),
+      )
+
+      // Trigger storage event for cross-tab communication
+      localStorage.setItem(
+        'feed-formulation-updated',
+        JSON.stringify({
+          type: 'grower',
+          totalAmount,
+          totalCost,
+          timestamp: new Date().toISOString(),
+        }),
+      )
+      localStorage.removeItem('feed-formulation-updated')
     } catch (error) {
       console.error('Error saving feed formulation:', error)
       alert(`Error saving feed formulation: ${error.message}`)

@@ -20,6 +20,10 @@ export const useFeedInventoryStore = defineStore('feedInventory', {
     },
     totalFeedStock: 0,
 
+    // Cost tracking data - simplified to single total_cost
+    totalCost: 0,
+    averageCostPerKg: 0,
+
     // Analytics data
     dailyConsumption: 0,
     daysRemaining: Infinity,
@@ -62,30 +66,58 @@ export const useFeedInventoryStore = defineStore('feedInventory', {
   },
 
   actions: {
-    // Fetch feed inventory from database
+    // Fetch feed inventory from database with cost data
     async fetchFeedInventory() {
       this.loading = true
       this.error = null
 
       try {
-        const { data, error } = await supabase
+        // Fetch inventory data including total_cost
+        const { data: inventoryData, error: inventoryError } = await supabase
           .from('feed_inventory')
           .select('*')
           .eq('id', 1)
           .single()
 
-        if (error && error.code !== 'PGRST116') {
-          throw error
+        if (inventoryError && inventoryError.code !== 'PGRST116') {
+          throw inventoryError
         }
 
-        if (data) {
+        if (inventoryData) {
           // Update state with database values
-          this.feedStock.starter = data.starter_stock || 0
-          this.feedStock.grower = data.grower_stock || 0
-          this.feedStock.finisher = data.finisher_stock || 0
-          this.lastUpdated = data.updated_at
+          this.feedStock.starter = inventoryData.starter_stock || 0
+          this.feedStock.grower = inventoryData.grower_stock || 0
+          this.feedStock.finisher = inventoryData.finisher_stock || 0
+          this.lastUpdated = inventoryData.updated_at
 
-          console.log('📊 Loaded feed inventory from database:', this.feedStock)
+          // Get total cost using simple function
+          try {
+            const { data: totalCostData, error: totalCostError } =
+              await supabase.rpc('get_feed_total_cost')
+
+            if (!totalCostError) {
+              this.totalCost = totalCostData || 0
+              // Calculate average cost per kg
+              const totalStock =
+                this.feedStock.starter + this.feedStock.grower + this.feedStock.finisher
+              this.averageCostPerKg = totalStock > 0 ? this.totalCost / totalStock : 0
+            } else {
+              // Fallback to zero costs if function fails
+              this.totalCost = 0
+              this.averageCostPerKg = 0
+            }
+          } catch (costErr) {
+            console.warn('Could not fetch cost data, using zeros:', costErr)
+            // Fallback to zero costs
+            this.totalCost = 0
+            this.averageCostPerKg = 0
+          }
+
+          console.log('📊 Loaded feed inventory with costs from database:', {
+            stock: this.feedStock,
+            totalCost: this.totalCost,
+            averageCostPerKg: this.averageCostPerKg,
+          })
         } else {
           // Create initial record if none exists
           console.log('📝 No feed inventory record found, creating initial record')
@@ -342,6 +374,34 @@ export const useFeedInventoryStore = defineStore('feedInventory', {
       } catch (error) {
         console.error('Error adjusting stock:', error)
         this.error = error.message
+      }
+    },
+
+    // Get feed inventory cost summary
+    async getFeedCostSummary() {
+      try {
+        const { data, error } = await supabase.rpc('get_feed_cost_summary')
+
+        if (error) throw error
+
+        return data?.[0] || null
+      } catch (error) {
+        console.error('Error getting feed cost summary:', error)
+        throw error
+      }
+    },
+
+    // Get detailed feed inventory summary by category
+    async getFeedInventorySummary() {
+      try {
+        const { data, error } = await supabase.rpc('get_feed_inventory_summary')
+
+        if (error) throw error
+
+        return data || []
+      } catch (error) {
+        console.error('Error getting feed inventory summary:', error)
+        throw error
       }
     },
 
