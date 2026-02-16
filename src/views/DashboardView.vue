@@ -111,7 +111,7 @@ const go = (name) => {
           class="card"
           @click="go('manage-staff')"
           title="View staff and their activities"
-          v-if="isAdmin"
+          
         >
           <div class="card-content">
             <img src="/staff.png" alt="Manage Staff" />
