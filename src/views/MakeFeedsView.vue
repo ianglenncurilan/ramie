@@ -54,7 +54,7 @@
 
 .screen {
   height: 100vh;
-  background: #2f8b60;
+  background: #f4f4f4;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -70,6 +70,8 @@
   width: 100%;
   margin-left: auto;
   margin-right: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 .panel-header {
   display: grid;

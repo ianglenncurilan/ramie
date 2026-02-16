@@ -928,7 +928,7 @@ onUnmounted(() => {
 
 .screen {
   padding: 16px;
-  background: #f8f9fa;
+  background: #f4f4f4;
   min-height: 100vh;
 }
 

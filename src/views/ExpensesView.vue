@@ -13,7 +13,65 @@
             </div>
           </div>
         </div>
+        <!-- Export Section -->
+        <div class="export-section">
+          <div class="export-header">
+            <h3>Export Records</h3>
+            <span class="export-description">Download financial data to Excel</span>
+          </div>
+          <div class="export-controls">
+            <select v-model="exportFilter" class="export-filter">
+              <option value="weekly">Current Week</option>
+              <option value="monthly">Current Month</option>
+              <option value="specific-date">Specific Date</option>
+              <option value="specific-week">Specific Week</option>
+              <option value="date-range">Date Range</option>
+            </select>
 
+            <!-- Date inputs for specific filters -->
+            <div v-if="exportFilter === 'specific-date'" class="date-input-group">
+              <input
+                type="date"
+                v-model="specificDate"
+                class="date-input"
+                :max="new Date().toISOString().split('T')[0]"
+              />
+            </div>
+
+            <div v-if="exportFilter === 'specific-week'" class="date-input-group">
+              <input
+                type="week"
+                v-model="specificWeek"
+                class="date-input"
+                :max="getWeekString(new Date())"
+              />
+            </div>
+
+            <div v-if="exportFilter === 'date-range'" class="date-range-group">
+              <input
+                type="date"
+                v-model="dateRangeStart"
+                class="date-input"
+                placeholder="Start date"
+                :max="dateRangeEnd || new Date().toISOString().split('T')[0]"
+              />
+              <span class="date-separator">to</span>
+              <input
+                type="date"
+                v-model="dateRangeEnd"
+                class="date-input"
+                placeholder="End date"
+                :min="dateRangeStart"
+                :max="new Date().toISOString().split('T')[0]"
+              />
+            </div>
+
+            <button class="export-btn" @click="exportToExcel" :disabled="loading || !canExport">
+              <span v-if="loading">Exporting...</span>
+              <span v-else>Export to Excel</span>
+            </button>
+          </div>
+        </div>
         <div class="cards">
           <div class="card success">
             <div class="label">Income</div>
@@ -252,6 +310,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
+import { supabase } from '../services/supabase'
+
+// Note: Install xlsx library with: npm install xlsx
+// Then uncomment this line: import * as XLSX from 'xlsx'
 
 const feeds = useFeedsStore()
 const loading = ref(false)
@@ -260,6 +322,46 @@ const showIncomeModal = ref(false)
 const showExpenseModal = ref(false)
 const showIncomeListModal = ref(false)
 const showExpenseListModal = ref(false)
+const exportFilter = ref('weekly')
+
+// New filtering variables
+const specificDate = ref('')
+const specificWeek = ref('')
+const dateRangeStart = ref('')
+const dateRangeEnd = ref('')
+
+// Computed property to validate export button
+const canExport = computed(() => {
+  if (exportFilter.value === 'weekly' || exportFilter.value === 'monthly') {
+    return true
+  }
+  if (exportFilter.value === 'specific-date') {
+    return specificDate.value !== ''
+  }
+  if (exportFilter.value === 'specific-week') {
+    return specificWeek.value !== ''
+  }
+  if (exportFilter.value === 'date-range') {
+    return dateRangeStart.value !== '' && dateRangeEnd.value !== ''
+  }
+  return false
+})
+
+// Helper function to get week string for input max
+const getWeekString = (date) => {
+  const year = date.getFullYear()
+  const week = getWeekNumber(date)
+  return `${year}-W${week.toString().padStart(2, '0')}`
+}
+
+// Helper function to get ISO week number
+const getWeekNumber = (date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7)
+}
 
 // Form data
 const incomeForm = ref({
@@ -369,6 +471,347 @@ const saveExpense = async () => {
   }
 }
 
+// Export to Excel functions
+const getDateRange = (filter) => {
+  const now = new Date()
+
+  if (filter === 'weekly') {
+    // Current week (Sunday to Saturday)
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    endOfWeek.setHours(23, 59, 59, 999)
+
+    return {
+      start: startOfWeek.toISOString(),
+      end: endOfWeek.toISOString(),
+      label: `Current Week (${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()})`,
+    }
+  }
+
+  if (filter === 'monthly') {
+    // Current month (1st to last day)
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    endOfMonth.setHours(23, 59, 59, 999)
+
+    return {
+      start: startOfMonth.toISOString(),
+      end: endOfMonth.toISOString(),
+      label: now.toLocaleDateString('default', { month: 'long', year: 'numeric' }),
+    }
+  }
+
+  if (filter === 'specific-date') {
+    // Specific date (full day)
+    const date = new Date(specificDate.value + 'T00:00:00')
+    const endOfDay = new Date(specificDate.value + 'T23:59:59')
+
+    return {
+      start: date.toISOString(),
+      end: endOfDay.toISOString(),
+      label: date.toLocaleDateString(),
+    }
+  }
+
+  if (filter === 'specific-week') {
+    // Specific week from week input
+    const [year, week] = specificWeek.value.split('-W').map(Number)
+    const startDate = getWeekDate(year, week, 1) // Monday
+    const endDate = getWeekDate(year, week, 7) // Sunday
+
+    return {
+      start: new Date(
+        startDate.getFullYear(),
+        startDate.getMonth(),
+        startDate.getDate(),
+        0,
+        0,
+        0,
+      ).toISOString(),
+      end: new Date(
+        endDate.getFullYear(),
+        endDate.getMonth(),
+        endDate.getDate(),
+        23,
+        59,
+        59,
+      ).toISOString(),
+      label: `Week ${week} of ${year}`,
+    }
+  }
+
+  if (filter === 'date-range') {
+    // Custom date range
+    const startDate = new Date(dateRangeStart.value + 'T00:00:00')
+    const endDate = new Date(dateRangeEnd.value + 'T23:59:59')
+
+    return {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      label: `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
+    }
+  }
+
+  // Default fallback
+  return {
+    start: new Date().toISOString(),
+    end: new Date().toISOString(),
+    label: 'Unknown Period',
+  }
+}
+
+// Helper function to get date from week number
+const getWeekDate = (year, week, day) => {
+  const firstDayOfYear = new Date(year, 0, 1)
+  const daysOffset = (week - 1) * 7 - firstDayOfYear.getDay() + day
+  return new Date(year, 0, 1 + daysOffset)
+}
+
+const fetchRecordsForExport = async (startDate, endDate) => {
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  } catch (err) {
+    console.error('Error fetching records for export:', err)
+    throw err
+  }
+}
+
+const exportToExcel = async () => {
+  try {
+    loading.value = true
+    error.value = null
+
+    // Get date range based on filter
+    const dateRange = getDateRange(exportFilter.value)
+    console.log(`Exporting ${exportFilter.value} records:`, dateRange)
+
+    // Fetch records from Supabase
+    const records = await fetchRecordsForExport(dateRange.start, dateRange.end)
+
+    if (records.length === 0) {
+      error.value = `No records found for ${dateRange.label}`
+      return
+    }
+
+    // Separate income and expenses
+    const incomeRecords = records.filter((record) => record.type === 'income')
+    const expenseRecords = records.filter((record) => record.type !== 'income')
+
+    // Create workbook with separate sheets
+    const workbook = createExcelWorkbook(incomeRecords, expenseRecords, dateRange.label)
+
+    // Download the Excel file
+    downloadExcelFile(workbook, `Financial_Report_${dateRange.label.replace(/\s+/g, '_')}.xlsx`)
+
+    console.log(`✅ Exported ${records.length} records for ${dateRange.label}`)
+  } catch (err) {
+    console.error('Export error:', err)
+    error.value = 'Failed to export records: ' + (err.message || 'Unknown error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const createExcelWorkbook = (incomeRecords, expenseRecords, periodLabel) => {
+  // This is a simplified version without xlsx library
+  // After installing xlsx, replace this with proper Excel generation
+
+  const workbook = {
+    sheets: {
+      Income: formatIncomeSheet(incomeRecords),
+      Expenses: formatExpenseSheet(expenseRecords),
+      Summary: formatSummarySheet(incomeRecords, expenseRecords, periodLabel),
+    },
+  }
+
+  return workbook
+}
+
+const formatIncomeSheet = (records) => {
+  return {
+    headers: ['Date', 'Description', 'Amount'],
+    data: records.map((record) => [
+      new Date(record.date).toLocaleDateString(),
+      record.label || 'N/A',
+      Number(record.amount).toFixed(2),
+    ]),
+  }
+}
+
+const formatExpenseSheet = (records) => {
+  return {
+    headers: ['Date', 'Description', 'Amount'],
+    data: records.map((record) => [
+      new Date(record.date).toLocaleDateString(),
+      record.label || 'N/A',
+      Number(record.amount).toFixed(2),
+    ]),
+  }
+}
+
+const formatSummarySheet = (incomeRecords, expenseRecords, periodLabel) => {
+  const totalIncome = incomeRecords.reduce((sum, record) => sum + Number(record.amount), 0)
+  const totalExpenses = expenseRecords.reduce((sum, record) => sum + Number(record.amount), 0)
+  const netProfit = totalIncome - totalExpenses
+
+  return {
+    headers: ['Metric', 'Amount'],
+    data: [
+      ['Total Income', totalIncome.toFixed(2)],
+      ['Total Expenses', totalExpenses.toFixed(2)],
+      ['Net Profit/Loss', netProfit.toFixed(2)],
+      ['Status', netProfit >= 0 ? 'Profitable' : 'Loss'],
+    ],
+  }
+}
+
+const downloadExcelFile = (workbook, filename) => {
+  try {
+    // Try to use XLSX library if available
+    if (typeof XLSX !== 'undefined') {
+      // Create proper Excel workbook with multiple sheets
+      const wb = XLSX.utils.book_new()
+
+      // Add Income sheet
+      const incomeWS = XLSX.utils.aoa_to_sheet([
+        workbook.sheets.Income.headers,
+        ...workbook.sheets.Income.data,
+      ])
+      XLSX.utils.book_append_sheet(wb, incomeWS, 'Income')
+
+      // Add Expenses sheet
+      const expenseWS = XLSX.utils.aoa_to_sheet([
+        workbook.sheets.Expenses.headers,
+        ...workbook.sheets.Expenses.data,
+      ])
+      XLSX.utils.book_append_sheet(wb, expenseWS, 'Expenses')
+
+      // Add Summary sheet
+      const summaryWS = XLSX.utils.aoa_to_sheet([
+        workbook.sheets.Summary.headers,
+        ...workbook.sheets.Summary.data,
+      ])
+      XLSX.utils.book_append_sheet(wb, summaryWS, 'Summary')
+
+      // Apply formatting to make headers bold and adjust column widths
+      const formatSheet = (ws) => {
+        // Make first row (headers) bold
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C })
+          if (ws[cellAddress]) {
+            ws[cellAddress].s = {
+              font: { bold: true },
+              alignment: { horizontal: 'center' },
+            }
+          }
+        }
+
+        // Set column widths
+        ws['!cols'] = [
+          { width: 20 }, // Date column (A)
+          { width: 40 }, // Description column (B)
+          { width: 20 }, // Amount column (C)
+        ]
+      }
+
+      // Special formatting for Summary sheet (2 columns)
+      const formatSummarySheet = (ws) => {
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C })
+          if (ws[cellAddress]) {
+            ws[cellAddress].s = {
+              font: { bold: true },
+              alignment: { horizontal: 'center' },
+            }
+          }
+        }
+
+        // Set column widths for Summary (2 columns)
+        ws['!cols'] = [
+          { width: 25 }, // Metric column (A)
+          { width: 25 }, // Amount column (B)
+        ]
+      }
+
+      formatSheet(incomeWS)
+      formatSheet(expenseWS)
+      formatSummarySheet(summaryWS)
+
+      // Download the Excel file
+      XLSX.writeFile(wb, filename)
+    } else {
+      // Fallback to CSV if XLSX is not available
+      console.warn('XLSX library not available, falling back to CSV')
+      const csvContent = generateCSV(workbook)
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename.replace('.xlsx', '.csv'))
+      link.style.visibility = 'hidden'
+
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  } catch (error) {
+    console.error('Error generating Excel file:', error)
+    // Fallback to CSV
+    const csvContent = generateCSV(workbook)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename.replace('.xlsx', '.csv'))
+    link.style.visibility = 'hidden'
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
+
+const generateCSV = (workbook) => {
+  let csvContent = ''
+
+  // Income section
+  csvContent += 'INCOME RECORDS\n'
+  csvContent += workbook.sheets.Income.headers.join(',') + '\n'
+  workbook.sheets.Income.data.forEach((row) => {
+    csvContent += row.join(',') + '\n'
+  })
+
+  csvContent += '\nEXPENSE RECORDS\n'
+  csvContent += workbook.sheets.Expenses.headers.join(',') + '\n'
+  workbook.sheets.Expenses.data.forEach((row) => {
+    csvContent += row.join(',') + '\n'
+  })
+
+  csvContent += '\nSUMMARY\n'
+  csvContent += workbook.sheets.Summary.headers.join(',') + '\n'
+  workbook.sheets.Summary.data.forEach((row) => {
+    csvContent += row.join(',') + '\n'
+  })
+
+  return csvContent
+}
+
 const formatDate = (dateString) => {
   const options = { year: 'numeric', month: 'short', day: 'numeric' }
   return new Date(dateString).toLocaleDateString(undefined, options)
@@ -376,7 +819,123 @@ const formatDate = (dateString) => {
 </script>
 
 <style scoped>
-/* ... */
+/* Export Section Styles */
+.export-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+}
+
+.export-header {
+  margin-bottom: 16px;
+}
+
+.export-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 6px 0;
+}
+
+.export-description {
+  font-size: 13px;
+  color: #666;
+  display: block;
+}
+
+.export-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.date-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-range-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  color: #333;
+  transition: border-color 0.2s ease;
+  min-width: 140px;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #2f8b60;
+  box-shadow: 0 0 0 3px rgba(47, 139, 96, 0.1);
+}
+
+.date-separator {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.export-filter {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.export-filter:focus {
+  outline: none;
+  border-color: #2f8b60;
+  box-shadow: 0 0 0 3px rgba(47, 139, 96, 0.1);
+}
+
+.export-btn {
+  background: #2f8b60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(47, 139, 96, 0.2);
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #247a52;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(47, 139, 96, 0.3);
+}
+
+.export-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Existing styles... */
 
 .save-btn {
   background-color: #4caf50;
@@ -400,7 +959,7 @@ const formatDate = (dateString) => {
 
 .screen {
   height: 100vh;
-  background: #2f8b60;
+  background: #f4f4f4;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -409,11 +968,14 @@ const formatDate = (dateString) => {
 .panel {
   margin: 16px auto 100px auto;
   background: #fff;
-  border-radius: 24px;
-  padding: 24px;
+  border-radius: 18px;
+  padding: 16px;
   flex: 1;
-  overflow-y: auto;
-  max-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(100vh - 90px);
+  min-height: 1060px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.06);
   max-width: 1200px;

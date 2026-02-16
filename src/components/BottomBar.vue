@@ -27,24 +27,26 @@ const isUserAdmin = ref(false)
 // Base menu items for all users
 const baseMenuItems = [
   { name: 'dashboard', label: 'Home', icon: '/home.png', disabled: false },
-  { name: 'records', label: 'Records', icon: '/record.png', disabled: false },
+  { name: 'feed-inventory', label: 'Feed', icon: '/inventory.png', disabled: false },
+  { name: 'cost-summary', label: 'Costs', icon: '/budget.png', disabled: false },
   { name: 'expenses', label: 'Expenses', icon: '/expensesicon.png', disabled: false },
-  { name: 'profile', label: 'Profile', icon: '/profile.png', disabled: false },
+  { name: 'records', label: 'Records', icon: '/record.png', disabled: false },
 ]
 
 // Admin-only menu items
 const adminMenuItems = [
   { name: 'user-management', label: 'Users', icon: '/staff.png', disabled: false },
-  { name: 'feed-inventory', label: 'Feed', icon: '/inventory.png', disabled: false },
-  { name: 'cost-summary', label: 'Costs', icon: '/budget.png', disabled: false },
 ]
+
+// Profile item (added separately to ensure it's last)
+const profileItem = { name: 'profile', label: 'Profile', icon: '/profile.png', disabled: false }
 
 // Combined menu items based on admin status
 const menuItems = computed(() => {
   if (isUserAdmin.value) {
-    return [...baseMenuItems, ...adminMenuItems]
+    return [...baseMenuItems, ...adminMenuItems, profileItem]
   }
-  return baseMenuItems
+  return [...baseMenuItems, profileItem]
 })
 
 // Define routes where bottom bar should be hidden

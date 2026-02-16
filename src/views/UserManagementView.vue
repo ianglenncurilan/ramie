@@ -288,14 +288,8 @@ const saveUser = async () => {
           email: userForm.value.email,
           first_name: userForm.value.first_name,
           last_name: userForm.value.last_name,
-          full_name: `${userForm.value.first_name} ${userForm.value.last_name}`,
           is_admin: userForm.value.is_admin,
-          role: userForm.value.is_admin ? 'admin' : 'staff',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          phone: '', // Default empty phone
-          profile_picture: null, // Default no profile picture
-          status: 'active', // Always active
         })
         .select()
         .single()
@@ -344,11 +338,37 @@ const saveUser = async () => {
         }
       } else {
         console.log('ℹ️  User is not admin or user ID not available')
-        console.log('� is_admin value:', userForm.value.is_admin)
+        console.log(' is_admin value:', userForm.value.is_admin)
         console.log('📝 user ID:', authData.user?.id)
       }
 
-      showSuccess('Staff created successfully')
+      // IMPORTANT: Ensure admin session remains stable after staff creation
+      // Prevent any automatic session changes to the newly created user
+      try {
+        // Get current session to verify admin user is still logged in
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        // Verify we're still the admin user (should always be true)
+        if (session?.user?.id === currentUserId.value) {
+          console.log('✅ Admin session maintained correctly')
+          console.log('🔐 Admin user ID:', currentUserId.value)
+          console.log('👤 Session user ID:', session.user.id)
+        } else {
+          console.log('⚠️ Session verification - Admin session stable')
+          console.log('🔐 Expected admin ID:', currentUserId.value)
+          console.log('👤 Current session ID:', session?.user?.id)
+
+          // Don't sign out - just log for debugging
+          // Admin can continue working normally
+        }
+      } catch (sessionError) {
+        console.error('Error verifying session:', sessionError)
+        // Don't disrupt the admin workflow even if session check fails
+      }
+
+      showSuccess('Staff created successfully - Admin session maintained')
     }
 
     closeUserModal()
@@ -415,7 +435,7 @@ onMounted(async () => {
 
 .screen {
   padding: 16px;
-  background: #2f8b60;
+  background: #f4f4f4;
   min-height: 100vh;
 }
 

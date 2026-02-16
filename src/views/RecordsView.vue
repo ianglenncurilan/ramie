@@ -743,7 +743,7 @@ async function exportMonth() {
 }
 
 .screen {
-  background: #2f8b60;
+  background: #f4f4f4;
   overflow: hidden;
   display: flex;
   flex-direction: column;

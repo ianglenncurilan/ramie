@@ -7,6 +7,26 @@ const router = useRouter()
 
 const userFirstName = ref('')
 const rotatingMessage = ref('')
+const isAdmin = ref(false)
+
+// Check if current user is admin
+const checkAdminStatus = async () => {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user?.user_metadata?.role === 'admin' || user?.app_metadata?.role === 'admin') {
+      isAdmin.value = true
+      console.log('✅ Admin user detected:', user.email)
+    } else {
+      isAdmin.value = false
+      console.log('ℹ️ Non-admin user detected:', user?.email)
+    }
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    isAdmin.value = false
+  }
+}
 const timeGreeting = computed(() => {
   const h = new Date().getHours()
   if (h < 12) return 'Good Morning'
@@ -23,6 +43,10 @@ const contextGreeting = computed(() => {
 onMounted(async () => {
   try {
     if (!hasSupabaseConfig) return
+
+    // Check admin status first
+    await checkAdminStatus()
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -83,7 +107,12 @@ const go = (name) => {
             <div class="card-title">Make Feeds</div>
           </div>
         </button>
-        <button class="card" @click="go('manage-staff')" title="View staff and their activities">
+        <button
+          class="card"
+          @click="go('manage-staff')"
+          title="View staff and their activities"
+          v-if="isAdmin"
+        >
           <div class="card-content">
             <img src="/staff.png" alt="Manage Staff" />
             <div class="card-title">Manage Staff</div>
