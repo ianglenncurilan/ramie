@@ -13,56 +13,33 @@
           </button>
           <button @click="refreshData" class="refresh-btn" title="Refresh data">🔄</button>
         </div>
-        <img class="panel-illustration" src="/budget.png" alt="icon" />
+        <img class="panel-illustration" src="/price.png" alt="icon" />
       </div>
 
       <!-- Cost Overview Cards -->
-      <div class="cost-overview">
-        <div class="cost-card total-investment">
-          <div class="cost-icon">💰</div>
-          <div class="cost-info">
-            <div class="cost-amount">{{ formatCurrency(costMetrics.totalInvestment) }}</div>
-            <div class="cost-label">Total Investment</div>
-          </div>
-        </div>
 
-        <div class="cost-card feed-cost">
-          <div class="cost-icon">🌾</div>
-          <div class="cost-info">
-            <div class="cost-amount">{{ formatCurrency(costMetrics.totalFeedCost) }}</div>
-            <div class="cost-label">Total Feed Cost</div>
-          </div>
-        </div>
-
-        <div class="cost-card purchase-cost">
-          <div class="cost-icon">🐷</div>
-          <div class="cost-info">
-            <div class="cost-amount">{{ formatCurrency(costMetrics.totalPurchaseCost) }}</div>
-            <div class="cost-label">Purchase Cost</div>
-          </div>
-        </div>
-
-        <div class="cost-card cost-per-head">
-          <div class="cost-icon">📊</div>
-          <div class="cost-info">
-            <div class="cost-amount">{{ formatCurrency(costMetrics.costPerHead) }}</div>
-            <div class="cost-label">Cost per Active Hog</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Hog Status Breakdown -->
-      <div class="status-breakdown">
+      <!-- Cost Overview Cards - 3 Column Layout -->
+      <div class="cost-overview-grid">
+        <!-- Column 1: Active Hogs -->
         <div class="status-card active">
           <div class="status-count">{{ costMetrics.activeHogCount }}</div>
           <div class="status-label">Active Hogs</div>
           <div class="status-amount">{{ formatCurrency(costMetrics.activeInvestment) }}</div>
         </div>
 
+        <!-- Column 2: Sold Hogs -->
         <div class="status-card sold">
           <div class="status-count">{{ costMetrics.soldHogCount }}</div>
           <div class="status-label">Sold Hogs</div>
           <div class="status-amount">{{ formatCurrency(costMetrics.soldInvestment) }}</div>
+        </div>
+
+        <!-- Column 3: Deceased Hogs -->
+        <div class="status-card deceased" v-if="costMetrics.deceasedHogCount > 0">
+          <div class="status-count">{{ costMetrics.deceasedHogCount }}</div>
+          <div class="status-label">Deceased Hogs</div>
+          <div class="status-amount">{{ formatCurrency(costMetrics.deceasedInvestment) }}</div>
+          <div class="status-loss">Total Loss</div>
         </div>
       </div>
 
@@ -71,7 +48,10 @@
         <h3>Hog Cost Breakdown</h3>
         <div class="hog-costs-list">
           <template v-for="hog in hogCosts" :key="hog.id">
-            <div class="hog-cost-item" :class="{ sold: hog.status === 'sold' }">
+            <div
+              class="hog-cost-item"
+              :class="{ sold: hog.status === 'sold', deceased: hog.status === 'deceased' }"
+            >
               <div class="hog-info">
                 <div class="hog-code">{{ hog.code }}</div>
                 <div class="hog-details">
@@ -82,10 +62,6 @@
                 </div>
               </div>
               <div class="hog-costs">
-                <div class="cost-item">
-                  <span class="cost-type">Purchase:</span>
-                  <span class="cost-value">{{ formatCurrency(hog.purchase_price) }}</span>
-                </div>
                 <div class="cost-item">
                   <span class="cost-type">Feed:</span>
                   <span class="cost-value">{{ formatCurrency(hog.total_feed_cost) }}</span>
@@ -128,7 +104,7 @@
                   <div class="feed-date">{{ formatDate(cost.date) }}</div>
                   <div class="feed-category">{{ cost.feed_category }}</div>
                   <div class="feed-amount">{{ cost.amount_kg }} kg</div>
-                  <div class="feed-price">{{ formatCurrency(cost.unit_price) }}/kg</div>
+                 
                   <div class="feed-total">{{ formatCurrency(cost.total_cost) }}</div>
                 </div>
                 <div
@@ -163,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import {
   getHogCostSummary,
   calculateCostMetrics,
@@ -276,9 +252,55 @@ const fetchHogCosts = async () => {
 }
 
 // Lifecycle
-onMounted(() => {
-  fetchHogCosts()
+let dailyDeductionTimer = null
+
+onMounted(async () => {
+  await fetchHogCosts()
+  // Check and perform automatic daily deduction
+  await checkAndPerformDailyDeduction()
+
+  // Set up periodic check every hour (3600000 ms)
+  dailyDeductionTimer = setInterval(async () => {
+    await checkAndPerformDailyDeduction()
+  }, 3600000) // 1 hour
 })
+
+onUnmounted(() => {
+  // Clean up timer when component is destroyed
+  if (dailyDeductionTimer) {
+    clearInterval(dailyDeductionTimer)
+  }
+})
+
+// Check and perform daily deduction if needed
+const checkAndPerformDailyDeduction = async () => {
+  try {
+    const { useFeedInventoryStore } = await import('../stores/feedInventory')
+    const feedInventory = useFeedInventoryStore()
+
+    // Get last deduction date from localStorage or set to yesterday
+    const lastDeduction = localStorage.getItem('lastFeedCostDeduction')
+    const today = new Date().toDateString()
+
+    if (lastDeduction !== today) {
+      console.log('🔄 Performing automatic daily feed cost deduction...')
+      const success = await feedInventory.performDailyDeduction()
+
+      if (success) {
+        console.log('✅ Automatic daily deduction completed')
+        localStorage.setItem('lastFeedCostDeduction', today)
+
+        // Refresh the data to show new costs
+        await fetchHogCosts()
+        // Clear expanded hogs to force refresh of daily data
+        expandedHogs.value = []
+        dailyFeedCosts.value = {}
+      }
+    }
+  } catch (error) {
+    console.error('❌ Automatic daily deduction failed:', error)
+  }
+}
 </script>
 
 <style scoped>
@@ -428,20 +450,22 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-/* Status Breakdown */
-.status-breakdown {
+/* Cost Overview Grid - 3 Column Layout */
+.cost-overview-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
 
+/* Status Cards - 3 Column Layout */
 .status-card {
-  background: #f8f9fa;
+  background: white;
   border: 2px solid #e9ecef;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   text-align: center;
+  transition: all 0.2s ease;
 }
 
 .status-card.active {
@@ -452,6 +476,11 @@ onMounted(() => {
 .status-card.sold {
   border-color: #ffc107;
   background: #fff3cd;
+}
+
+.status-card.deceased {
+  border-color: #dc3545;
+  background: #f8d7da;
 }
 
 .status-count {
@@ -472,6 +501,16 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: #2f8b60;
+}
+
+.status-loss {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #721c24;
+  color: white;
 }
 
 /* Hog Costs Section */
@@ -516,6 +555,12 @@ onMounted(() => {
   border-color: #ffc107;
 }
 
+.hog-cost-item.deceased {
+  opacity: 0.7;
+  border-color: #dc3545;
+  background: #f8d7da;
+}
+
 .hog-info {
   flex: 1;
 }
@@ -558,6 +603,11 @@ onMounted(() => {
 .hog-status.sold {
   background: #fff3cd;
   color: #856404;
+}
+
+.hog-status.deceased {
+  background: #f8d7da;
+  color: #721c24;
 }
 
 .hog-costs {

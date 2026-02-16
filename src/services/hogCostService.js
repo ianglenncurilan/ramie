@@ -106,6 +106,7 @@ export const getHogCostSummary = async () => {
 export const calculateCostMetrics = (hogs) => {
   const activeHogs = hogs.filter((hog) => hog.status === 'active')
   const soldHogs = hogs.filter((hog) => hog.status === 'sold')
+  const deceasedHogs = hogs.filter((hog) => hog.status === 'deceased')
 
   const totalInvestment = hogs.reduce((sum, hog) => sum + (hog.total_cost || 0), 0)
   const totalFeedCost = hogs.reduce((sum, hog) => sum + (hog.total_feed_cost || 0), 0)
@@ -113,6 +114,7 @@ export const calculateCostMetrics = (hogs) => {
 
   const activeInvestment = activeHogs.reduce((sum, hog) => sum + (hog.total_cost || 0), 0)
   const soldInvestment = soldHogs.reduce((sum, hog) => sum + (hog.total_cost || 0), 0)
+  const deceasedInvestment = deceasedHogs.reduce((sum, hog) => sum + (hog.total_cost || 0), 0)
 
   const costPerHead = activeHogs.length > 0 ? activeInvestment / activeHogs.length : 0
 
@@ -122,9 +124,11 @@ export const calculateCostMetrics = (hogs) => {
     totalPurchaseCost,
     activeInvestment,
     soldInvestment,
+    deceasedInvestment,
     costPerHead,
     activeHogCount: activeHogs.length,
     soldHogCount: soldHogs.length,
+    deceasedHogCount: deceasedHogs.length,
     totalHogCount: hogs.length,
   }
 }

@@ -22,10 +22,6 @@
             <span class="stat-value">{{ inventory.availableIngredients.length }}</span>
             <span class="stat-label">Available</span>
           </div>
-          <div class="stat-card" v-if="isUserAdmin">
-            <span class="stat-value">₱{{ inventory.totalValue.toFixed(2) }}</span>
-            <span class="stat-label">Total Value</span>
-          </div>
         </div>
         <div class="add-button-container">
           <button class="add-btn" @click="openModal">
@@ -66,20 +62,6 @@
               </span>
               <div class="actions">
                 <button class="edit-btn" @click="editIngredient(ingredient)">✏️</button>
-                <button
-                  v-if="isUserAdmin"
-                  class="delete-btn"
-                  @click="() => deleteIngredient(ingredient.id)"
-                  @mousedown="console.log('Delete button mousedown')"
-                  @mouseup="console.log('Delete button mouseup')"
-                  @touchstart="console.log('Delete button touchstart')"
-                  @touchend="console.log('Delete button touchend')"
-                  @keydown="console.log('Delete button keydown')"
-                  @keyup="console.log('Delete button keyup')"
-                  type="button"
-                >
-                  X
-                </button>
               </div>
             </div>
           </div>
@@ -97,10 +79,21 @@
           <form @submit.prevent="saveIngredient" class="modal-form">
             <div class="form-group">
               <label>Ingredient Name</label>
-              <select v-model="form.name" @change="onNameChange" required>
+              <input
+                v-if="editingIngredient"
+                v-model="form.name"
+                type="text"
+                placeholder="Enter ingredient name"
+                class="form-input"
+                readonly
+                disabled
+                style="background: #f8f9fa; color: #666; cursor: not-allowed"
+              />
+              <select v-else v-model="form.name" @change="onNameChange" required>
                 <option value="">Select an ingredient</option>
 
                 <!-- Carbs -->
+                <option value="Corn">Corn</option>
                 <option value="Rice Bran D1">Rice Bran D1</option>
                 <option value="Rice Bran D2">Rice Bran D2</option>
                 <option value="Rice Hull">Rice Hull</option>
@@ -131,7 +124,7 @@
                 <option value="Other">Other (Specify)</option>
               </select>
               <input
-                v-if="form.name === 'Other'"
+                v-if="!editingIngredient && form.name === 'Other'"
                 v-model="form.customName"
                 type="text"
                 placeholder="Enter ingredient name"
@@ -235,6 +228,26 @@
           </form>
         </div>
       </div>
+
+      <!-- Undo Notification -->
+      <div v-if="showUndoNotification" class="undo-notification">
+        <div class="undo-content">
+          <div class="undo-message">
+            <span class="undo-icon">⚠️</span>
+            <span
+              >Deleted: {{ deletedIngredient?.name }} ({{ deletedIngredient?.quantity }}
+              {{ deletedIngredient?.unit }})</span
+            >
+          </div>
+          <div class="undo-actions">
+            <button @click="undoDelete" class="undo-btn">Undo</button>
+            <button @click="hideUndoNotification" class="dismiss-btn">Dismiss</button>
+          </div>
+        </div>
+        <div class="undo-progress" :style="{ width: '100%' }">
+          <div class="undo-progress-bar" :style="{ animation: 'countdown 10s linear' }"></div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -260,6 +273,11 @@ const editingIngredient = ref(null)
 const editingQuantityIngredient = ref(null)
 const updatingQuantity = ref(null)
 const quantityInput = ref(null)
+
+// Undo functionality state
+const deletedIngredient = ref(null)
+const showUndoNotification = ref(false)
+const undoTimeout = ref(null)
 
 // Form data
 const form = reactive({
@@ -396,14 +414,23 @@ async function saveIngredient() {
       }
       closeModal()
     } else {
-      // Add new ingredient
-      const { data, error } = await inventory.addIngredient(payload)
+      // Add new ingredient (with upsert logic)
+      const { data, error, action } = await inventory.addIngredient(payload)
       if (error) {
         console.error('Error saving ingredient:', error)
         alert('Failed to add ingredient. Please try again.')
         return
       }
-      if (data) closeModal()
+
+      if (data) {
+        // Show appropriate notification based on action
+        if (action === 'updated') {
+          showToast('Existing ingredient detected. Stock has been updated.', 'success')
+        } else if (action === 'inserted') {
+          showToast('Ingredient added successfully!', 'success')
+        }
+        closeModal()
+      }
     }
   } catch (error) {
     console.error('Error saving ingredient:', error)
@@ -411,12 +438,118 @@ async function saveIngredient() {
   }
 }
 
+// Toast notification function
+function showToast(message, type = 'info') {
+  // Create toast element
+  const toast = document.createElement('div')
+  toast.className = `toast toast-${type}`
+  toast.textContent = message
+
+  // Add styles
+  Object.assign(toast.style, {
+    position: 'fixed',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: type === 'success' ? '#28a745' : '#17a2b8',
+    color: 'white',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    zIndex: '9999',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    opacity: '0',
+    transition: 'opacity 0.3s ease, transform 0.3s ease',
+    transform: 'translateX(-50%) translateY(20px)',
+  })
+
+  // Add to DOM
+  document.body.appendChild(toast)
+
+  // Animate in
+  setTimeout(() => {
+    toast.style.opacity = '1'
+    toast.style.transform = 'translateX(-50%) translateY(0)'
+  }, 100)
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0'
+    toast.style.transform = 'translateX(-50%) translateY(20px)'
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast)
+      }
+    }, 300)
+  }, 3000)
+}
+
 async function deleteIngredient(id) {
-  if (!confirm('Are you sure you want to delete this ingredient?')) return
+  // Find the ingredient before deleting for undo functionality
+  const ingredientToDelete = inventory.ingredients.find((item) => item.id === id)
+
+  if (!ingredientToDelete) {
+    alert('Ingredient not found')
+    return
+  }
+
+  // Store the deleted ingredient for undo
+  deletedIngredient.value = { ...ingredientToDelete }
+
+  // Delete the ingredient
   const { error } = await inventory.deleteIngredient(id)
   if (error) {
     console.error('Error deleting ingredient:', error)
     alert('Failed to delete ingredient. Please try again.')
+    deletedIngredient.value = null
+    return
+  }
+
+  // Show undo notification
+  showUndoNotification.value = true
+
+  // Clear any existing timeout
+  if (undoTimeout.value) {
+    clearTimeout(undoTimeout.value)
+  }
+
+  // Auto-hide undo notification after 10 seconds
+  undoTimeout.value = setTimeout(() => {
+    hideUndoNotification()
+  }, 10000)
+}
+
+// Undo delete function
+async function undoDelete() {
+  if (!deletedIngredient.value) return
+
+  try {
+    // Restore the ingredient
+    const { error } = await inventory.addIngredient(deletedIngredient.value)
+
+    if (error) {
+      console.error('Error restoring ingredient:', error)
+      alert('Failed to restore ingredient. Please try again.')
+      return
+    }
+
+    console.log('✅ Ingredient restored:', deletedIngredient.value.name)
+    hideUndoNotification()
+  } catch (err) {
+    console.error('Error undoing delete:', err)
+    alert('Failed to restore ingredient. Please try again.')
+  }
+}
+
+// Hide undo notification
+function hideUndoNotification() {
+  showUndoNotification.value = false
+  deletedIngredient.value = null
+
+  if (undoTimeout.value) {
+    clearTimeout(undoTimeout.value)
+    undoTimeout.value = null
   }
 }
 
@@ -518,7 +651,7 @@ function onNameChange() {
 
 .screen {
   height: 130vh;
-  background: #2f8b60;
+  background: #dcdcdc;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1506,6 +1639,113 @@ button {
 .btn-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Undo Notification Styles */
+.undo-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  border: 2px solid #dc3545;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 350px;
+  max-width: 450px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.undo-content {
+  padding: 16px 20px;
+}
+
+.undo-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #333;
+}
+
+.undo-icon {
+  font-size: 18px;
+  color: #dc3545;
+}
+
+.undo-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.undo-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.undo-btn:hover {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.dismiss-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dismiss-btn:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.undo-progress {
+  height: 4px;
+  background: #f8f9fa;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
+
+.undo-progress-bar {
+  height: 100%;
+  background: #dc3545;
+  width: 100%;
+  transform-origin: left;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 /* Removed PIN styles */

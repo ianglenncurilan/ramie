@@ -88,9 +88,16 @@
                   :class="{
                     active: amounts[item.id],
                     exceeded: getCategoryTotal(category) > category.total,
+                    unavailable: !getIngredientAvailability(item),
                   }"
                 >
-                  <input type="number" min="0" step="0.01" v-model.number="amounts[item.id]" />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    v-model.number="amounts[item.id]"
+                    :disabled="!getIngredientAvailability(item)"
+                  />
                   <span class="unit">{{ getIngredientUnit(item) }}</span>
                 </div>
               </div>
@@ -161,19 +168,19 @@ const INGREDIENT_MAPPING = {
 
 // Finisher feed categories with 40% Protein / 60% Carbs ratio
 const uiCategories = computed(() => {
-  // Get available ingredients from inventory
-  const availableIngredients = inventoryStore.availableIngredients
+  // Get ALL ingredients from inventory (both available and unavailable)
+  const allIngredients = inventoryStore.ingredients
 
   // Categorize ingredients by type
   const categorizedIngredients = {
-    carbs: availableIngredients.filter(
+    carbs: allIngredients.filter(
       (ingredient) =>
         ingredient.type === 'carbs' && !ingredient.name.toLowerCase().includes('water'),
     ),
-    protein: availableIngredients.filter((ingredient) => ingredient.type === 'protein'),
-    vitamins: availableIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
-    minerals: availableIngredients.filter((ingredient) => ingredient.type === 'minerals'),
-    water: availableIngredients.filter(
+    protein: allIngredients.filter((ingredient) => ingredient.type === 'protein'),
+    vitamins: allIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
+    minerals: allIngredients.filter((ingredient) => ingredient.type === 'minerals'),
+    water: allIngredients.filter(
       (ingredient) =>
         ingredient.type === 'carbs' && ingredient.name.toLowerCase().includes('water'),
     ),
@@ -401,8 +408,30 @@ const getIngredientUnit = (ingredient) => {
     if (byName?.unit) return byName.unit.toUpperCase()
   }
 
-  // Default to KG if no unit found
   return 'KG'
+}
+
+// Function to check if ingredient is available
+const getIngredientAvailability = (ingredient) => {
+  // First try to find by ID
+  if (ingredient.id) {
+    const byId = findInventoryItem(ingredient.id)
+    if (byId) return byId.isAvailable
+  }
+
+  // Then try to find by name (label)
+  if (ingredient.label) {
+    const byName = findInventoryItemByName(ingredient.label)
+    if (byName) return byName.isAvailable
+
+    // Additional check: try direct inventory lookup by exact name match
+    const directMatch = inventoryStore.ingredients.find(
+      (item) => item.name.toLowerCase().trim() === ingredient.label.toLowerCase().trim(),
+    )
+    if (directMatch) return directMatch.isAvailable
+  }
+
+  return false // Default to unavailable if not found
 }
 
 // Function to auto-populate costs from inventory
@@ -1015,6 +1044,19 @@ async function saveFormulation() {
 }
 .pill.exceeded {
   background-color: #fdf2f2;
+}
+.pill.unavailable {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  opacity: 0.6;
+}
+.pill.unavailable input {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+.pill.unavailable .unit {
+  color: #6c757d;
 }
 .pill.auto-populated {
   background-color: #f0f9ff;

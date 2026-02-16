@@ -7,18 +7,21 @@
       <img src="/home.png" alt="Dashboard" />
     </button>
     <button
+      v-if="isAdminUser"
       @click="$router.push({ name: 'records' })"
       :class="{ active: $route.name === 'records' }"
     >
       <img src="/records.png" alt="Records" />
     </button>
     <button
+      v-if="isAdminUser"
       @click="$router.push({ name: 'expenses' })"
       :class="{ active: $route.name === 'expenses' }"
     >
       <img src="/expensesicon.png" alt="Expenses" />
     </button>
     <button
+      v-if="isAdminUser"
       @click="$router.push({ name: 'manage-staff' })"
       :class="{ active: $route.name === 'manage-staff' }"
     >
@@ -34,7 +37,20 @@
 </template>
 
 <script setup>
-// No need to import useAuth since we're not using conditional rendering anymore
+import { computed } from 'vue'
+import { useAuth } from '@supabase/auth-ui-vue'
+
+const auth = useAuth()
+
+// Check if user is admin
+const isAdminUser = computed(() => {
+  const user = auth.user
+  if (!user) return false
+
+  // Check user metadata for admin role
+  const userMetadata = user.user_metadata || user.app_metadata || {}
+  return userMetadata.role === 'admin' || userMetadata.is_admin === true
+})
 </script>
 
 <style scoped>
@@ -45,7 +61,7 @@
 .bottombar {
   margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   gap: 16px;
   padding: 20px 24px;
   background: #fff;

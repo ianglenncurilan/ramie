@@ -59,31 +59,101 @@ export const useInventoryStore = defineStore('inventory', () => {
       cost: Number(formData.cost) || 0,
     }
 
-    const { data, error } = await supabase.from('inventory').insert(dataWithUnit).select()
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const quantity = Number(data[0].quantity) || 0
-      const item = {
-        ...data[0],
-        quantity,
-        isAvailable: quantity > 0,
+    // Check if ingredient already exists (case-insensitive)
+    const existingIngredient = ingredients.value.find(
+      (item) =>
+        String(item.name || '')
+          .toLowerCase()
+          .trim() ===
+        String(dataWithUnit.name || '')
+          .toLowerCase()
+          .trim(),
+    )
+
+    if (existingIngredient) {
+      // Update existing ingredient (upsert logic)
+      const newQuantity = existingIngredient.quantity + dataWithUnit.quantity
+      const newCost =
+        (existingIngredient.cost * existingIngredient.quantity +
+          dataWithUnit.cost * dataWithUnit.quantity) /
+        newQuantity
+      const isAvailable = newQuantity > 0
+      const updated_at = new Date().toISOString()
+
+      // Optimistic local update
+      const index = ingredients.value.findIndex((item) => item.id === existingIngredient.id)
+      const updatedIngredient = {
+        ...existingIngredient,
+        quantity: newQuantity,
+        cost: newCost,
+        isAvailable,
+        updated_at,
       }
-      ingredients.value = [...ingredients.value, item]
+      ingredients.value[index] = updatedIngredient
+
+      // Update database
+      const { data, error } = await supabase
+        .from('inventory')
+        .update({
+          quantity: newQuantity,
+          cost: newCost,
+          updated_at,
+        })
+        .eq('id', existingIngredient.id)
+        .select()
+        .single()
+
+      if (error) {
+        // Revert on failure
+        ingredients.value[index] = existingIngredient
+        return { data: null, error, action: 'update_failed' }
+      }
 
       try {
         await logActivity({
-          type: 'inventory_added',
+          type: 'inventory_updated',
           details: {
-            name: item.name,
-            quantity,
-            cost: Number(item.cost) || 0,
-            type: item.type || '',
+            name: updatedIngredient.name,
+            oldQuantity: Number(existingIngredient.quantity) || 0,
+            newQuantity: newQuantity,
+            oldCost: Number(existingIngredient.cost) || 0,
+            newCost: newCost,
+            type: updatedIngredient.type || '',
           },
           referenceType: 'inventory',
-          referenceId: item.id,
+          referenceId: existingIngredient.id,
         })
       } catch (_) {}
+
+      return { data, error: null, action: 'updated' }
+    } else {
+      // Add new ingredient
+      const { data, error } = await supabase.from('inventory').insert(dataWithUnit).select()
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const quantity = Number(data[0].quantity) || 0
+        const item = {
+          ...data[0],
+          quantity,
+          isAvailable: quantity > 0,
+        }
+        ingredients.value = [...ingredients.value, item]
+
+        try {
+          await logActivity({
+            type: 'inventory_added',
+            details: {
+              name: item.name,
+              quantity,
+              cost: Number(item.cost) || 0,
+              type: item.type || '',
+            },
+            referenceType: 'inventory',
+            referenceId: item.id,
+          })
+        } catch (_) {}
+      }
+      return { data, error, action: 'inserted' }
     }
-    return { data, error }
   }
 
   async function updateIngredient(id, updates) {

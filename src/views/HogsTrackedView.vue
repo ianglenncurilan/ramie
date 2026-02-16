@@ -141,7 +141,7 @@
                     as of {{ formatDate(hog.updated_at) }}
                   </div>
                 </div>
-                <button type="button" class="edit-btn" @click="openEditModal(hog)">✏️</button>
+                <button type="button" class="edit-btn" @click="openEditModal(hog)" :disabled="hog.status === 'deceased' || hog.status === 'sold'" :title="hog.status === 'deceased' ? 'Cannot edit deceased hog' : hog.status === 'sold' ? 'Cannot edit sold hog' : 'Edit weight'">✏️</button>
               </div>
               <div class="actions">
                 <button
@@ -597,6 +597,18 @@ const performUndo = async (hog) => {
 
 // Open edit modal with hog data
 const openEditModal = (hog) => {
+  // Validation: Prevent editing deceased hogs
+  if (hog.status === 'deceased') {
+    alert(`Cannot edit deceased hog ${hog.code}. This hog died on ${hog.date_of_death || hog.deceased_date || 'unknown date'}.`)
+    return
+  }
+  
+  // Validation: Prevent editing sold hogs
+  if (hog.status === 'sold') {
+    alert(`Cannot edit sold hog ${hog.code}.`)
+    return
+  }
+  
   currentHog.value = { ...hog }
   showEditModal.value = true
 }
@@ -711,17 +723,25 @@ const markAsDied = async () => {
     return
   }
 
+  // Validate cause if "others" is selected
+  if (deathData.value.cause === 'others' && !deathData.value.otherCause) {
+    alert('Please specify the cause of death')
+    return
+  }
+
   try {
     const cause =
-      deathData.value.cause === 'other' ? deathData.value.otherCause : deathData.value.cause
+      deathData.value.cause === 'others' ? deathData.value.otherCause : deathData.value.cause
 
-    await hogsStore.markAsDeceased(currentHog.value.id, {
+    // Call the store method which uses the RPC function
+    const result = await hogsStore.markAsDeceased(currentHog.value.id, {
       cause: cause,
       weight: currentHog.value.weight,
       notes: deathData.value.notes || '',
       dateOfDeath: deathData.value.date || new Date().toISOString(),
     })
 
+    // Log the activity
     logHogActivity(ActivityType.HOG_DIED, currentHog.value.id, {
       hog_code: currentHog.value.code,
       cause: cause,
@@ -730,11 +750,23 @@ const markAsDied = async () => {
 
     closeDiedModal()
 
+    // Show success message with loss information
+    if (result && result.total_loss) {
+      alert(
+        `Hog ${currentHog.value.code} marked as deceased.\n` +
+        `Total Loss: ₱${Number(result.total_loss).toFixed(2)}\n` +
+        `(Purchase: ₱${Number(result.purchase_price || 0).toFixed(2)} + Feed: ₱${Number(result.total_feed_cost || 0).toFixed(2)})\n` +
+        `Livestock loss expense has been automatically created.`
+      )
+    } else {
+      alert(`Hog ${currentHog.value.code} marked as deceased.`)
+    }
+
     // Refresh the hogs list
     await loadHogs()
   } catch (error) {
     console.error('Error marking hog as died:', error)
-    alert('Failed to mark hog as deceased. Please try again.')
+    alert(`Failed to mark hog as deceased: ${error.message || 'Please try again.'}`)
   }
 }
 
@@ -914,6 +946,16 @@ async function updateHogWeight(hogId, weight) {
     const hog = hogs.value.find((h) => h.id === hogId)
     if (!hog) {
       throw new Error('Hog not found')
+    }
+
+    // Validation: Prevent editing deceased hogs
+    if (hog.status === 'deceased') {
+      throw new Error(`Cannot modify weight for deceased hog ${hog.code}. This hog died on ${hog.date_of_death || hog.deceased_date || 'unknown date'}.`)
+    }
+
+    // Validation: Prevent editing sold hogs
+    if (hog.status === 'sold') {
+      throw new Error(`Cannot modify weight for sold hog ${hog.code}.`)
     }
 
     const oldWeight = prevWeightById.value[hogId] ?? Number(hog?.weight)

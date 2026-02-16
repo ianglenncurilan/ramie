@@ -910,6 +910,15 @@ export const useHogsStore = defineStore('hogs', () => {
       const now = new Date().toISOString()
       const eventDate = saleData.date || now
 
+      // Get hog details for income record
+      const { data: hogData, error: fetchError } = await supabase
+        .from('hogs')
+        .select('code')
+        .eq('id', hogId)
+        .single()
+
+      if (fetchError) throw fetchError
+
       // Update hog status
       const { error: updateError } = await supabase
         .from('hogs')
@@ -936,6 +945,20 @@ export const useHogsStore = defineStore('hogs', () => {
         },
       })
 
+      // Add sale as income entry
+      const { useFeedsStore } = await import('./feeds')
+      const feedsStore = useFeedsStore()
+
+      await feedsStore.addIncome({
+        label: `Hog Sale - ${hogData?.code || 'Unknown'}`,
+        amount: Number(saleData.price),
+        date: eventDate.split('T')[0], // Use only date part
+        reference_id: hogId,
+        reference_type: 'hog_sale',
+      })
+
+      console.log(`✅ Sold hog ${hogData?.code} for ₱${saleData.price} - Added to income`)
+
       // Refresh both hogs list and records
       await fetchHogs('active')
       await fetchRecords()
@@ -949,43 +972,50 @@ export const useHogsStore = defineStore('hogs', () => {
     }
   }
 
-  // Mark a hog as deceased
+  // Mark a hog as deceased using RPC function (transactional)
   async function markAsDeceased(hogId, deathData) {
     try {
       loading.value = true
       const now = new Date().toISOString()
+      const dateOfDeath = deathData.dateOfDeath
+        ? new Date(deathData.dateOfDeath).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0]
 
-      // Update hog status
-      const { error: updateError } = await supabase
-        .from('hogs')
-        .update({
-          status: 'deceased',
-          deceased_date: deathData.dateOfDeath || now,
-          updated_at: now,
-        })
-        .eq('id', hogId)
-
-      if (updateError) throw updateError
-
-      // Create death record
-      await createRecord({
-        hog_id: hogId,
-        record_type: 'death',
-        event_date: deathData.dateOfDeath || now,
-        details: {
-          cause_of_death: deathData.cause,
-          weight: deathData.weight,
-          notes: deathData.notes || null,
-        },
+      // Call the RPC function to handle all operations in a single transaction
+      const { data: result, error: rpcError } = await supabase.rpc('mark_hog_as_deceased', {
+        p_hog_id: hogId,
+        p_date_of_death: dateOfDeath,
+        p_cause_of_death: deathData.cause || 'Unknown',
+        p_death_notes: deathData.notes || null,
       })
 
-      // Refresh both hogs list and records
-      await fetchHogs('active')
-      await fetchRecords()
-      return true
+      if (rpcError) {
+        console.error('RPC Error:', rpcError)
+        throw new Error(rpcError.message || 'Failed to mark hog as deceased')
+      }
+
+      // Check if the RPC function returned an error
+      if (result && !result.success) {
+        throw new Error(result.error || result.message || 'Failed to mark hog as deceased')
+      }
+
+      console.log('Deceased hog workflow completed:', result)
+
+      // Refresh stores to update all views
+      await Promise.all([
+        fetchHogs('all'), // Fetch all hogs including deceased
+        fetchRecords(),
+      ])
+
+      // Refresh feeds store to update expenses
+      const { useFeedsStore } = await import('./feeds')
+      const feedsStore = useFeedsStore()
+      await feedsStore.fetchExpenses()
+
+      return result
     } catch (err) {
       console.error('Error marking hog as deceased:', err)
-      error.value = err.message
+      error.value = err.message || 'Failed to mark hog as deceased'
       throw err
     } finally {
       loading.value = false
