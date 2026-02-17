@@ -684,7 +684,8 @@ async function saveFormulation() {
 
     // Also persist a formulation entry in feed_formulations
     const record = {
-      feedType: 'Finisher', // Changed from 'stage' to 'feedType'
+      stage: 'finisher', // Use stage instead of feedType
+      feedType: 'Finisher', // Keep feedType for backward compatibility
       name: `Finisher Feed - ${totalAmount.toFixed(1)}kg`,
       items: items.map((item) => ({
         id: item.id,

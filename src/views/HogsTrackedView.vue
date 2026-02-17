@@ -141,7 +141,21 @@
                     as of {{ formatDate(hog.updated_at) }}
                   </div>
                 </div>
-                <button type="button" class="edit-btn" @click="openEditModal(hog)" :disabled="hog.status === 'deceased' || hog.status === 'sold'" :title="hog.status === 'deceased' ? 'Cannot edit deceased hog' : hog.status === 'sold' ? 'Cannot edit sold hog' : 'Edit weight'">✏️</button>
+                <button
+                  type="button"
+                  class="edit-btn"
+                  @click="openEditModal(hog)"
+                  :disabled="hog.status === 'deceased' || hog.status === 'sold'"
+                  :title="
+                    hog.status === 'deceased'
+                      ? 'Cannot edit deceased hog'
+                      : hog.status === 'sold'
+                        ? 'Cannot edit sold hog'
+                        : 'Edit weight'
+                  "
+                >
+                  ✏️
+                </button>
               </div>
               <div class="actions">
                 <button
@@ -213,18 +227,6 @@
               v-model.number="newHog.days"
               placeholder="0"
               min="0"
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label for="hogPurchasePrice">Purchase Price (₱)</label>
-            <input
-              type="number"
-              id="hogPurchasePrice"
-              v-model.number="newHog.purchase_price"
-              placeholder="0.00"
-              min="0"
-              step="0.01"
               class="form-input"
             />
           </div>
@@ -426,7 +428,6 @@ const newHog = ref({
   code: '',
   weight: 0,
   days: 0,
-  purchase_price: 0,
   amFeeding: false,
   pmFeeding: false,
   status: 'active', // 'active', 'sold', or 'died'
@@ -599,16 +600,18 @@ const performUndo = async (hog) => {
 const openEditModal = (hog) => {
   // Validation: Prevent editing deceased hogs
   if (hog.status === 'deceased') {
-    alert(`Cannot edit deceased hog ${hog.code}. This hog died on ${hog.date_of_death || hog.deceased_date || 'unknown date'}.`)
+    alert(
+      `Cannot edit deceased hog ${hog.code}. This hog died on ${hog.date_of_death || hog.deceased_date || 'unknown date'}.`,
+    )
     return
   }
-  
+
   // Validation: Prevent editing sold hogs
   if (hog.status === 'sold') {
     alert(`Cannot edit sold hog ${hog.code}.`)
     return
   }
-  
+
   currentHog.value = { ...hog }
   showEditModal.value = true
 }
@@ -754,9 +757,9 @@ const markAsDied = async () => {
     if (result && result.total_loss) {
       alert(
         `Hog ${currentHog.value.code} marked as deceased.\n` +
-        `Total Loss: ₱${Number(result.total_loss).toFixed(2)}\n` +
-        `(Purchase: ₱${Number(result.purchase_price || 0).toFixed(2)} + Feed: ₱${Number(result.total_feed_cost || 0).toFixed(2)})\n` +
-        `Livestock loss expense has been automatically created.`
+          `Total Loss: ₱${Number(result.total_loss).toFixed(2)}\n` +
+          `(Purchase: ₱${Number(result.purchase_price || 0).toFixed(2)} + Feed: ₱${Number(result.total_feed_cost || 0).toFixed(2)})\n` +
+          `Livestock loss expense has been automatically created.`,
       )
     } else {
       alert(`Hog ${currentHog.value.code} marked as deceased.`)
@@ -839,10 +842,28 @@ onMounted(() => {
   // Set up real-time subscription for hogs
   const unsubscribe = hogsStore.subscribeToRealtime()
 
-  // Clean up subscription when component is unmounted
+  // Set up daily timer to increment hog days
+  const dailyTimer = setInterval(
+    async () => {
+      try {
+        console.log('Running daily hog day increment...')
+        await hogsStore.incrementDaysForAllHogs()
+        await hogsStore.resetDailyFeedingStatus()
+        console.log('Daily hog updates completed')
+      } catch (error) {
+        console.error('Error during daily hog updates:', error)
+      }
+    },
+    24 * 60 * 60 * 1000,
+  ) // Run every 24 hours
+
+  // Clean up subscription and timer when component is unmounted
   onUnmounted(() => {
     if (unsubscribe && typeof unsubscribe === 'function') {
       unsubscribe()
+    }
+    if (dailyTimer) {
+      clearInterval(dailyTimer)
     }
   })
 })
@@ -879,11 +900,6 @@ async function addNewHog() {
     return
   }
 
-  if (newHog.value.purchase_price < 0) {
-    alert('Purchase price cannot be negative')
-    return
-  }
-
   try {
     loading.value = true
     error.value = null
@@ -893,7 +909,6 @@ async function addNewHog() {
       code: newHog.value.code.trim(),
       weight: Number(newHog.value.weight),
       days: Number(newHog.value.days),
-      purchase_price: Number(newHog.value.purchase_price),
     })
 
     if (!hog) {
@@ -934,7 +949,7 @@ async function addNewHog() {
 
 function closeAddHogModal() {
   showAddHogModal.value = false
-  newHog.value = { code: '', weight: 0, days: 0, purchase_price: 0 }
+  newHog.value = { code: '', weight: 0, days: 0 }
 }
 
 function capturePrevWeight(hogId, weight) {
@@ -950,7 +965,9 @@ async function updateHogWeight(hogId, weight) {
 
     // Validation: Prevent editing deceased hogs
     if (hog.status === 'deceased') {
-      throw new Error(`Cannot modify weight for deceased hog ${hog.code}. This hog died on ${hog.date_of_death || hog.deceased_date || 'unknown date'}.`)
+      throw new Error(
+        `Cannot modify weight for deceased hog ${hog.code}. This hog died on ${hog.date_of_death || hog.deceased_date || 'unknown date'}.`,
+      )
     }
 
     // Validation: Prevent editing sold hogs

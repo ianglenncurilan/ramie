@@ -56,7 +56,9 @@
                   >
                 </div>
               </div>
-              <span class="cost">₱{{ (ingredient.cost || 0).toFixed(2) }}</span>
+              <span class="cost"
+                >₱{{ (ingredient.isAvailable ? ingredient.cost || 0 : 0).toFixed(2) }}</span
+              >
               <span :class="{ ok: ingredient.isAvailable, bad: !ingredient.isAvailable }">
                 {{ ingredient.isAvailable ? 'Available' : 'Not Available' }}
               </span>

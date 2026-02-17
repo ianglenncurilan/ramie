@@ -677,7 +677,8 @@ const saveFormulation = async () => {
 
     // Create record with detailed information
     const record = {
-      feedType: 'Starter', // Changed from 'stage' to 'feedType'
+      stage: 'starter', // Use stage instead of feedType
+      feedType: 'Starter', // Keep feedType for backward compatibility
       name: `Starter Feed - ${totalAmount.toFixed(1)}kg`,
       items: items.map((item) => ({
         id: item.id,

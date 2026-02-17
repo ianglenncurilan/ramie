@@ -162,10 +162,6 @@
                   <span class="label">Total Cost:</span>
                   <span class="value cost">₱{{ (selectedRecord.totalCost || 0).toFixed(2) }}</span>
                 </div>
-                <div class="summary-item" v-if="typeLabel(selectedRecord)">
-                  <span class="label">Feed Type:</span>
-                  <span class="value">{{ typeLabel(selectedRecord) }}</span>
-                </div>
                 <div class="summary-item" v-if="selectedRecord.creatorName">
                   <span class="label">Created by:</span>
                   <span class="value">{{ selectedRecord.creatorName }}</span>
@@ -259,7 +255,10 @@ const clearFilters = () => {
 }
 
 // Initialize filters
-onMounted(() => {
+onMounted(async () => {
+  // Fetch feeds records
+  await feeds.fetchRecords()
+
   // Set default week values
   const { start, end } = getWeekRange(today)
   const formatWeek = (date) => {
