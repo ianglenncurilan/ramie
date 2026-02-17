@@ -137,11 +137,13 @@ import { useRouter } from 'vue-router'
 import { useFeedsStore } from '../stores/feeds'
 import { useInventoryStore } from '../stores/inventory'
 import { useFeedFormulationsStore } from '../stores/feedFormulations'
+import { useFeedInventoryStore } from '../stores/feedInventory'
 
 const router = useRouter()
 const feedsStore = useFeedsStore()
 const inventoryStore = useInventoryStore()
 const feedFormulationsStore = useFeedFormulationsStore()
+const feedInventoryStore = useFeedInventoryStore()
 
 // Mapping between feed calculator ingredients and inventory items
 const INGREDIENT_MAPPING = {
@@ -710,6 +712,17 @@ async function saveFormulation() {
     // Add record with detailed information
     await feedsStore.addRecord(record)
 
+    // Update feed inventory with newly created feed
+    try {
+      await feedInventoryStore.updateFeedInventory({
+        grower: totalAmount,
+      })
+      console.log(`✅ Updated feed inventory with ${totalAmount}kg of grower feed`)
+    } catch (inventoryError) {
+      console.error('❌ Failed to update feed inventory:', inventoryError)
+      // Don't fail the whole operation if inventory update fails, just log it
+    }
+
     // Add expense for the total cost
     if (totalCost > 0) {
       feedsStore.addExpense({
@@ -770,7 +783,7 @@ async function saveFormulation() {
 
 .screen {
   height: 100vh;
-  background: #2f8b60;
+  background: #f4f4f4;
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -1318,7 +1318,7 @@ const formatDate = (dateString) => {
 }
 
 .modal .amt.expense {
-  color: #009532;
+  color: #db0000;
 }
 
 .modal .close-btn {

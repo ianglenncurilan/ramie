@@ -162,7 +162,8 @@ export const useInventoryStore = defineStore('inventory', () => {
 
     const current = ingredients.value[index]
     const nextQuantity = Number(updates.quantity) || 0
-    const nextCost = Number(updates.cost) || 0
+    // Preserve original cost if not being updated
+    const nextCost = updates.cost !== undefined ? Number(updates.cost) || 0 : current.cost || 0
     const nextName = updates.name || current.name
     const nextType = updates.type || current.type
     const nextUnit = updates.unit || current.unit || 'kg' // Default to 'kg' if unit not set
@@ -182,17 +183,21 @@ export const useInventoryStore = defineStore('inventory', () => {
     }
     ingredients.value[index] = updatedIngredient
 
-    const { error } = await supabase
-      .from('inventory')
-      .update({
-        name: nextName,
-        quantity: nextQuantity,
-        cost: nextCost,
-        type: nextType,
-        unit: nextUnit,
-        updated_at,
-      })
-      .eq('id', id)
+    // Only update cost in database if it's being explicitly changed
+    const dbUpdates = {
+      name: nextName,
+      quantity: nextQuantity,
+      type: nextType,
+      unit: nextUnit,
+      updated_at,
+    }
+
+    // Only include cost in update if it's being changed
+    if (updates.cost !== undefined) {
+      dbUpdates.cost = nextCost
+    }
+
+    const { error } = await supabase.from('inventory').update(dbUpdates).eq('id', id)
 
     if (error) {
       // Revert on failure
@@ -247,17 +252,20 @@ export const useInventoryStore = defineStore('inventory', () => {
     const ingredientIndex = ingredients.value.findIndex((ing) => ing.id === id)
 
     if (ingredientIndex !== -1) {
+      const currentIngredient = ingredients.value[ingredientIndex]
       const updatedIngredient = {
-        ...ingredients.value[ingredientIndex],
+        ...currentIngredient,
         quantity: numericQuantity,
         isAvailable: numericQuantity > 0,
         updated_at: new Date().toISOString(),
+        // Preserve the original cost - don't reset it
+        cost: currentIngredient.cost || 0,
       }
 
-      // Update in the array to trigger reactivity
+      // Update in array to trigger reactivity
       ingredients.value[ingredientIndex] = updatedIngredient
 
-      // Update in the database
+      // Update in database - only update quantity, not cost
       supabase
         .from('inventory')
         .update({
@@ -268,12 +276,8 @@ export const useInventoryStore = defineStore('inventory', () => {
         .then(({ error }) => {
           if (error) {
             console.error('Error updating quantity in database:', error)
-            // Revert the local change if database update fails
-            ingredients.value[ingredientIndex] = {
-              ...ingredients.value[ingredientIndex],
-              quantity: ingredients.value[ingredientIndex].quantity,
-              isAvailable: ingredients.value[ingredientIndex].isAvailable,
-            }
+            // Revert local change if database update fails
+            ingredients.value[ingredientIndex] = currentIngredient
           }
         })
     }
@@ -383,7 +387,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         updated_at: new Date().toISOString(),
       }
 
-      // Update the database
+      // Update in database
       console.log(`Updating database for ingredient:`, {
         ingredientId: ingredient.id,
         ingredientName: ingredient.name,

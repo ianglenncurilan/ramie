@@ -804,7 +804,7 @@ onMounted(async () => {
 
 .screen {
   min-height: 100vh;
-  background: #2f8b60;
+  background: #f4f4f4;
   display: flex;
   flex-direction: column;
   padding-bottom: 80px; /* Space for bottom bar */

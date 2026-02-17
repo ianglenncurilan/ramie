@@ -16,7 +16,7 @@
           <div class="col">
             <div class="title">Starter</div>
             <div class="muted">60% Protein / 40% Carbs</div>
-            <div class="muted">60–90 Days</div>
+            <div class="muted">1–84 Days</div>
           </div>
           <span class="chev">›</span>
         </button>
@@ -25,7 +25,7 @@
           <div class="col">
             <div class="title">Grower</div>
             <div class="muted">50% Protein / 50% Carbs</div>
-            <div class="muted">90–120 Days</div>
+            <div class="muted">85–112 Days</div>
           </div>
           <span class="chev">›</span>
         </button>
@@ -34,7 +34,7 @@
           <div class="col">
             <div class="title">Finisher</div>
             <div class="muted">40% Protein / 60% Carbs</div>
-            <div class="muted">120–150 Days</div>
+            <div class="muted">113–155+ Days</div>
           </div>
           <span class="chev">›</span>
         </button>

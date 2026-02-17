@@ -12,7 +12,7 @@
             <div class="sync-spinner"></div>
             <span class="sync-text">Syncing...</span>
           </div>
-         
+
           <img class="panel-illustration" src="/inventory.png" alt="icon" />
         </div>
       </div>
@@ -55,8 +55,6 @@
           </div>
         </div>
       </div>
-
-      
 
       <!-- Total Hogs Display & Notifications -->
       <div class="top-row-section">
@@ -154,8 +152,6 @@
 
       <!-- Daily Consumption & Category Breakdown -->
 
-      
-
       <!-- Low Stock Alert Prompt -->
       <div v-if="showAlert" class="low-stock-alert-prompt">
         <div class="alert-content">
@@ -195,12 +191,11 @@
       <!-- Feed Cost Analysis Section -->
       <div class="feed-cost-section">
         <h3>💰 Feed Cost Analysis</h3>
-        
+
         <div class="cost-breakdown">
           <div class="breakdown-title">Cost Breakdown by Feed Type</div>
 
           <!-- Daily Cost Analysis Cards -->
-         
 
           <!-- Original Cost Breakdown Grid -->
           <div class="breakdown-grid">
@@ -259,13 +254,8 @@ const feedsStore = useFeedsStore()
 const { showSuccess, showWarning, showError } = useAlertModal()
 
 // Use farm data composable for shared state and sync
-const {
-  isSyncing,
-  lastSyncTime,
-  syncError,
-  refreshAllData,
-  setupRealtimeSubscriptions,
-} = useFarmData()
+const { isSyncing, lastSyncTime, syncError, refreshAllData, setupRealtimeSubscriptions } =
+  useFarmData()
 
 // Store cleanup function for realtime subscriptions
 let cleanupRealtime = null
@@ -385,7 +375,7 @@ const dailyConsumptionCostByCategory = computed(() => {
   // Calculate daily cost for each category
   Object.keys(categoryBreakdown).forEach((category) => {
     const data = categoryBreakdown[category]
-    
+
     // Data Structure from feed_inventory
     const totalKgRemaining = feedInventory.feedStock[category] || 0
     const totalCostRemaining = totalKgRemaining * costPerKg
@@ -856,6 +846,10 @@ onMounted(async () => {
     console.log('📋 Feed formulation saved, refreshing...')
     feedsStore.fetchRecords()
     refreshAllData(false)
+    // Ensure feed inventory analytics are recalculated after formulation
+    setTimeout(() => {
+      feedInventory.calculateAnalytics()
+    }, 500)
   }
 
   window.addEventListener('feedFormulationSaved', handleFeedFormulationSaved)
@@ -866,6 +860,10 @@ onMounted(async () => {
       console.log('📋 Feed formulation updated via storage, refreshing...')
       feedsStore.fetchRecords()
       refreshAllData(false)
+      // Ensure feed inventory analytics are recalculated after formulation
+      setTimeout(() => {
+        feedInventory.calculateAnalytics()
+      }, 500)
     }
   }
 
