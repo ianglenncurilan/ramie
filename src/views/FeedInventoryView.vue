@@ -12,94 +12,51 @@
             <div class="sync-spinner"></div>
             <span class="sync-text">Syncing...</span>
           </div>
-          <button 
-            @click="refreshInventory" 
-            class="refresh-btn" 
-            title="Refresh inventory"
-            :disabled="isSyncing"
-          >
-            {{ isSyncing ? '⏳' : '🔄' }}
-          </button>
+         
           <img class="panel-illustration" src="/inventory.png" alt="icon" />
         </div>
       </div>
 
-      <!-- Stock Status Cards -->
-      <div class="stock-overview">
-        <div class="total-hogs-card">
-          <div class="hogs-icon">🐷</div>
-          <div class="hogs-info">
-            <div class="hogs-number">{{ totalHogs }}</div>
-            <div class="hogs-label">Total Active Hogs</div>
-          </div>
-        </div>
-
-        <div class="stock-cards">
+      <!-- Feed Forecast Section -->
+      <div class="forecast-section">
+        <h3>Feed Forecast by Stage</h3>
+        <div class="forecast-grid">
           <div
-            v-for="(stock, category) in stockLevels"
+            v-for="(stock, category) in feedInventory.feedStock"
             :key="category"
-            class="stock-card"
-            :class="feedInventory.stockStatusByCategory[category]"
+            class="forecast-item"
+            :class="getForecastClass(category)"
           >
-            <div class="category-info">
-              <div class="category-name">{{ capitalizeFirst(category) }}</div>
-              <div class="stock-amount">{{ stock.toFixed(1) }} kg</div>
+            <div class="forecast-header">
+              <div class="forecast-icon">{{ getFeedIcon(category) }}</div>
+              <div class="forecast-title">{{ capitalizeFirst(category) }} Feed</div>
             </div>
-            <div class="category-status">
-              <div
-                class="status-indicator"
-                :class="feedInventory.stockStatusByCategory[category]"
-              ></div>
-              <div class="status-text">
-                {{ getStatusText(feedInventory.stockStatusByCategory[category]) }}
+            <div class="forecast-details">
+              <div class="stock-amount">
+                <span class="stock-value">{{ stock.toFixed(1) }}</span>
+                <span class="stock-unit">kg remaining</span>
+              </div>
+              <div class="days-remaining">
+                <span class="days-value">{{ getDaysRemainingForCategory(category) }}</span>
+                <span class="days-unit">days</span>
+              </div>
+              <div class="consumption-rate">
+                <span class="rate-value">{{ getCategoryConsumptionRate(category) }}</span>
+                <span class="rate-unit">kg/day</span>
+              </div>
+              <div class="depletion-date">
+                <span class="date-label">Depletion:</span>
+                <span class="date-value">{{ getDepletionDateForCategory(category) }}</span>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Feed Cost Analysis Section -->
-      <div class="feed-cost-section">
-        <h3>💰 Feed Cost Analysis</h3>
-        
-        <div class="cost-breakdown">
-          <div class="breakdown-title">Cost Breakdown by Feed Type</div>
-
-          <!-- Daily Cost Analysis Cards -->
-         
-
-          <!-- Original Cost Breakdown Grid -->
-          <div class="breakdown-grid">
-            <div
-              v-for="(cost, category) in feedCostAnalysis.costByCategory"
-              :key="category"
-              class="breakdown-item"
-            >
-              <div class="category-header">
-                <div class="category-name">{{ capitalizeFirst(category) }}</div>
-              </div>
-              <div class="category-details">
-                <div class="detail-row">
-                  <span>Total kg:</span>
-                  <span>{{ cost.totalKg.toFixed(1) }} kg</span>
-                </div>
-                <div class="detail-row">
-                  <span>Total cost:</span>
-                  <span>{{ formatCurrency(cost.totalCost) }}</span>
-                </div>
-                <div class="detail-row">
-                  <span>Daily cost:</span>
-                  <span class="daily-cost"
-                    >{{
-                      formatCurrency(dailyConsumptionCostByCategory[category]?.dailyCost || 0)
-                    }}/day</span
-                  >
-                </div>
-              </div>
+            <div class="forecast-status" :class="getForecastClass(category)">
+              {{ getForecastStatus(category) }}
             </div>
           </div>
         </div>
       </div>
+
+      
 
       <!-- Total Hogs Display & Notifications -->
       <div class="top-row-section">
@@ -115,7 +72,7 @@
               >
                 <div class="category-label">{{ capitalizeFirst(category) }}</div>
                 <div class="category-data">
-                  <span class="count">{{ data.count }} hogs</span>
+                  <span class="count">{{ data.count }} active hogs</span>
                   <span class="consumption">{{ data.dailyKg.toFixed(2) }} kg/day</span>
                   <span class="daily-cost"
                     >{{
@@ -197,44 +154,7 @@
 
       <!-- Daily Consumption & Category Breakdown -->
 
-      <!-- Feed Forecast Section -->
-      <div class="forecast-section">
-        <h3>Feed Forecast by Stage</h3>
-        <div class="forecast-grid">
-          <div
-            v-for="(stock, category) in feedInventory.feedStock"
-            :key="category"
-            class="forecast-item"
-            :class="getForecastClass(category)"
-          >
-            <div class="forecast-header">
-              <div class="forecast-icon">{{ getFeedIcon(category) }}</div>
-              <div class="forecast-title">{{ capitalizeFirst(category) }} Feed</div>
-            </div>
-            <div class="forecast-details">
-              <div class="stock-amount">
-                <span class="stock-value">{{ stock.toFixed(1) }}</span>
-                <span class="stock-unit">kg remaining</span>
-              </div>
-              <div class="days-remaining">
-                <span class="days-value">{{ getDaysRemainingForCategory(category) }}</span>
-                <span class="days-unit">days</span>
-              </div>
-              <div class="consumption-rate">
-                <span class="rate-value">{{ getCategoryConsumptionRate(category) }}</span>
-                <span class="rate-unit">kg/day</span>
-              </div>
-              <div class="depletion-date">
-                <span class="date-label">Depletion:</span>
-                <span class="date-value">{{ getDepletionDateForCategory(category) }}</span>
-              </div>
-            </div>
-            <div class="forecast-status" :class="getForecastClass(category)">
-              {{ getForecastStatus(category) }}
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       <!-- Low Stock Alert Prompt -->
       <div v-if="showAlert" class="low-stock-alert-prompt">
@@ -270,6 +190,48 @@
           <strong>Error:</strong>
           <p>{{ feedInventory.error }}</p>
           <button @click="feedInventory.clearError" class="dismiss-btn">Dismiss</button>
+        </div>
+      </div>
+      <!-- Feed Cost Analysis Section -->
+      <div class="feed-cost-section">
+        <h3>💰 Feed Cost Analysis</h3>
+        
+        <div class="cost-breakdown">
+          <div class="breakdown-title">Cost Breakdown by Feed Type</div>
+
+          <!-- Daily Cost Analysis Cards -->
+         
+
+          <!-- Original Cost Breakdown Grid -->
+          <div class="breakdown-grid">
+            <div
+              v-for="(cost, category) in feedCostAnalysis.costByCategory"
+              :key="category"
+              class="breakdown-item"
+            >
+              <div class="category-header">
+                <div class="category-name">{{ capitalizeFirst(category) }}</div>
+              </div>
+              <div class="category-details">
+                <div class="detail-row">
+                  <span>Total kg:</span>
+                  <span>{{ cost.totalKg.toFixed(1) }} kg</span>
+                </div>
+                <div class="detail-row">
+                  <span>Total cost:</span>
+                  <span>{{ formatCurrency(cost.totalCost) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span>Daily cost:</span>
+                  <span class="daily-cost"
+                    >{{
+                      formatCurrency(dailyConsumptionCostByCategory[category]?.dailyCost || 0)
+                    }}/day</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

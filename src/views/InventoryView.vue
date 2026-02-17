@@ -5,7 +5,7 @@
         <div class="panel-header">
           <button class="back" @click="$router.back()">←</button>
           <div class="title-wrap">
-            <h2 class="title-lg">Inventory</h2>
+            <h2 class="title-lg">Ingredient Inventory</h2>
             <p class="sub">Manage your ingredients</p>
           </div>
           <div class="header-actions">
@@ -25,7 +25,7 @@
         </div>
         <div class="add-button-container">
           <button class="add-btn" @click="openModal">
-            <span>+ Add</span>
+            <span>Add Ingredient</span>
           </button>
         </div>
         <div class="table">
@@ -707,6 +707,13 @@ function onNameChange() {
   white-space: nowrap;
   width: auto;
   min-width: 150px;
+  transition: all 0.3s ease;
+}
+
+.add-btn:hover {
+  background: #266647;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 139, 96, 0.4);
 }
 .panel-illustration {
   width: 64px;

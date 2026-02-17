@@ -4,44 +4,14 @@
       <div class="panel-header">
         <button class="back" @click="$router.back()">←</button>
         <div class="title-wrap">
-          <h2 class="title-lg">Cost Summary</h2>
+          <h2 class="title-lg">Daily Feed Consumption Summary</h2>
           <p class="sub">Track your hog investment and profitability</p>
         </div>
-        <div class="header-actions">
-          <button @click="testDailyDeduction" class="test-btn" title="Test Daily Deduction">
-            🧪 Test
-          </button>
-          <button @click="refreshData" class="refresh-btn" title="Refresh data">🔄</button>
-        </div>
+        
         <img class="panel-illustration" src="/price.png" alt="icon" />
       </div>
 
       <!-- Cost Overview Cards -->
-
-      <!-- Cost Overview Cards - 3 Column Layout -->
-      <div class="cost-overview-grid">
-        <!-- Column 1: Active Hogs -->
-        <div class="status-card active">
-          <div class="status-count">{{ costMetrics.activeHogCount }}</div>
-          <div class="status-label">Active Hogs</div>
-          <div class="status-amount">{{ formatCurrency(costMetrics.activeInvestment) }}</div>
-        </div>
-
-        <!-- Column 2: Sold Hogs -->
-        <div class="status-card sold">
-          <div class="status-count">{{ costMetrics.soldHogCount }}</div>
-          <div class="status-label">Sold Hogs</div>
-          <div class="status-amount">{{ formatCurrency(costMetrics.soldInvestment) }}</div>
-        </div>
-
-        <!-- Column 3: Deceased Hogs -->
-        <div class="status-card deceased" v-if="costMetrics.deceasedHogCount > 0">
-          <div class="status-count">{{ costMetrics.deceasedHogCount }}</div>
-          <div class="status-label">Deceased Hogs</div>
-          <div class="status-amount">{{ formatCurrency(costMetrics.deceasedInvestment) }}</div>
-          <div class="status-loss">Total Loss</div>
-        </div>
-      </div>
 
       <!-- Detailed Hog Cost List -->
       <div class="hog-costs-section">
@@ -62,14 +32,7 @@
                 </div>
               </div>
               <div class="hog-costs">
-                <div class="cost-item">
-                  <span class="cost-type">Feed:</span>
-                  <span class="cost-value">{{ formatCurrency(hog.total_feed_cost) }}</span>
-                </div>
-                <div class="cost-item total">
-                  <span class="cost-type">Total:</span>
-                  <span class="cost-value">{{ formatCurrency(hog.total_cost) }}</span>
-                </div>
+                
                 <button
                   @click="toggleDailyDetails(hog.id)"
                   class="daily-details-btn"
@@ -93,9 +56,20 @@
                     <strong>Total Days Tracked:</strong>
                     {{ dailyFeedCosts[hog.id]?.length || 0 }} days
                   </span>
+                  <div class="cost-item total">
+                  <span class="cost-type">Total Daily Feed Cost:</span>
+                  <span class="cost-value">{{ formatCurrency(calculateDailyFeedTotal(hog)) }}</span>
+                </div>
                 </div>
               </div>
               <div class="daily-feed-list">
+                <!-- Column Headers -->
+                <div class="daily-feed-headers">
+                  <div class="feed-header">Date</div>
+                  <div class="feed-header">Stage</div>
+                  <div class="feed-header">Daily Feed Consumption</div>
+                  <div class="feed-header">Cost</div>
+                </div>
                 <div
                   v-for="(cost, index) in dailyFeedCosts[hog.id] || []"
                   :key="hog.id + '-' + index"
@@ -104,7 +78,7 @@
                   <div class="feed-date">{{ formatDate(cost.date) }}</div>
                   <div class="feed-category">{{ cost.feed_category }}</div>
                   <div class="feed-amount">{{ cost.amount_kg }} kg</div>
-                 
+
                   <div class="feed-total">{{ formatCurrency(cost.total_cost) }}</div>
                 </div>
                 <div
@@ -200,6 +174,14 @@ const calculateDailyAverage = (hog) => {
   const totalKg = costs.reduce((sum, cost) => sum + cost.amount_kg, 0)
   const uniqueDays = new Set(costs.map((cost) => cost.date)).size
   return uniqueDays > 0 ? (totalKg / uniqueDays).toFixed(2) : '0.00'
+}
+
+// Calculate total daily feed cost for a hog
+const calculateDailyFeedTotal = (hog) => {
+  const costs = dailyFeedCosts.value[hog.id] || []
+  if (costs.length === 0) return 0
+
+  return costs.reduce((sum, cost) => sum + (cost.total_cost || 0), 0)
 }
 
 // Format date for display
@@ -333,13 +315,15 @@ const checkAndPerformDailyDeduction = async () => {
 
 .back {
   background: none;
-  border: none;
+  border: 1px solid ;
+  border-color: #cfcfcf;
   font-size: 24px;
   cursor: pointer;
   color: #333;
   padding: 8px;
   border-radius: 8px;
   transition: background 0.2s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .back:hover {
@@ -544,10 +528,11 @@ const checkAndPerformDailyDeduction = async () => {
   justify-content: space-between;
   align-items: center;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .hog-cost-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .hog-cost-item.sold {
@@ -628,9 +613,7 @@ const checkAndPerformDailyDeduction = async () => {
 
 .cost-item.total {
   font-weight: 600;
-  border-top: 1px solid #e9ecef;
-  padding-top: 4px;
-  margin-top: 4px;
+
 }
 
 .cost-type {
@@ -709,9 +692,28 @@ const checkAndPerformDailyDeduction = async () => {
   overflow-y: auto;
 }
 
-.daily-feed-item {
+.daily-feed-headers {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  gap: 58px;
+  padding: 12px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.feed-header {
+  text-align: center;
+  padding: 0 4px;
+}
+
+.daily-feed-item {
+  display: grid;
+  grid-template-columns:  1fr 1fr 1fr 1fr;
   gap: 12px;
   padding: 8px;
   background: white;

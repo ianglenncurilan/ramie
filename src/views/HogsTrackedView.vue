@@ -1436,7 +1436,7 @@ textarea.form-input {
 
 .screen {
   min-height: 100vh;
-  background: #2f8b60;
+  background: #f4f4f4;
   display: flex;
   flex-direction: column;
 }

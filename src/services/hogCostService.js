@@ -80,7 +80,10 @@ export const logDailyFeedCost = async (hogId, date, feedData) => {
 // Get total cost summary for all hogs
 export const getHogCostSummary = async () => {
   try {
-    const { data, error } = await supabase.from('hogs').select(`
+    const { data, error } = await supabase
+      .from('hogs')
+      .select(
+        `
         id,
         code,
         weight,
@@ -90,8 +93,9 @@ export const getHogCostSummary = async () => {
         purchase_price,
         total_feed_cost,
         total_cost
-      `)
-    // Remove status filter to get ALL hogs (active, sold, deceased)
+      `,
+      )
+      .in('status', ['active', 'in-progress']) // Only show active and in-progress hogs
 
     if (error) throw error
 
