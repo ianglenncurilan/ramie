@@ -8,7 +8,7 @@
               <span>←</span>
             </button>
             <div>
-              <h2>Expenses</h2>
+              <h2>Budget Overview</h2>
               <div class="summary-line">Financial Summary</div>
             </div>
           </div>

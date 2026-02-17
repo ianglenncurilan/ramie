@@ -9,6 +9,7 @@
             <p class="sub">Manage your ingredients</p>
           </div>
           <div class="header-actions">
+           
             <img class="panel-illustration" src="/inventory.png" alt="icon" />
           </div>
         </div>

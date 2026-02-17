@@ -35,7 +35,12 @@ const isUserAdmin = ref(false)
 // Base menu items for all users
 const baseMenuItems = [
   { name: 'dashboard', label: 'Home', icon: '/home.png', disabled: false },
-  { name: 'feed-inventory', label: 'Feed Inventory', icon: '/product-management.png', disabled: false },
+  {
+    name: 'feed-inventory',
+    label: 'Feed Inventory',
+    icon: '/product-management.png',
+    disabled: false,
+  },
   { name: 'cost-summary', label: 'Daily Feed Cost', icon: '/cost.png', disabled: false },
   { name: 'expenses', label: 'Budget Overview', icon: '/expensesicon.png', disabled: false },
   { name: 'records', label: 'Records', icon: '/record.png', disabled: false },
