@@ -57,13 +57,6 @@
             <span class="created-date">{{ formatDate(staff.created_at) }}</span>
             <div class="actions">
               <button class="edit-btn" @click="editStaff(staff)">✏️</button>
-              <button
-                class="delete-btn"
-                @click="deleteStaff(staff.id)"
-                :disabled="staff.id === currentUserId"
-              >
-                {{ staff.id === currentUserId ? '👤' : 'X' }}
-              </button>
             </div>
           </div>
         </div>
@@ -75,7 +68,6 @@
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>{{ editingStaff ? 'Edit Staff' : 'Add New Staff' }}</h3>
-          <button class="close-btn" @click="closeUserModal">×</button>
         </div>
 
         <form @submit.prevent="saveUser" class="modal-form">
