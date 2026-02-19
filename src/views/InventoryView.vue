@@ -9,7 +9,6 @@
             <p class="sub">Manage your ingredients</p>
           </div>
           <div class="header-actions">
-           
             <img class="panel-illustration" src="/inventory.png" alt="icon" />
           </div>
         </div>
@@ -596,33 +595,55 @@ async function updateIngredientQuantity(ingredient) {
 function detectIngredientType(name) {
   const lowerName = name.toLowerCase()
 
-  // Protein sources
+  // Protein sources (comprehensive mapping)
   if (
     lowerName.includes('meal') ||
     lowerName.includes('fish') ||
     lowerName.includes('soybean') ||
+    lowerName.includes('soya') ||
+    lowerName.includes('soy') ||
     lowerName.includes('ramie') ||
     lowerName.includes('cadamba') ||
-    lowerName.includes('copra')
+    lowerName.includes('copra') ||
+    lowerName.includes('azolla') ||
+    lowerName.includes('camote') ||
+    lowerName.includes('sweet potato') ||
+    lowerName.includes('moringa') ||
+    lowerName.includes('malunggay') ||
+    lowerName.includes('madre de agua') ||
+    lowerName.includes('water hyacinth') ||
+    lowerName.includes('hyacinth') ||
+    lowerName.includes('banana leaves') ||
+    lowerName.includes('palm kernel') ||
+    lowerName.includes('palm meal')
   ) {
     return 'protein'
   }
 
-  // Carbohydrate sources
+  // Carbohydrate sources (comprehensive mapping)
   if (
     lowerName.includes('corn') ||
     lowerName.includes('wheat') ||
     lowerName.includes('rice') ||
     lowerName.includes('banana') ||
-    lowerName.includes('bran')
+    lowerName.includes('bran') ||
+    lowerName.includes('rice bran') ||
+    lowerName.includes('ricebran') ||
+    lowerName.includes('rbd1') ||
+    lowerName.includes('rbd2') ||
+    lowerName.includes('rice hull') ||
+    lowerName.includes('ricehull') ||
+    lowerName.includes('ricehulls')
   ) {
     return 'carbs'
   }
 
-  // Vitamins
+  // Vitamins (comprehensive mapping)
   if (
     lowerName.includes('vitamin') ||
     lowerName.includes('molasses') ||
+    lowerName.includes('blackstrap molasses') ||
+    lowerName.includes('sugar cane molasses') ||
     lowerName.includes('herbal') ||
     lowerName.includes('premix') ||
     lowerName.includes('cececal')
@@ -630,9 +651,28 @@ function detectIngredientType(name) {
     return 'vitamins'
   }
 
-  // Minerals
-  if (lowerName.includes('salt') || lowerName.includes('hull') || lowerName.includes('mineral')) {
+  // Minerals (comprehensive mapping)
+  if (
+    lowerName.includes('salt') ||
+    lowerName.includes('iodized salt') ||
+    lowerName.includes('rock salt') ||
+    lowerName.includes('hull') ||
+    lowerName.includes('mineral') ||
+    lowerName.includes('carbonized rice hulls') ||
+    lowerName.includes('crushed rice hull') ||
+    lowerName.includes('carbonized rice') ||
+    lowerName.includes('cr rice hulls')
+  ) {
     return 'minerals'
+  }
+
+  // Water
+  if (
+    lowerName.includes('water') ||
+    lowerName.includes('clean water') ||
+    lowerName.includes('drinking water')
+  ) {
+    return 'water'
   }
 
   // Default to carbs

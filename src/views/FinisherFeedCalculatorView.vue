@@ -9,7 +9,7 @@
           <div class="who">
             <div class="name">Finisher Feed</div>
             <div class="stage">40% Protein / 60% Carbs</div>
-            <div class="days">120-150 Days</div>
+            <div class="days">113-155+ Days</div>
           </div>
         </div>
 
@@ -831,7 +831,7 @@ async function saveFormulation() {
   padding: 16px;
   flex: 1;
   overflow-y: auto;
-  max-height: calc(100vh - 140px);
+  max-height: calc(100vh - 100px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.06);
   max-width: 1200px;

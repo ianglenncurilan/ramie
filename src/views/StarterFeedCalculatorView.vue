@@ -9,7 +9,7 @@
           <div class="who">
             <div class="name">Starter Feed</div>
             <div class="stage">60% Protein / 40% Carbs</div>
-            <div class="days">60-90 Days</div>
+            <div class="days">1-84 Days</div>
           </div>
         </div>
 
@@ -88,9 +88,16 @@
                   :class="{
                     active: amounts[item.id],
                     exceeded: getCategoryTotal(category) > category.total,
+                    disabled: !isIngredientAvailable(item.id),
                   }"
                 >
-                  <input type="number" min="0" step="0.01" v-model.number="amounts[item.id]" />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    v-model.number="amounts[item.id]"
+                    :disabled="!isIngredientAvailable(item.id)"
+                  />
                   <span class="unit">{{ getIngredientUnit(item) }}</span>
                 </div>
               </div>
@@ -102,6 +109,7 @@
                       (findInventoryItem(item.id) && findInventoryItem(item.id).isAvailable) ||
                       (findInventoryItemByName(item.label) &&
                         findInventoryItemByName(item.label).isAvailable),
+                    disabled: !isIngredientAvailable(item.id) || amounts[item.id] === 0,
                   }"
                 >
                   <template
@@ -116,7 +124,9 @@
                     >
                     <span class="auto-indicator" title="Auto-populated from inventory">📦</span>
                   </template>
-                  <input v-else type="number" min="0" step="0.01" v-model.number="costs[item.id]" />
+                  <template v-else>
+                    <span class="cost-display">₱0.00</span>
+                  </template>
                 </div>
               </div>
             </div>
@@ -166,21 +176,18 @@ const INGREDIENT_MAPPING = {
 // Starter feed categories with 60% Protein / 40% Carbs ratio
 const uiCategories = computed(() => {
   // Get available ingredients from inventory
-  const availableIngredients = inventoryStore.availableIngredients
+  const allIngredients = inventoryStore.ingredients
 
   // Categorize ingredients by type
   const categorizedIngredients = {
-    carbs: availableIngredients.filter(
+    carbs: allIngredients.filter(
       (ingredient) =>
         ingredient.type === 'carbs' && !ingredient.name.toLowerCase().includes('water'),
     ),
-    protein: availableIngredients.filter((ingredient) => ingredient.type === 'protein'),
-    vitamins: availableIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
-    minerals: availableIngredients.filter((ingredient) => ingredient.type === 'minerals'),
-    water: availableIngredients.filter(
-      (ingredient) =>
-        ingredient.type === 'carbs' && ingredient.name.toLowerCase().includes('water'),
-    ),
+    protein: allIngredients.filter((ingredient) => ingredient.type === 'protein'),
+    vitamins: allIngredients.filter((ingredient) => ingredient.type === 'vitamins'),
+    minerals: allIngredients.filter((ingredient) => ingredient.type === 'minerals'),
+    water: allIngredients.filter((ingredient) => ingredient.type === 'water'),
   }
 
   return [
@@ -279,6 +286,12 @@ function stringSimilarity(s1, s2) {
   // Calculate similarity ratio (0-1)
   const maxLen = Math.max(str1.length, str2.length)
   return 1 - track[str2.length][str1.length] / maxLen
+}
+
+// Function to check if ingredient is available (has quantity > 0)
+const isIngredientAvailable = (ingredientId) => {
+  const inventoryItem = inventoryStore.ingredients.find((ing) => ing.id === ingredientId)
+  return inventoryItem && Number(inventoryItem.quantity) > 0
 }
 
 // Function to find matching inventory item for a feed ingredient
@@ -817,7 +830,7 @@ const saveFormulation = async () => {
   padding: 16px;
   flex: 1;
   overflow-y: auto;
-  max-height: calc(100vh - 140px);
+  max-height: calc(100vh - 100px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.06);
   max-width: 1200px;
@@ -1104,6 +1117,16 @@ const saveFormulation = async () => {
 }
 .pill.exceeded {
   background-color: #851717;
+}
+.pill.disabled {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+.pill.disabled input {
+  cursor: not-allowed;
+  color: #9ca3af;
 }
 .pill.auto-populated {
   background-color: #d0f5c8;

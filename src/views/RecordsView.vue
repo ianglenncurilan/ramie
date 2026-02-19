@@ -103,6 +103,9 @@
             <div class="filter-status" v-if="currentFilterDisplay">
               {{ currentFilterDisplay }}
               <button class="clear-filter" @click="clearFilters">×</button>
+              <button class="refresh-btn" @click="refreshRecords" title="Refresh Records">
+                🔄
+              </button>
             </div>
           </div>
 
@@ -122,6 +125,10 @@
                     </div>
                     <div class="row-content">
                       <div class="row-title">{{ typeLabel(rec) || 'Feed' }}</div>
+                      <div class="row-details">
+                        <span class="stage-badge" v-if="getStage(rec)">{{ getStage(rec) }}</span>
+                        <span class="cost-badge">₱{{ (rec.total_cost || 0).toFixed(2) }}</span>
+                      </div>
                     </div>
                   </div>
                   <div v-if="group.items.length === 0" class="empty">No records</div>
@@ -147,24 +154,28 @@
               <div class="record-header">
                 <h4>
                   {{
-                    getStage(selectedRecord)
-                      ? getStage(selectedRecord) + ' Feed'
+                    getStage(selectedRecordData)
+                      ? getStage(selectedRecordData) + ' Feed'
                       : 'Feed Formulation'
                   }}
                 </h4>
                 <div class="record-meta">
-                  <span class="record-date">{{ formatDateTime(recordDate(selectedRecord)) }}</span>
+                  <span class="record-date">{{
+                    formatDateTime(recordDate(selectedRecordData))
+                  }}</span>
                 </div>
               </div>
 
               <div class="record-summary">
                 <div class="summary-item">
                   <span class="label">Total Cost:</span>
-                  <span class="value cost">₱{{ (selectedRecord.totalCost || 0).toFixed(2) }}</span>
+                  <span class="value cost"
+                    >₱{{ (selectedRecordData?.total_cost || 0).toFixed(2) }}</span
+                  >
                 </div>
-                <div class="summary-item" v-if="selectedRecord.creatorName">
+                <div class="summary-item" v-if="selectedRecordData?.creatorName">
                   <span class="label">Created by:</span>
-                  <span class="value">{{ selectedRecord.creatorName }}</span>
+                  <span class="value">{{ selectedRecordData?.creatorName }}</span>
                 </div>
               </div>
             </div>
@@ -176,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, onBeforeMount } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeMount, onUnmounted } from 'vue'
 import { useFeedsStore } from '../stores/feeds'
 
 // Date filter state
@@ -269,9 +280,30 @@ onMounted(async () => {
 
   startWeek.value = formatWeek(start)
   endWeek.value = formatWeek(end)
-  specificDate.value = formatDate(today)
-
   updateDateFilter()
+
+  // Listen for feed formulation saved events to refresh records
+  const handleFeedFormulationSaved = (event) => {
+    console.log('Feed formulation saved event received:', event)
+    console.log('Event detail:', event.detail)
+    console.log('Current records before refresh:', feeds.records?.length || 0)
+    console.log('Records data:', feeds.records)
+
+    // Force refresh to get latest data
+    setTimeout(() => {
+      feeds.fetchRecords().then(() => {
+        console.log('Records after refresh:', feeds.records?.length || 0)
+        console.log('Sample record:', feeds.records?.[0])
+      })
+    }, 100) // Small delay to ensure database is updated
+  }
+
+  window.addEventListener('feedFormulationSaved', handleFeedFormulationSaved)
+
+  // Clean up event listener when component is unmounted
+  onUnmounted(() => {
+    window.removeEventListener('feedFormulationSaved', handleFeedFormulationSaved)
+  })
 })
 
 // Helper to get week number
@@ -446,6 +478,16 @@ function formatDateTime(dateLike) {
 const showRecordModal = ref(false)
 const selectedRecord = ref(null)
 
+// Computed property to ensure selectedRecord is reactive
+const selectedRecordData = computed(() => {
+  if (!selectedRecord.value) return null
+  console.log('SelectedRecord computed:', selectedRecord.value)
+  return {
+    ...selectedRecord.value,
+    total_cost: Number(selectedRecord.value.total_cost) || 0,
+  }
+})
+
 // Modal functions
 function openRecordModal(record) {
   selectedRecord.value = record
@@ -455,6 +497,12 @@ function openRecordModal(record) {
 function closeRecordModal() {
   showRecordModal.value = false
   selectedRecord.value = null
+}
+
+// Manual refresh function
+function refreshRecords() {
+  console.log('Manual refresh triggered')
+  feeds.fetchRecords()
 }
 
 function getStage(rec) {
@@ -483,7 +531,7 @@ async function exportMonth() {
         Time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         Type: typeLabel(r) || 'Feed',
         Stage: getStage(r) || '',
-        'Total Cost (PHP)': Number(r.totalCost || 0),
+        'Total Cost (PHP)': Number(r.total_cost || 0),
         'Created By': r.creatorName || '',
       }
     })
@@ -574,10 +622,28 @@ async function exportMonth() {
   background: none;
   border: none;
   color: #2e7d32;
-  font-size: 1.2rem;
+  padding: 4px 8px;
+  border-radius: 4px;
   cursor: pointer;
-  padding: 0 0.25rem;
-  line-height: 1;
+  font-size: 12px;
+}
+
+.refresh-btn {
+  background: #2f8b60;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.refresh-btn:hover {
+  background: #247a52;
+}
+
+.clear-filter:hover {
   opacity: 0.7;
   transition: opacity 0.2s;
 }
@@ -1106,6 +1172,28 @@ async function exportMonth() {
   filter: grayscale(30%);
 }
 .row-title {
+  font-weight: 600;
+}
+.row-details {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+.stage-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.cost-badge {
+  background: #e8f5e8;
+  color: #2e7d32;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 .list {
