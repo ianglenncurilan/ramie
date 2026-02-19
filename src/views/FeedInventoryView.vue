@@ -1220,14 +1220,14 @@ onUnmounted(() => {
 }
 
 .total-hogs-card {
-  background: rgb(237, 237, 237);
-  color: #2f8b60;
+  background: #e8f5e8;
+  color: #2e7d32;
   padding: 20px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 4px 15px rgba(238, 90, 36, 0.2);
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);
 }
 
 .hogs-icon {

@@ -127,7 +127,7 @@
                       <div class="row-title">{{ typeLabel(rec) || 'Feed' }}</div>
                       <div class="row-details">
                         <span class="stage-badge" v-if="getStage(rec)">{{ getStage(rec) }}</span>
-                        <span class="cost-badge">₱{{ (rec.total_cost || 0).toFixed(2) }}</span>
+                        <span class="cost-badge">₱{{ (rec.totalCost || 0).toFixed(2) }}</span>
                       </div>
                     </div>
                   </div>
@@ -170,7 +170,7 @@
                 <div class="summary-item">
                   <span class="label">Total Cost:</span>
                   <span class="value cost"
-                    >₱{{ (selectedRecordData?.total_cost || 0).toFixed(2) }}</span
+                    >₱{{ (selectedRecordData?.totalCost || 0).toFixed(2) }}</span
                   >
                 </div>
                 <div class="summary-item" v-if="selectedRecordData?.creatorName">
@@ -397,6 +397,9 @@ const filtered = computed(() => {
     const recordDate = dateOf(record)
     if (!recordDate) return false
 
+    // Filter out records with zero cost to remove duplicates/invalid entries
+    if (Number(record.totalCost) === 0) return false
+
     const recordTime = recordDate.getTime()
 
     switch (dateFilterType.value) {
@@ -482,10 +485,13 @@ const selectedRecord = ref(null)
 const selectedRecordData = computed(() => {
   if (!selectedRecord.value) return null
   console.log('SelectedRecord computed:', selectedRecord.value)
-  return {
+  console.log('Total cost from record:', selectedRecord.value?.totalCost)
+  const result = {
     ...selectedRecord.value,
-    total_cost: Number(selectedRecord.value.total_cost) || 0,
+    totalCost: Number(selectedRecord.value.totalCost) || 0,
   }
+  console.log('Final computed record:', result)
+  return result
 })
 
 // Modal functions
@@ -531,7 +537,7 @@ async function exportMonth() {
         Time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         Type: typeLabel(r) || 'Feed',
         Stage: getStage(r) || '',
-        'Total Cost (PHP)': Number(r.total_cost || 0),
+        'Total Cost (PHP)': Number(r.totalCost || 0),
         'Created By': r.creatorName || '',
       }
     })
