@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router/index.js'
 import { supabase } from './supabase'
+import './style.css'
 
 // Create and configure Pinia
 const pinia = createPinia()
