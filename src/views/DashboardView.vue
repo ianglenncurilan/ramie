@@ -578,8 +578,7 @@ const getStatusText = (status) => {
   cursor: pointer;
   transform: scale(1);
   transition: transform 0.2s ease-in-out;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08
-  );
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   min-height: 200px;
 }
 
