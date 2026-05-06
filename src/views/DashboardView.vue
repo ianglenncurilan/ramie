@@ -228,7 +228,7 @@ const getStatusText = (status) => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   max-width: 1200px;
   margin: 0 auto;
-  margin-right: 22px;
+
 }
 
 .panel-header {

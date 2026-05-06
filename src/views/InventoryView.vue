@@ -82,56 +82,11 @@
             <div class="form-group">
               <label>Ingredient Name</label>
               <input
-                v-if="editingIngredient"
                 v-model="form.name"
                 type="text"
                 placeholder="Enter ingredient name"
                 class="form-input"
-                readonly
-                disabled
-                style="background: #f8f9fa; color: #666; cursor: not-allowed"
-              />
-              <select v-else v-model="form.name" @change="onNameChange" required>
-                <option value="">Select an ingredient</option>
-
-                <!-- Carbs -->
-                <option value="Corn">Corn</option>
-                <option value="Rice Bran D1">Rice Bran D1</option>
-                <option value="Rice Bran D2">Rice Bran D2</option>
-                <option value="Rice Hull">Rice Hull</option>
-                <option value="Ramie">Ramie</option>
-
-                <!-- Protein -->
-                <option value="Camote Tops">Camote Tops</option>
-                <option value="Moringa">Moringa</option>
-                <option value="Azolla">Azolla</option>
-                <option value="Madre de Agua">Madre de Agua</option>
-                <option value="Water Hyacinth">Water Hyacinth</option>
-                <option value="Cadamba">Cadamba</option>
-                <option value="Banana Leaves">Banana Leaves</option>
-                <option value="Fish Meal">Fish Meal</option>
-                <option value="Soybean Meal">Soybean Meal</option>
-                <option value="Palm Kernel Meal">Palm Kernel Meal</option>
-
-                <!-- Minerals -->
-                <option value="Salt">Salt</option>
-                <option value="Carbonized Rice Hulls">Carbonized Rice Hulls</option>
-
-                <!-- Vitamins -->
-                <option value="Molasses">Molasses</option>
-
-                <!-- Water -->
-                <option value="Water">Water</option>
-
-                <option value="Other">Other (Specify)</option>
-              </select>
-              <input
-                v-if="!editingIngredient && form.name === 'Other'"
-                v-model="form.customName"
-                type="text"
-                placeholder="Enter ingredient name"
-                class="form-input"
-                style="margin-top: 8px"
+                required
               />
             </div>
 
@@ -146,6 +101,17 @@
                   placeholder="0"
                   required
                 />
+              </div>
+
+              <div class="form-group">
+                <label>Category</label>
+                <select v-model="form.category" required>
+                  <option value="">Select a category</option>
+                  <option value="protein">Protein</option>
+                  <option value="carbohydrates">Carbohydrates</option>
+                  <option value="vitamins">Vitamins</option>
+                  <option value="minerals">Minerals</option>
+                </select>
               </div>
 
               <div class="form-group">
@@ -257,10 +223,69 @@
 <script setup>
 import { ref, reactive, onMounted, onActivated } from 'vue'
 import { useInventoryStore } from '../stores/inventory'
-import { isAdmin } from '../services/supabase'
+import { isAdmin, supabase } from '../services/supabase'
 
 const inventory = useInventoryStore()
 const isUserAdmin = ref(false)
+const categories = ref([])
+
+// Fetch categories with their ingredients from database
+const fetchCategories = async () => {
+  try {
+    const { data: categoriesData, error: categoriesError } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name')
+
+    if (categoriesError) {
+      console.error('Error fetching categories:', categoriesError)
+      return
+    }
+
+    // Fetch ingredients for each category using junction table
+    const categoriesWithIngredients = await Promise.all(
+      categoriesData.map(async (category) => {
+        const { data: junctionData, error: junctionError } = await supabase
+          .from('ingredient_categories')
+          .select('ingredient_id')
+          .eq('category_id', category.id)
+
+        if (junctionError) {
+          console.error('Error fetching junction data:', junctionError)
+          return {
+            ...category,
+            ingredients: [],
+          }
+        }
+
+        const ingredientIds = junctionData.map((j) => j.ingredient_id)
+
+        if (ingredientIds.length === 0) {
+          return {
+            ...category,
+            ingredients: [],
+          }
+        }
+
+        const { data: ingredients, error: ingredientsError } = await supabase
+          .from('ingredients')
+          .select('id, name')
+          .in('id', ingredientIds)
+          .order('name')
+
+        return {
+          ...category,
+          ingredients: ingredients || [],
+        }
+      }),
+    )
+
+    categories.value = categoriesWithIngredients
+  } catch (err) {
+    console.error('Error fetching categories:', err)
+    categories.value = []
+  }
+}
 
 // Format number with commas
 const formatNumber = (num) => {
@@ -288,6 +313,7 @@ const form = reactive({
   quantity: '',
   cost: '',
   unit: '',
+  category: '',
   type: 'carbs',
 })
 
@@ -299,6 +325,7 @@ const quantityForm = reactive({
 // Fetch ingredients when component is mounted
 onMounted(async () => {
   await inventory.fetchIngredients()
+  await fetchCategories()
   isUserAdmin.value = await isAdmin()
 })
 
@@ -381,7 +408,8 @@ function resetForm() {
   form.customName = ''
   form.quantity = ''
   form.cost = ''
-  form.unit = 'kg'
+  form.unit = ''
+  form.category = ''
   form.type = 'carbs'
 }
 
@@ -391,6 +419,7 @@ function editIngredient(ingredient) {
   form.quantity = ingredient.quantity
   form.cost = ingredient.cost
   form.unit = ingredient.unit
+  form.category = ingredient.category || ''
   form.type = ingredient.type || 'carbs'
   showModal.value = true
 }
@@ -403,7 +432,7 @@ async function saveIngredient() {
       quantity: Number(form.quantity) || 0,
       cost: Number(form.cost) || 0,
       unit: form.unit || 'kg',
-      type: form.type || 'carbs',
+      type: form.category || 'carbs',
     }
 
     if (editingIngredient.value) {
