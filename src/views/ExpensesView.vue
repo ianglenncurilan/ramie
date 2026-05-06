@@ -981,6 +981,7 @@ const formatDate = (dateString) => {
   max-width: 1200px;
   width: 85%;
   align-self: center;
+  
 }
 
 .panel-inner {

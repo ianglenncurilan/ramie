@@ -115,7 +115,7 @@ const getStatusText = (status) => {
     <section class="panel">
       <div class="panel-header">
         <div class="title-wrap">
-          <h2 class="title-lg">Dashboard</h2>
+          <h2 class="title-sm">Dashboard</h2>
           <p class="sub">Farm Management Overview</p>
         </div>
         <div class="header-actions">
@@ -123,9 +123,8 @@ const getStatusText = (status) => {
             <div class="sync-spinner"></div>
             <span class="sync-text">Syncing...</span>
           </div>
-
-          <img class="panel-illustration" src="/leaf.png" alt="icon" />
         </div>
+        <img class="panel-illustration" src="/leaf.png" alt="icon" />
       </div>
 
       <main class="dashboard-content">
@@ -229,6 +228,7 @@ const getStatusText = (status) => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   max-width: 1200px;
   margin: 0 auto;
+  margin-right: 22px;
 }
 
 .panel-header {
